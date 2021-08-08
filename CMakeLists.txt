@@ -21,10 +21,6 @@ find_package(Boost COMPONENTS program_options system REQUIRED)
 find_package(uHAL)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${uHAL_INCLUDE_DIR})
-
-add_executable(readout readout.cc)
-target_link_libraries(readout ${Boost_LIBRARIES} ${uHAL_LIBRARIES})
-
-install(TARGETS readout RUNTIME DESTINATION bin)
+add_subdirectory(src)
