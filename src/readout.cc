@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <unistd.h>
@@ -177,16 +178,31 @@ int main(int argc, char *argv[])
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed_start = end - start;
       std::chrono::duration<double> elapsed_split = end - split;
-      std::cout << std::string(80, '-') << std::endl;
-      std::cout << " -- elapsed time: " << elapsed_start.count() << " s" << std::endl;
+
+      std::cout << std::string(16 * 7, '-') << std::endl;
+      //      std::cout << " -- elapsed time: " << elapsed_start.count() << " s" << std::endl;
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << "FIFO";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << "max occupancy";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << "words";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << "words/s";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << "bytes/s";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << "frames/s";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << "hits/s";
+      std::cout << std::endl;
+      std::cout << std::string(16 * 7, '-') << std::endl;
+
       for (int i = 0; i < 6; ++i) {
         if (!read_fifo[i]) continue;
-        std::cout << " --- FIFO # " << i << " | max occupancy: " << max_occupancy[i] << std::endl;
-        std::cout << "     count: " << nwords[i] << " words"
-		  << "      rate: " << nwords[i]  / elapsed_split.count() << " words/s"
-		  << "            " << nbytes[i]  / elapsed_split.count() << " bytes/s"
-		  << "            " << nframes[i] / elapsed_split.count() << " frames/s"
-		  << "            " << nhits[i]   / elapsed_split.count() << " hits/s" << std::endl;
+        
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << i;
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << max_occupancy[i];
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i];
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i] / elapsed_split.count();
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << nbytes[i] / elapsed_split.count();
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << nframes[i] / elapsed_split.count();
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << nhits[i] / elapsed_split.count();
+        std::cout << std::endl;
+        
 	max_occupancy[i] = 0;
 	nwords[i] = 0;
 	nbytes[i] = 0;
@@ -200,7 +216,7 @@ int main(int argc, char *argv[])
 
   }
 
-  /** release staging buffers **/
+  /** flush and release staging buffers **/
   for (int i = 0; i < 6; ++i) {
     if (!read_fifo[i]) continue;
     delete [] staging_buffer[i];
