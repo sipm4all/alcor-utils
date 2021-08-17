@@ -4,9 +4,24 @@
 #include <string>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 #include <chrono>
 #include <boost/program_options.hpp>
 #include "uhal/uhal.hpp"
+
+#include "sys/ipc.h"
+#include "sys/shm.h"
+
+/** readout control protocol works over SHM
+    the following commands are accepted 
+    B (Begin) [runParams]
+    E (End)
+    Q (Quit)
+**/
+
+#define CTRLFILE "/tmp/alcorReadoutController.shmkey"
+#define PROJID 2333
+#define SHMSIZE 1024
 
 bool running = true;
 bool monitor = false;
@@ -44,6 +59,43 @@ void write_buffer_to_file(std::ofstream &fout, int buffer_id, uint8_t *buffer, i
   header[1] = buffer_size;
   fout.write((char *)&header, 8);
   fout.write((char *)buffer, buffer_size);
+}
+
+int
+shm_connect(const char* keyFile, int proj, size_t size)
+{
+  auto key = ftok(keyFile, proj);
+  if (key < 0) {
+    std::cerr << " [shm_connect] ftok error: " << strerror(errno) << std::endl;
+    exit(1);
+  }
+  auto shmid = shmget(key, size, IPC_CREAT | IPC_EXCL | 0664);
+  if (shmid == -1) {
+    if (errno == EEXIST) {
+      shmid = shmget(key, 0, 0);
+      std::cout << " [shm_connect] shared memory already exists: shmid = " << shmid << std::endl;
+    } else {
+      std::cerr << " [shm_connect] shmget error: " << strerror(errno) << std::endl;
+      exit(1);
+    }
+  } else {
+    std::cout << " [shm_connect] shared memory succesfully created: shmid = " << shmid << std::endl;
+  }
+  return shmid;
+}
+
+void
+shm_cleanup(int id, void *p, char *d)
+{
+  if (shmdt(p) < 0) {
+    std::cerr << " [shm_cleanup] shmdt error: " << strerror(errno) << std::endl;
+    exit(1);
+  }
+  if (shmctl(id, IPC_RMID, nullptr) == -1) {
+    std::cerr << " [shm_cleanup] shmctl error: " << strerror(errno) << std::endl;
+    exit(1);
+  }
+  std::cout << " [shm_cleanup] shared memory succesfully removed: shmid = " << id << std::endl;
 }
 
 void
@@ -123,6 +175,23 @@ int main(int argc, char *argv[])
   /** register signal handlers **/
   signal(SIGINT, sigint_handler);
   signal(SIGALRM, sigalrm_handler);
+
+  /** connect and initialise control shm **/
+  auto control_shmid = shm_connect("/tmp/alcorReadoutController.shmkey", PROJID, SHMSIZE);
+  auto control_ptr = (char *)shmat(control_shmid, 0, 0);
+  if (control_ptr == (void *)-1) {
+    if (shmctl(control_shmid, IPC_RMID, nullptr) == -1) {
+      std::cerr << " --- shmget error: " << strerror(errno) << std::endl;
+      exit(1);
+    } else {
+      printf("Attach shared memory failed\n");
+      printf("remove shared memory identifier successful\n");
+    }
+    std::cerr << " --- shmat error: " << strerror(errno) << std::endl;
+    exit(1);
+  }
+  control_ptr[0] = '\0';
+  bool begin_received = false;
   
   /** start infinite loop **/
   std::cout << " --- staging buffer size: " << opt.staging_size << " bytes" << std::endl;
@@ -136,7 +205,25 @@ int main(int argc, char *argv[])
   uint32_t max_occupancy[6] = {0};
   while (running) {
 
-    // micro sleep
+    // read control SHM
+    if (control_ptr[0] == '\0')
+      continue;
+    if (control_ptr[0] == 'B' && !begin_received) {
+      std::cout << " --- begin command received: " << control_ptr << std::endl;
+      begin_received = true;
+      continue;
+    }
+    if (control_ptr[0] == 'E' && begin_received) {
+      std::cout << " --- end command received: " << control_ptr << std::endl;
+      begin_received = false;
+      continue;
+    }
+    if (control_ptr[0] == 'Q') {
+      std::cout << " --- quit command received: " << control_ptr << std::endl;
+      running = false;
+      continue;
+    }
+    
     usleep(opt.usleep_period);
     
     // read fifo occupancy
