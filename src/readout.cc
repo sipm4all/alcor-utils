@@ -22,6 +22,16 @@ sigalrm_handler(int signum) {
   monitor = true;
 }
 
+
+void write_buffer_to_file(std::ofstream &fout, int buffer_id, char *buffer, int buffer_size)
+{
+  uint32_t header[2];
+  header[0] = 0x000caffe | (buffer_id << 28);
+  header[1] = buffer_size;
+  fout.write((char *)&header, 8);
+  fout.write((char *)buffer, buffer_size);
+}
+
 int main(int argc, char *argv[])
 {
   std::cout << " --- welcome to ALCOR readout " << std::endl;
@@ -151,12 +161,8 @@ int main(int argc, char *argv[])
       if (flush_staging_buffers) {
         /** write staging buffer to file if requested **/
         if (write_output) {
-          uint32_t header[2];
-          header[0] = 0x000caffe | (i << 28);
-          header[1] = staging_buffer_bytes[i];
-          fout.write((char *)&header, 8);
-          fout.write((char *)staging_buffer[i], staging_buffer_bytes[i]);
           std::cout << " --- flushing FIFO #" << i << ": " << staging_buffer_bytes[i] << std::endl;
+          write_buffer_to_file(fout, i, staging_buffer[i], staging_buffer_bytes[i]);
         }
         staging_buffer_pointer[i] = staging_buffer[i];
         staging_buffer_bytes[i] = 0;
@@ -219,6 +225,13 @@ int main(int argc, char *argv[])
   /** flush and release staging buffers **/
   for (int i = 0; i < 6; ++i) {
     if (!read_fifo[i]) continue;
+    /** write staging buffer to file if requested **/
+    if (write_output) {
+      std::cout << " --- flushing FIFO #" << i << ": " << staging_buffer_bytes[i] << std::endl;
+      write_buffer_to_file(fout, i, staging_buffer[i], staging_buffer_bytes[i]);
+    }
+    staging_buffer_pointer[i] = staging_buffer[i];
+    staging_buffer_bytes[i] = 0;
     delete [] staging_buffer[i];
   }
     
