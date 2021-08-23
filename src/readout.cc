@@ -14,6 +14,7 @@
 
 /** readout control protocol works over SHM
     the following commands are accepted 
+    R (Reset) 
     B (Begin) [runParams]
     E (End)
     Q (Quit)
@@ -206,23 +207,25 @@ int main(int argc, char *argv[])
   while (running) {
 
     // read control SHM
-    if (control_ptr[0] == '\0')
-      continue;
+    if (control_ptr[0] == 'R') {
+      std::cout << " --- reset command received: " << control_ptr << std::endl;
+      begin_received = false;
+    }
     if (control_ptr[0] == 'B' && !begin_received) {
       std::cout << " --- begin command received: " << control_ptr << std::endl;
       begin_received = true;
-      continue;
     }
     if (control_ptr[0] == 'E' && begin_received) {
       std::cout << " --- end command received: " << control_ptr << std::endl;
       begin_received = false;
-      continue;
     }
     if (control_ptr[0] == 'Q') {
       std::cout << " --- quit command received: " << control_ptr << std::endl;
       running = false;
       continue;
     }
+
+    if (!begin_received) continue;
     
     usleep(opt.usleep_period);
     
