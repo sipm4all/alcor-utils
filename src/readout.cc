@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
       std::cout << std::right << std::setw(16) << std::setfill(' ') << "frames/s";
       std::cout << std::right << std::setw(16) << std::setfill(' ') << "hits/s";
       std::cout << std::endl;
-      std::cout << std::string(16 * 7, '-') << std::endl;
+      std::cout << " SOM " << std::string(16 * 7 - 5, '-') << " " << elapsed_start.count() << std::endl;
 
       for (int i = 0; i < 6; ++i) {
         if (!read_fifo[i]) continue;
@@ -233,6 +233,7 @@ int main(int argc, char *argv[])
 	nframes[i] = 0;
 	nhits[i] = 0;
       }
+      std::cout << " EOM " << std::string(16 * 7 - 5, '-') << std::endl;
       split = std::chrono::steady_clock::now();
       monitor = false;
       alarm(opt.monitor_period);
