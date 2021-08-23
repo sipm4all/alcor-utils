@@ -30,6 +30,7 @@ bool monitor = false;
 struct program_options_t {
   std::string connection_filename, device_id, output_filename;
   int staging_size, fifo_mask, monitor_period, usleep_period;
+  bool standalone;
 };
 
 struct ipbus_struct_t {
@@ -115,6 +116,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("staging"          , po::value<int>(&opt.staging_size)->default_value(1048576), "Staging buffer size (bytes)")
       ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1), "Monitor period")
       ("output"           , po::value<std::string>(&opt.output_filename), "Output data file")
+      ("standalone"       , po::value<bool>(&opt.standalone), "Standalone operation mode")
       ;
     
     po::variables_map vm;
@@ -207,59 +209,62 @@ int main(int argc, char *argv[])
   uint32_t max_occupancy[6] = {0};
   while (running) {
 
-    // read control SHM
-    if (control_ptr[0] == 'R') {
-      std::cout << " --- reset command received: " << control_ptr << std::endl;
-      if (fout.is_open()) {
-        std::cout << " --- output file closed" << std::endl;
-        fout.close();
-      }
-      begin_received = false;
-    }
-    if (control_ptr[0] == 'B' && !begin_received) {
-      std::cout << " --- begin command received: " << control_ptr << std::endl;
-      run_tag = control_ptr;
-      run_tag = run_tag.substr(6);
-      if (fout.is_open()) {
-        std::cout << " --- output file closed" << std::endl;
-        fout.close();
-      }
-      write_output = !opt.output_filename.empty();
-      if (write_output) {
-        std::cout << " --- opening output file: " << run_tag + "." + opt.output_filename << std::endl;
-        fout.open(run_tag + "." + opt.output_filename, std::ofstream::out | std::ofstream::binary);
-      }
-      begin_received = true;
-    }
-    if (control_ptr[0] == 'E' && begin_received) {
-      std::cout << " --- end command received: " << control_ptr << std::endl;
-
-      /** flush staging buffers **/
-      for (int i = 0; i < 6; ++i) {
-        if (!read_fifo[i]) continue;
-        /** write staging buffer to file if requested **/
-        if (write_output) {
-          std::cout << " --- flushing FIFO #" << i << ": " << staging_buffer_bytes[i] << std::endl;
-          write_buffer_to_file(fout, i, staging_buffer[i], staging_buffer_bytes[i]);
+    if (!opt.standalone) {
+    
+      // read control SHM
+      if (control_ptr[0] == 'R') {
+        std::cout << " --- reset command received: " << control_ptr << std::endl;
+        if (fout.is_open()) {
+          std::cout << " --- output file closed" << std::endl;
+          fout.close();
         }
-        staging_buffer_pointer[i] = staging_buffer[i];
-        staging_buffer_bytes[i] = 0;
+        begin_received = false;
+      }
+      if (control_ptr[0] == 'B' && !begin_received) {
+        std::cout << " --- begin command received: " << control_ptr << std::endl;
+        run_tag = control_ptr;
+        run_tag = run_tag.substr(6);
+        if (fout.is_open()) {
+          std::cout << " --- output file closed" << std::endl;
+          fout.close();
+        }
+        write_output = !opt.output_filename.empty();
+        if (write_output) {
+          std::cout << " --- opening output file: " << run_tag + "." + opt.output_filename << std::endl;
+          fout.open(run_tag + "." + opt.output_filename, std::ofstream::out | std::ofstream::binary);
+        }
+        begin_received = true;
+      }
+      if (control_ptr[0] == 'E' && begin_received) {
+        std::cout << " --- end command received: " << control_ptr << std::endl;
+        
+        /** flush staging buffers **/
+        for (int i = 0; i < 6; ++i) {
+          if (!read_fifo[i]) continue;
+          /** write staging buffer to file if requested **/
+          if (write_output) {
+            std::cout << " --- flushing FIFO #" << i << ": " << staging_buffer_bytes[i] << std::endl;
+            write_buffer_to_file(fout, i, staging_buffer[i], staging_buffer_bytes[i]);
+          }
+          staging_buffer_pointer[i] = staging_buffer[i];
+          staging_buffer_bytes[i] = 0;
+        }
+        
+        if (fout.is_open()) {
+          std::cout << " --- output file closed" << std::endl;
+          fout.close();
+        }
+        begin_received = false;
+      }
+      if (control_ptr[0] == 'Q') {
+        std::cout << " --- quit command received: " << control_ptr << std::endl;
+        running = false;
+        continue;
       }
       
-      if (fout.is_open()) {
-        std::cout << " --- output file closed" << std::endl;
-        fout.close();
-      }
-      begin_received = false;
+      if (!begin_received) continue;
     }
-    if (control_ptr[0] == 'Q') {
-      std::cout << " --- quit command received: " << control_ptr << std::endl;
-      running = false;
-      continue;
-    }
-
-    if (!begin_received) continue;
-    
+      
     usleep(opt.usleep_period);
     
     // read fifo occupancy
