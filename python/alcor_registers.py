@@ -6,7 +6,7 @@ class BCR0246(Register):
         self.fields['iblatchDAC'] = Field( 0, 0x03, 1)
         self.fields['iTDC']       = Field( 2, 0x1f, 15)
         self.fields['cal']        = Field( 7, 0x03, 0)
-        self.fields['void']       = Field(10, 0x3f, 1)
+        self.fields['void']       = Field(10, 0x3f, 0)
 
 class BCR1357(Register):
     def __init__(self):
@@ -27,7 +27,7 @@ class ECCR(Register):
         self.fields['Column 1 Enable']       = Field( 3, 0x01, 1)
         self.fields['Column 1 Safe Bit']     = Field( 4, 0x01, 1)
         self.fields['Column 1 Iratio']       = Field( 5, 0x01, 0)
-        self.fields['Not used']              = Field( 6, 0x1f, 1)
+        self.fields['Not used']              = Field( 6, 0x1f, 0)
         self.fields['Raw Data Mode']         = Field(11, 0x01, 0)
         self.fields['8b10b Encoder Enable']  = Field(12, 0x01, 1)
         self.fields['Serializer Enable']     = Field(13, 0x01, 1)
