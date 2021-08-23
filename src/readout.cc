@@ -193,6 +193,7 @@ int main(int argc, char *argv[])
   }
   control_ptr[0] = '\0';
   bool begin_received = false;
+  std::string run_tag;
   
   /** start infinite loop **/
   std::cout << " --- staging buffer size: " << opt.staging_size << " bytes" << std::endl;
@@ -209,14 +210,33 @@ int main(int argc, char *argv[])
     // read control SHM
     if (control_ptr[0] == 'R') {
       std::cout << " --- reset command received: " << control_ptr << std::endl;
+      if (fout.is_open()) {
+        std::cout << " --- output file closed" << std::endl;
+        fout.close();
+      }
       begin_received = false;
     }
     if (control_ptr[0] == 'B' && !begin_received) {
       std::cout << " --- begin command received: " << control_ptr << std::endl;
+      run_tag = control_ptr;
+      run_tag = run_tag.substr(6);
+      if (fout.is_open()) {
+        std::cout << " --- output file closed" << std::endl;
+        fout.close();
+      }
+      write_output = !opt.output_filename.empty();
+      if (write_output) {
+        std::cout << " --- opening output file: " << run_tag + "." + opt.output_filename << std::endl;
+        fout.open(run_tag + "." + opt.output_filename, std::ofstream::out | std::ofstream::binary);
+      }
       begin_received = true;
     }
     if (control_ptr[0] == 'E' && begin_received) {
       std::cout << " --- end command received: " << control_ptr << std::endl;
+      if (fout.is_open()) {
+        std::cout << " --- output file closed" << std::endl;
+        fout.close();
+      }
       begin_received = false;
     }
     if (control_ptr[0] == 'Q') {
