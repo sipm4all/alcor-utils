@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
       if (!data_register[i].valid()) continue;
 
       /** copy data into staging buffer **/
-      std::memcpy((char *)data_register[i].data(), (char *)staging_buffer_pointer[i], bytes[i]);
+      std::memcpy((char *)staging_buffer_pointer[i], (char *)data_register[i].data(), bytes[i]);
       nbytes[i] += bytes[i];
       staging_buffer_pointer[i] += bytes[i];
       staging_buffer_bytes[i] += bytes[i];
