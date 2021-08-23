@@ -233,6 +233,19 @@ int main(int argc, char *argv[])
     }
     if (control_ptr[0] == 'E' && begin_received) {
       std::cout << " --- end command received: " << control_ptr << std::endl;
+
+      /** flush staging buffers **/
+      for (int i = 0; i < 6; ++i) {
+        if (!read_fifo[i]) continue;
+        /** write staging buffer to file if requested **/
+        if (write_output) {
+          std::cout << " --- flushing FIFO #" << i << ": " << staging_buffer_bytes[i] << std::endl;
+          write_buffer_to_file(fout, i, staging_buffer[i], staging_buffer_bytes[i]);
+        }
+        staging_buffer_pointer[i] = staging_buffer[i];
+        staging_buffer_bytes[i] = 0;
+      }
+      
       if (fout.is_open()) {
         std::cout << " --- output file closed" << std::endl;
         fout.close();
