@@ -11,6 +11,20 @@
 bool running = true;
 bool monitor = false;
 
+struct program_options_t {
+  std::string connection_filename, device_id, output_filename;
+  int staging_size, fifo_mask, monitor_period, usleep_period;
+};
+
+struct ipbus_struct_t {
+  const uhal::Node *occupancy_node[6] = {nullptr}, *data_node[6] = {nullptr}, *pulse_node[6] = {nullptr};
+  bool read_fifo[6] = {false};
+};
+
+
+void process_program_options(int argc, char *argv[], program_options_t &opt);
+
+
 void
 sigint_handler(int signum) {
   std::cout << " --- infinite loop terminate requested" << std::endl;
@@ -23,7 +37,7 @@ sigalrm_handler(int signum) {
 }
 
 
-void write_buffer_to_file(std::ofstream &fout, int buffer_id, char *buffer, int buffer_size)
+void write_buffer_to_file(std::ofstream &fout, int buffer_id, uint8_t *buffer, int buffer_size)
 {
   uint32_t header[2];
   header[0] = 0x000caffe | (buffer_id << 28);
@@ -32,26 +46,22 @@ void write_buffer_to_file(std::ofstream &fout, int buffer_id, char *buffer, int 
   fout.write((char *)buffer, buffer_size);
 }
 
-int main(int argc, char *argv[])
+void
+process_program_options(int argc, char *argv[], program_options_t &opt)
 {
-  std::cout << " --- welcome to ALCOR readout " << std::endl;
-  
-  std::string connection_filename, device_id, output_filename;
-  int staging_size, fifo_mask, monitor_period, usleep_period;
-  
   /** process arguments **/
   namespace po = boost::program_options;
   po::options_description desc("Options");
   try {
     desc.add_options()
-      ("help"           , "Print help messages")
-      ("connection"     , po::value<std::string>(&connection_filename)->required(), "IPbus XML connection file")
-      ("device"         , po::value<std::string>(&device_id)->default_value("kc705"), "Device ID")
-      ("fifo"           , po::value<int>(&fifo_mask)->default_value(0x3f), "FIFO mask")
-      ("usleep"         , po::value<int>(&usleep_period)->default_value(0), "Microsecond sleep between polling cycles")
-      ("staging"        , po::value<int>(&staging_size)->default_value(1048576), "Staging buffer size (bytes)")
-      ("monitor"        , po::value<int>(&monitor_period)->default_value(1), "Monitor period")
-      ("output"         , po::value<std::string>(&output_filename), "Output data file")
+      ("help"             , "Print help messages")
+      ("connection"       , po::value<std::string>(&opt.connection_filename)->required(), "IPbus XML connection file")
+      ("device"           , po::value<std::string>(&opt.device_id)->default_value("kc705"), "Device ID")
+      ("fifo"             , po::value<int>(&opt.fifo_mask)->default_value(0x3f), "FIFO mask")
+      ("usleep"           , po::value<int>(&opt.usleep_period)->default_value(0), "Microsecond sleep between polling cycles")
+      ("staging"          , po::value<int>(&opt.staging_size)->default_value(1048576), "Staging buffer size (bytes)")
+      ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1), "Monitor period")
+      ("output"           , po::value<std::string>(&opt.output_filename), "Output data file")
       ;
     
     po::variables_map vm;
@@ -60,22 +70,30 @@ int main(int argc, char *argv[])
     
     if (vm.count("help")) {
       std::cout << desc << std::endl;
-      return 1;
+      exit(1);
     }
   }
   catch(std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     std::cout << desc << std::endl;
-    return 1;
+    exit(1);
   }
+}
 
+int main(int argc, char *argv[])
+{
+  std::cout << " --- welcome to ALCOR readout " << std::endl;
+
+  program_options_t opt;
+  process_program_options(argc, argv, opt);
+  
   /** initialise and retrieve hardware nodes **/
-  uhal::ConnectionManager connection_manager("file://" + connection_filename);
-  uhal::HwInterface hardware = connection_manager.getDevice(device_id);
+  uhal::ConnectionManager connection_manager("file://" + opt.connection_filename);
+  uhal::HwInterface hardware = connection_manager.getDevice(opt.device_id);
   const uhal::Node *occupancy_node[6] = {nullptr}, *data_node[6] = {nullptr}, *pulse_node[6] = {nullptr};
   bool read_fifo[6] = {false};
   for (int i = 0; i < 6; ++i) {
-    if ( !(fifo_mask & (1 << i)) ) continue;
+    if ( !(opt.fifo_mask & (1 << i)) ) continue;
     std::cout << " --- reading data from fifo # " << i << std::endl;
     read_fifo[i] = true;
     occupancy_node[i] = &hardware.getNode("alcor_readout_id" + std::to_string(i) + ".fifo_occupancy");
@@ -90,16 +108,16 @@ int main(int argc, char *argv[])
   bool flush_staging_buffers = false;
   for (int i = 0; i < 6; ++i) {
     if (!read_fifo[i]) continue;
-    staging_buffer[i] = new uint8_t[staging_size];
+    staging_buffer[i] = new uint8_t[opt.staging_size];
     staging_buffer_pointer[i] = staging_buffer[i];
   }
     
   /** open output file **/
   std::ofstream fout;
-  bool write_output = !output_filename.empty();
+  bool write_output = !opt.output_filename.empty();
   if (write_output) {
-    std::cout << " --- opening output file: " << output_filename << std::endl;
-    fout.open(output_filename, std::ofstream::out | std::ofstream::binary);
+    std::cout << " --- opening output file: " << opt.output_filename << std::endl;
+    fout.open(opt.output_filename, std::ofstream::out | std::ofstream::binary);
   }
 
   /** register signal handlers **/
@@ -107,19 +125,19 @@ int main(int argc, char *argv[])
   signal(SIGALRM, sigalrm_handler);
   
   /** start infinite loop **/
-  std::cout << " --- staging buffer size: " << staging_size << " bytes" << std::endl;
-  std::cout << " --- usleep period: " << usleep_period << " s" << std::endl;
-  std::cout << " --- monitor period: " << monitor_period << " s" << std::endl;
+  std::cout << " --- staging buffer size: " << opt.staging_size << " bytes" << std::endl;
+  std::cout << " --- usleep period: " << opt.usleep_period << " us" << std::endl;
+  std::cout << " --- monitor period: " << opt.monitor_period << " s" << std::endl;
   std::cout << " --- starting infinite loop: ctrl+c to interrupt " << std::endl;
   auto start = std::chrono::steady_clock::now();
   auto split = start;
-  alarm(monitor_period);
+  alarm(opt.monitor_period);
   int nwords[6] = {0}, nbytes[6] = {0}, nframes[6] = {0}, nhits[6] = {0};
   uint32_t max_occupancy[6] = {0};
   while (running) {
 
     // micro sleep
-    usleep(usleep_period);
+    usleep(opt.usleep_period);
     
     // read fifo occupancy
     uhal::ValWord<uint32_t> occupancy_register[6];
@@ -144,7 +162,7 @@ int main(int argc, char *argv[])
 
       /** check if received bytes will fit into the staging buffer
           if not flag to flush all staging buffers **/
-      if (staging_buffer_bytes[i] + bytes[i] > staging_size)
+      if (staging_buffer_bytes[i] + bytes[i] > opt.staging_size)
         flush_staging_buffers = true;
 
       if (occupancy[i] > max_occupancy[i]) max_occupancy[i] = occupancy[i];
@@ -217,7 +235,7 @@ int main(int argc, char *argv[])
       }
       split = std::chrono::steady_clock::now();
       monitor = false;
-      alarm(monitor_period);
+      alarm(opt.monitor_period);
     }
 
   }
