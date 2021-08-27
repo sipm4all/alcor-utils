@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
   signal(SIGALRM, sigalrm_handler);
 
   /** connect and initialise control shm **/
-  auto control_shmid = shm_connect("/tmp/alcorReadoutController.shmkey", PROJID, SHMSIZE);
+  auto control_shmid = shm_connect(CTRL_SHMFILE, CTRL_PROJID, CTRL_SHMSIZE);
   auto control_ptr = (char *)shmat(control_shmid, 0, 0);
   if (control_ptr == (void *)-1) {
     if (shmctl(control_shmid, IPC_RMID, nullptr) == -1) {
