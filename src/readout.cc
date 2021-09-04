@@ -20,6 +20,8 @@
     Q (Quit)
 **/
 
+#define NFIFOS 26
+
 #define CTRLFILE "/tmp/alcorReadoutController.shmkey"
 #define PROJID 2333
 #define SHMSIZE 1024
@@ -29,13 +31,13 @@ bool monitor = false;
 
 struct program_options_t {
   std::string connection_filename, device_id, output_filename;
-  int staging_size, fifo_mask, monitor_period, usleep_period;
+  int staging_size, fifo_mask, fifo_occupancy, monitor_period, usleep_period, run_mode;
   bool standalone;
 };
 
 struct ipbus_struct_t {
-  const uhal::Node *occupancy_node[6] = {nullptr}, *data_node[6] = {nullptr}, *pulse_node[6] = {nullptr};
-  bool read_fifo[6] = {false};
+  const uhal::Node *occupancy_node[NFIFOS] = {nullptr}, *data_node[NFIFOS] = {nullptr}, *pulse_node[NFIFOS] = {nullptr};
+  bool read_fifo[NFIFOS] = {false};
 };
 
 
@@ -111,10 +113,12 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("help"             , "Print help messages")
       ("connection"       , po::value<std::string>(&opt.connection_filename)->required(), "IPbus XML connection file")
       ("device"           , po::value<std::string>(&opt.device_id)->default_value("kc705"), "Device ID")
-      ("fifo"             , po::value<int>(&opt.fifo_mask)->default_value(0x3f), "FIFO mask")
+      ("fifo"             , po::value<int>(&opt.fifo_mask)->default_value(0xffff), "FIFO mask")
+      ("occupancy"        , po::value<int>(&opt.fifo_occupancy)->default_value(4096), "FIFO minimum occupancy")
       ("usleep"           , po::value<int>(&opt.usleep_period)->default_value(0), "Microsecond sleep between polling cycles")
       ("staging"          , po::value<int>(&opt.staging_size)->default_value(1048576), "Staging buffer size (bytes)")
       ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1), "Monitor period")
+      ("mode"             , po::value<int>(&opt.run_mode)->default_value(0x3), "Run mode")
       ("output"           , po::value<std::string>(&opt.output_filename), "Output data file")
       ("standalone"       , po::value<bool>(&opt.standalone), "Standalone operation mode")
       ;
@@ -145,23 +149,26 @@ int main(int argc, char *argv[])
   /** initialise and retrieve hardware nodes **/
   uhal::ConnectionManager connection_manager("file://" + opt.connection_filename);
   uhal::HwInterface hardware = connection_manager.getDevice(opt.device_id);
-  const uhal::Node *occupancy_node[6] = {nullptr}, *data_node[6] = {nullptr}, *pulse_node[6] = {nullptr};
-  bool read_fifo[6] = {false};
-  for (int i = 0; i < 6; ++i) {
-    if ( !(opt.fifo_mask & (1 << i)) ) continue;
-    std::cout << " --- reading data from fifo # " << i << std::endl;
+  const uhal::Node *occupancy_node[NFIFOS] = {nullptr}, *reset_node[NFIFOS], *data_node[NFIFOS] = {nullptr};//, *pulse_node[6] = {nullptr};
+  bool read_fifo[NFIFOS] = {false};
+  for (int i = 0; i < NFIFOS; ++i) {
+    if ( !(opt.fifo_mask & 1 << i ) ) continue;
+    int chip = i / 4;
+    int lane = i % 4;
+    std::cout << " --- reading data from FIFO # " << i << " (chip = " << chip << ", lane = " << lane << ")" << std::endl;
     read_fifo[i] = true;
-    occupancy_node[i] = &hardware.getNode("alcor_readout_id" + std::to_string(i) + ".fifo_occupancy");
-    data_node[i]      = &hardware.getNode("alcor_readout_id" + std::to_string(i) + ".fifo_data");
-    pulse_node[i]     = &hardware.getNode("pulser.testpulse_id" + std::to_string(i));
+    occupancy_node[i] = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + "_lane" + std::to_string(lane) + ".fifo_occupancy");
+    reset_node[i]     = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + "_lane" + std::to_string(lane) + ".fifo_reset");
+    data_node[i]      = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + "_lane" + std::to_string(lane) + ".fifo_data");
+    //    pulse_node[i]     = &hardware.getNode("pulser.testpulse_id" + std::to_string(i));
   }
-    
+
   /** prepare staging buffers and pointers **/
-  uint8_t *staging_buffer[6] = {nullptr};
-  uint8_t *staging_buffer_pointer[6] = {nullptr};
-  uint32_t staging_buffer_bytes[6] = {0};
+  uint8_t *staging_buffer[NFIFOS] = {nullptr};
+  uint8_t *staging_buffer_pointer[NFIFOS] = {nullptr};
+  uint32_t staging_buffer_bytes[NFIFOS] = {0};
   bool flush_staging_buffers = false;
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < NFIFOS; ++i) {
     if (!read_fifo[i]) continue;
     staging_buffer[i] = new uint8_t[opt.staging_size];
     staging_buffer_pointer[i] = staging_buffer[i];
@@ -194,10 +201,21 @@ int main(int argc, char *argv[])
     exit(1);
   }
   control_ptr[0] = '\0';
+  //  char last_received = '\0';
   bool begin_received = false;
   std::string run_tag;
   
+  /** ready to rock **/
+  auto fwrev_node = &hardware.getNode("regfile.fwrev");
+  auto fwrev_register = fwrev_node->read();
+  auto mode_node = &hardware.getNode("regfile.mode");
+  mode_node->write(opt.run_mode);
+  hardware.dispatch();
+  auto fwrev = fwrev_register.value();
+
   /** start infinite loop **/
+  std::cout << " --- firmware revision: " << std::hex << fwrev << std::dec << std::endl;
+  std::cout << " --- FIFO minimum occupancy: " << opt.fifo_occupancy << std::endl;
   std::cout << " --- staging buffer size: " << opt.staging_size << " bytes" << std::endl;
   std::cout << " --- usleep period: " << opt.usleep_period << " us" << std::endl;
   std::cout << " --- monitor period: " << opt.monitor_period << " s" << std::endl;
@@ -205,8 +223,8 @@ int main(int argc, char *argv[])
   auto start = std::chrono::steady_clock::now();
   auto split = start;
   alarm(opt.monitor_period);
-  int nwords[6] = {0}, nbytes[6] = {0}, nframes[6] = {0}, nhits[6] = {0};
-  uint32_t max_occupancy[6] = {0};
+  int nwords[NFIFOS] = {0}, nbytes[NFIFOS] = {0}, nframes[NFIFOS] = {0}, nhits[NFIFOS] = {0};
+  uint32_t max_occupancy[NFIFOS] = {0}, n_polls = 0;
   while (running) {
 
     if (!opt.standalone) {
@@ -219,6 +237,7 @@ int main(int argc, char *argv[])
           fout.close();
         }
         begin_received = false;
+	control_ptr[0] = 'A';
       }
       if (control_ptr[0] == 'B' && !begin_received) {
         std::cout << " --- begin command received: " << control_ptr << std::endl;
@@ -234,12 +253,13 @@ int main(int argc, char *argv[])
           fout.open(run_tag + "." + opt.output_filename, std::ofstream::out | std::ofstream::binary);
         }
         begin_received = true;
+	control_ptr[0] = 'A';
       }
       if (control_ptr[0] == 'E' && begin_received) {
         std::cout << " --- end command received: " << control_ptr << std::endl;
         
         /** flush staging buffers **/
-        for (int i = 0; i < 6; ++i) {
+        for (int i = 0; i < NFIFOS; ++i) {
           if (!read_fifo[i]) continue;
           /** write staging buffer to file if requested **/
           if (write_output) {
@@ -255,10 +275,12 @@ int main(int argc, char *argv[])
           fout.close();
         }
         begin_received = false;
+	control_ptr[0] = 'A';
       }
       if (control_ptr[0] == 'Q') {
         std::cout << " --- quit command received: " << control_ptr << std::endl;
         running = false;
+	control_ptr[0] = 'A';
         continue;
       }
       
@@ -266,23 +288,43 @@ int main(int argc, char *argv[])
     }
       
     usleep(opt.usleep_period);
+
+    // reset fifo (?)
+    for (int i = 0; i < NFIFOS; ++i) {
+      if (!read_fifo[i]) continue;
+      reset_node[i]->write(0x1);
+    }
+    hardware.dispatch();
+
     
     // read fifo occupancy
-    uhal::ValWord<uint32_t> occupancy_register[6];
-    for (int i = 0; i < 6; ++i) {
+    uhal::ValWord<uint32_t> occupancy_register[NFIFOS];
+    for (int i = 0; i < NFIFOS; ++i) {
       if (!read_fifo[i]) continue;
       occupancy_register[i] = occupancy_node[i]->read();
     }
     hardware.dispatch();
+    n_polls++;
     
     // read fifo data
-    uint32_t occupancy[6], bytes[6];
-    uhal::ValVector<uint32_t> data_register[6];
-    for (int i = 0; i < 6; ++i) {
+    uint32_t occupancy[NFIFOS], bytes[NFIFOS];
+    bool fifo_download = false;
+    for (int i = 0; i < NFIFOS; ++i) {
       if (!read_fifo[i]) continue;
       if (!occupancy_register[i].valid()) continue;
 
       occupancy[i] = occupancy_register[i].value() & 0xffff;
+      if (occupancy[i] >= opt.fifo_occupancy) {
+	fifo_download = true;
+      }
+    }
+
+    if (fifo_download) {
+
+    // read fifo data
+    uhal::ValVector<uint32_t> data_register[NFIFOS];
+    for (int i = 0; i < NFIFOS; ++i) {
+      if (!read_fifo[i]) continue;
       if (occupancy[i] <= 0) continue;
       data_register[i] = data_node[i]->readBlock(occupancy[i]);
 
@@ -299,8 +341,10 @@ int main(int argc, char *argv[])
       //      if (i == 1) pulse_node[i]->write(0x1); // R+HACK
     }
     hardware.dispatch();
+
+#if 0
     
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < NFIFOS; ++i) {
       if (!read_fifo[i]) continue;
 
       /** flush staging buffer if requested **/
@@ -324,6 +368,9 @@ int main(int argc, char *argv[])
     }
     flush_staging_buffers = false;
     
+#endif
+
+    }
 
     /** monitor **/
     if (monitor) {
@@ -341,9 +388,9 @@ int main(int argc, char *argv[])
       std::cout << std::right << std::setw(16) << std::setfill(' ') << "frames/s";
       std::cout << std::right << std::setw(16) << std::setfill(' ') << "hits/s";
       std::cout << std::endl;
-      std::cout << " SOM " << std::string(16 * 7 - 5, '-') << " " << elapsed_start.count() << std::endl;
+      std::cout << " SOM " << std::string(16 * 7 - 5, '-') << " " << elapsed_start.count() << " " << n_polls << std::endl;
 
-      for (int i = 0; i < 6; ++i) {
+      for (int i = 0; i < NFIFOS; ++i) {
         if (!read_fifo[i]) continue;
         
         std::cout << std::right << std::setw(16) << std::setfill(' ') << i;
@@ -364,13 +411,14 @@ int main(int argc, char *argv[])
       std::cout << " EOM " << std::string(16 * 7 - 5, '-') << std::endl;
       split = std::chrono::steady_clock::now();
       monitor = false;
+      n_polls = 0;
       alarm(opt.monitor_period);
     }
 
   }
 
   /** flush and release staging buffers **/
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < NFIFOS; ++i) {
     if (!read_fifo[i]) continue;
     /** write staging buffer to file if requested **/
     if (write_output) {
