@@ -16,9 +16,13 @@ else()
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+
 include(FindPackageHandleStandardArgs)
+find_package(Threads REQUIRED)
 find_package(Boost COMPONENTS program_options system REQUIRED)
-find_package(uHAL)
+find_package(uHAL REQUIRED)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

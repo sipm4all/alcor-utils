@@ -41,7 +41,6 @@ struct ipbus_struct_t {
   const uhal::Node *occupancy_node[MAX_FIFOS] = {nullptr}, *data_node[MAX_FIFOS] = {nullptr}, *pulse_node[MAX_FIFOS] = {nullptr};
 };
 
-
 void process_program_options(int argc, char *argv[], program_options_t &opt);
 
 
