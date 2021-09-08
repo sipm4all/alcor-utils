@@ -24,9 +24,9 @@
 
 #define MAX_FIFOS 26
 
-#define CTRLFILE "/tmp/alcorReadoutController.shmkey"
-#define PROJID 2333
-#define SHMSIZE 1024
+#define CTRL_SHMFILE "/tmp/alcorReadoutController.shmkey"
+#define CTRL_PROJID 2333
+#define CTRL_SHMSIZE 1024
 
 bool running = true;
 bool monitor = false;
