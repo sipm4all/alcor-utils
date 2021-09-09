@@ -14,6 +14,20 @@ struct buffer_header_t {
   uint32_t size;
 };
 
+struct spill_t {
+  uint64_t coarse  : 40;
+  uint32_t counter : 12;
+  uint32_t mbz     : 8;
+  uint32_t id      : 4;
+};
+
+struct trigger_t {
+  uint64_t coarse  : 40;
+  uint32_t counter : 16;
+  uint32_t type    : 4;
+  uint32_t id      : 4;
+};
+
 struct alcor_hit_t {
   uint32_t fine   : 9;
   uint32_t coarse : 15;
@@ -24,6 +38,45 @@ struct alcor_hit_t {
     printf(" hit: %d %d %d %d %d \n", column, pixel, tdc, coarse, fine);
   }
 };
+
+void decode_trigger(char *buffer, int size, std::ofstream &fout)
+{
+  size /= 4;
+  auto word = (uint32_t *)buffer;
+  uint32_t pos = 0;
+  while (pos < size) {
+    if ((*word & 0x60000000) == 0x60000000) {
+      if (verbose) printf(" 0x%08x -- spill header\n", *word);
+      ++word; ++pos;
+      if (verbose) printf(" 0x%08x -- \n", *word);
+      ++word; ++pos;
+    }
+    if ((*word & 0x90000000) == 0x90000000) {
+      uint64_t trigger_time = 0x0;
+      if (verbose) printf(" 0x%08x -- trigger header\n", *word);
+      trigger_time = (uint64_t)(*word & 0xff) << 32;
+      ++word; ++pos;
+      if (verbose) printf(" 0x%08x -- \n", *word);
+      trigger_time |= *word;
+      uint32_t coarse = trigger_time & 0x7fff;
+      uint32_t rollover = trigger_time >> 15;
+      fout << -1 << " " << -1 << " " << -1 << " " << -1 << " " << rollover << " " << coarse << " " << -1 << std::endl;
+      ++word; ++pos;
+    }    
+  }
+
+#if 0
+  size /= 8;
+  auto word = (uint64_t *)buffer;
+  spill_t *spill = nullptr;
+  uint32_t pos = 0;
+  while (pos < size) {
+    spill = (spill_t *)word;
+    if (verbose) printf(" 0x%016lx -- (%d, %010lx)\n", *word, spill->id, spill->coarse);
+    ++word; ++pos;
+  }
+#endif
+}
 
 void decode(char *buffer, int size, bool raw_mode, std::ofstream &fout)
 {
@@ -64,6 +117,7 @@ void decode(char *buffer, int size, bool raw_mode, std::ofstream &fout)
       if (verbose) printf(" 0x%08x -- hit \n", *word);
       hit = (alcor_hit_t *)word;
       fout << hit->column << " " << hit->pixel << " " << hit->tdc << " " << frame << " " << rollover << " " << hit->coarse << " " << hit->fine << std::endl;
+      //      fout << rollover << " " << hit->coarse << std::endl;
       hit_counter[hit->column][hit->pixel]++;
       ++word; ++pos;
     }
@@ -163,7 +217,11 @@ int main(int argc, char *argv[])
     printf(" 0x%08x -- buffer counter \n", head.counter);
     printf(" 0x%08x -- buffer size \n", head.size);
     fin.read(buffer, head.size);
-    decode(buffer, head.size, raw_mode, fout);
+
+    if (head.id < 24)
+      decode(buffer, head.size, raw_mode, fout);
+    else if (head.id == 24)
+      decode_trigger(buffer, head.size, fout);
   }
   
   /** close input file **/
