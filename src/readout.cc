@@ -262,6 +262,7 @@ int main(int argc, char *argv[])
   uint32_t max_occupancy[MAX_FIFOS] = {0}, n_polls = 0;
   uint32_t occupancy[MAX_FIFOS], bytes[MAX_FIFOS];
   bool fifo_download = false;
+  bool fifo_download_this[MAX_FIFOS] = {false};
 
   // reset fifos
   if (opt.reset_fifo) {
@@ -287,9 +288,9 @@ int main(int argc, char *argv[])
   std::cout << " --- setting run mode: " << 1 << std::endl;
 
   // go into real run mode
-  mode_node->write(3);
+  mode_node->write(opt.run_mode);
   hardware.dispatch();
-  std::cout << " --- setting run mode: " << 3 << std::endl;
+  std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
 
   // send pulse
   if (opt.send_pulse) {
@@ -345,7 +346,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < n_active_fifos; ++i) {
           /** write staging buffer to file if requested **/
           if (write_output) {
-            std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
+	    //            std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
             write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
           }
           staging_buffer_pointer[i] = staging_buffer[i];
@@ -393,7 +394,10 @@ int main(int argc, char *argv[])
       occupancy[i] = occupancy_register[i].value() & 0xffff;
       bytes[i] = occupancy[i] * 4;
       if (occupancy[i] > max_occupancy[i]) max_occupancy[i] = occupancy[i];
-      if (occupancy[i] >= opt.fifo_occupancy) fifo_download = true;
+      if (occupancy[i] >= opt.fifo_occupancy) {
+	fifo_download = true;
+	fifo_download_this[i] = true;
+      }
       if (staging_buffer_bytes[i] + bytes[i] > opt.staging_size) flush_staging_buffers = true;
     }
 
@@ -406,13 +410,13 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n_active_fifos; ++i) {
       if (flush_staging_buffers) {
         if (write_output) {
-          std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
+	  //          std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
           write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
         }
         staging_buffer_pointer[i] = staging_buffer[i];
         staging_buffer_bytes[i] = 0;
       }
-      if (occupancy[i] <= 0) continue;
+      if (occupancy[i] <= 0 || !fifo_download_this[i]) continue;
       data_register[i] = data_node[i]->readBlock(occupancy[i]);
     }
     hardware.dispatch();
@@ -426,12 +430,14 @@ int main(int argc, char *argv[])
 #ifdef PARANOID      
       if (!data_register[i].valid()) continue;
 #endif
+      if (!fifo_download_this[i]) continue;
       /** copy data into staging buffer **/
       std::memcpy((char *)staging_buffer_pointer[i], (char *)data_register[i].data(), bytes[i]);
       nwords[i] += occupancy[i];
       nbytes[i] += bytes[i];
       staging_buffer_pointer[i] += bytes[i];
       staging_buffer_bytes[i] += bytes[i];
+      fifo_download_this[i] = false;
     }
 
     }
@@ -455,6 +461,8 @@ int main(int argc, char *argv[])
       std::cout << std::endl;
       std::cout << " SOM " << std::string(16 * 8 - 5, '-') << " " << elapsed_start.count() << " " << n_polls / elapsed_split.count() << std::endl;
 
+      int nwords_tot = 0, nbytes_tot = 0;
+
       for (int i = 0; i < n_active_fifos; ++i) {
         
         std::cout << std::right << std::setw(16) << std::setfill(' ') << fifo_id[i];
@@ -467,6 +475,9 @@ int main(int argc, char *argv[])
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nhits[i] / elapsed_split.count();
         std::cout << std::endl;
         
+	nwords_tot += nwords[i];
+	nbytes_tot += nbytes[i];
+
 	max_occupancy[i] = 0;
 	nwords[i] = 0;
 	nbytes[i] = 0;
@@ -474,6 +485,17 @@ int main(int argc, char *argv[])
 	nhits[i] = 0;
       }
       std::cout << " EOM " << std::string(16 * 8 - 5, '-') << std::endl;
+
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords_tot / elapsed_split.count();
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << nbytes_tot / elapsed_split.count();
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
+      std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
+      std::cout << std::endl;
+
       split = std::chrono::steady_clock::now();
       monitor = false;
       n_polls = 0;
@@ -489,7 +511,7 @@ int main(int argc, char *argv[])
   for (int i = 0; i < n_active_fifos; ++i) {
     /** write staging buffer to file if requested **/
     if (write_output) {
-      std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
+      //      std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
       write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
       fout[i].close();
       std::cout << " --- output file closed: " << std::endl;
