@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
     std::cout << "--- writing " << std::hex << value << std::dec << " to " << opt.node_name << std::endl;
     node.write(value);
     hardware.dispatch();
+    return 0;
   }
 
   uhal::ValWord<uint32_t> reg = node.read();
