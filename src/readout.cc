@@ -22,7 +22,7 @@
 
 #define PARANOID
 
-#define MAX_FIFOS 26
+#define MAX_FIFOS 25
 
 #define CTRL_SHMFILE "/tmp/alcorReadoutController.shmkey"
 #define CTRL_PROJID 2333
@@ -115,7 +115,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("help"             , "Print help messages")
       ("connection"       , po::value<std::string>(&opt.connection_filename)->required(), "IPbus XML connection file")
       ("device"           , po::value<std::string>(&opt.device_id)->default_value("kc705"), "Device ID")
-      ("fifo"             , po::value<int>(&opt.fifo_mask)->default_value(0xffff), "FIFO mask")
+      ("fifo"             , po::value<int>(&opt.fifo_mask)->default_value(0x1ffffff), "FIFO mask")
       ("occupancy"        , po::value<int>(&opt.fifo_occupancy)->default_value(4096), "FIFO minimum occupancy")
       ("usleep"           , po::value<int>(&opt.usleep_period)->default_value(0), "Microsecond sleep between polling cycles")
       ("staging"          , po::value<int>(&opt.staging_size)->default_value(1048576), "Staging buffer size (bytes)")
@@ -166,6 +166,15 @@ int main(int argc, char *argv[])
     if ( !(opt.fifo_mask & 1 << i ) ) continue;
     int chip = i / 4;
     int lane = i % 4;
+    if (i == 24) {
+      std::cout << " --- reading data from trigger FIFO " << std::endl;
+      occupancy_node[n_active_fifos] = &hardware.getNode("trigger_info.fifo_occupancy");
+      reset_node[n_active_fifos]     = &hardware.getNode("trigger_info.fifo_reset");
+      data_node[n_active_fifos]      = &hardware.getNode("trigger_info.fifo_data");
+      fifo_id[n_active_fifos] = i;
+      n_active_fifos++;
+      continue;
+    }
     if (opt.merged_lanes) {
       if (lane == 0) {
 	std::cout << " --- reading data from FIFO # " << i << " (chip = " << chip << ")" << std::endl;
@@ -230,12 +239,13 @@ int main(int argc, char *argv[])
   bool begin_received = false;
   std::string run_tag;
   
-  /** ready to rock **/
+  /** make sure run mode is off before starting **/
   auto fwrev_node = &hardware.getNode("regfile.fwrev");
   auto fwrev_register = fwrev_node->read();
   auto mode_node = &hardware.getNode("regfile.mode");
-  mode_node->write(opt.run_mode);
+  mode_node->write(0);
   hardware.dispatch();
+  std::cout << " --- setting run mode: " << 0 << std::endl;
   auto fwrev = fwrev_register.value();
 
   /** start infinite loop **/
@@ -270,6 +280,16 @@ int main(int argc, char *argv[])
     hardware.dispatch();
     std::cout << " --- reset sent " << std::endl;
   }
+
+  // go into real run mode
+  mode_node->write(1);
+  hardware.dispatch();
+  std::cout << " --- setting run mode: " << 1 << std::endl;
+
+  // go into real run mode
+  mode_node->write(3);
+  hardware.dispatch();
+  std::cout << " --- setting run mode: " << 3 << std::endl;
 
   // send pulse
   if (opt.send_pulse) {
@@ -437,7 +457,7 @@ int main(int argc, char *argv[])
 
       for (int i = 0; i < n_active_fifos; ++i) {
         
-        std::cout << std::right << std::setw(16) << std::setfill(' ') << i;
+        std::cout << std::right << std::setw(16) << std::setfill(' ') << fifo_id[i];
         std::cout << std::right << std::setw(16) << std::setfill(' ') << max_occupancy[i];
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i];
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i] / n_polls;
@@ -460,7 +480,7 @@ int main(int argc, char *argv[])
       alarm(opt.monitor_period);
 
       if (opt.quit_on_monitor) running = false;
-      //      if (elapsed_start.count() > opt.timeout) running = false;
+      if (elapsed_start.count() > opt.timeout) running = false;
     }
 
   }
@@ -469,7 +489,7 @@ int main(int argc, char *argv[])
   for (int i = 0; i < n_active_fifos; ++i) {
     /** write staging buffer to file if requested **/
     if (write_output) {
-      std::cout << " --- flushing FIFO #" << i << ": " << staging_buffer_bytes[i] << std::endl;
+      std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
       write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
       fout[i].close();
       std::cout << " --- output file closed: " << std::endl;
@@ -480,6 +500,14 @@ int main(int argc, char *argv[])
   }
   buffer_counter++;
     
+  mode_node->write(1);
+  hardware.dispatch();
+  std::cout << " --- setting run mode: " << 1 << std::endl;
+
+  mode_node->write(0);
+  hardware.dispatch();
+  std::cout << " --- setting run mode: " << 0 << std::endl;
+
   std::cout << " --- exiting, so long " << std::endl;
 
   return 0;
