@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <chrono>
+#include <ctime>
 #include <boost/program_options.hpp>
 #include "uhal/uhal.hpp"
 
@@ -122,7 +123,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1), "Monitor period")
       ("mode"             , po::value<int>(&opt.run_mode)->default_value(0x3), "Run mode")
       ("timeout"          , po::value<int>(&opt.timeout)->default_value(0), "Readout timeout")
-      ("output"           , po::value<std::string>(&opt.output_filename), "Output data file")
+      ("output"           , po::value<std::string>(&opt.output_filename), "Output data filename prefix")
       ("standalone"       , po::bool_switch(&opt.standalone), "Standalone operation mode")
       ("merged_lanes"     , po::bool_switch(&opt.merged_lanes), "Use old FIFOs with merged lanes")
       ("send_pulse"       , po::bool_switch(&opt.send_pulse), "Send a pulse at the beginning")
@@ -210,9 +211,9 @@ int main(int argc, char *argv[])
   bool write_output = !opt.output_filename.empty();
   if (write_output) {
     for (int i = 0; i < n_active_fifos; ++i) {
-      std::string filename = "fifo_" + std::to_string(fifo_id[i]) + "." + opt.output_filename;
+      std::string filename = opt.output_filename + ".fifo_" + std::to_string(fifo_id[i]) + ".dat";
       std::cout << " --- opening output file: " << filename << std::endl;
-      fout[i].open(filename , std::ofstream::out | std::ofstream::binary);
+      fout[i].open(filename, std::ofstream::out | std::ofstream::binary);
     }
   }
 
@@ -248,6 +249,24 @@ int main(int argc, char *argv[])
   std::cout << " --- setting run mode: " << 0 << std::endl;
   auto fwrev = fwrev_register.value();
 
+  /** write firmware info and other stuff in file header **/
+  auto timestamp = std::time(nullptr);
+  auto run_number = 0;
+  if (write_output) {
+      uint32_t header[8];
+      header[0] = 0x000caffe;
+      header[1] = fwrev; // firmware version
+      header[2] = run_number; // run number
+      header[3] = timestamp; // timestamp
+      header[4] = 0x0;
+      header[5] = 0x0;
+      header[6] = 0x0;
+      header[7] = 0x0;
+      for (int i = 0; i < n_active_fifos; ++i) { 
+	fout[i].write((char *)&header, 32);
+      }
+  }
+  
   /** start infinite loop **/
   std::cout << " --- firmware revision: " << std::hex << fwrev << std::dec << std::endl;
   std::cout << " --- FIFO minimum occupancy: " << opt.fifo_occupancy << std::endl;
@@ -330,7 +349,7 @@ int main(int argc, char *argv[])
         write_output = !opt.output_filename.empty();
         if (write_output) {
 	  for (int i = 0; i < n_active_fifos; ++i) {
-	    std::string filename = run_tag + "." + "fifo_" + std::to_string(fifo_id[i]) + "." + opt.output_filename;
+	    std::string filename = opt.output_filename + "." + run_tag + ".fifo_" + std::to_string(fifo_id[i]) + ".dat";
 	    std::cout << " --- opening output file: " << filename << std::endl;
 	    fout[i].open(filename , std::ofstream::out | std::ofstream::binary);
 	  }
