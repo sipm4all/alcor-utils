@@ -35,7 +35,7 @@ bool monitor = false;
 struct program_options_t {
   std::string connection_filename, device_id, output_filename;
   int staging_size, fifo_mask, fifo_occupancy, monitor_period, usleep_period, run_mode, timeout;
-  bool standalone, merged_lanes, send_pulse, reset_fifo, send_reset, quit_on_monitor;
+  bool standalone, merged_lanes, send_pulse, reset_fifo, send_reset, quit_on_monitor, one_file;
 };
 
 struct ipbus_struct_t {
@@ -130,6 +130,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("send_reset"       , po::bool_switch(&opt.send_reset), "Send a reset at the beginning")
       ("reset_fifo"       , po::bool_switch(&opt.reset_fifo), "Reset FIFOs at the beginning")
       ("quit_on_monitor"  , po::bool_switch(&opt.quit_on_monitor), "Quit after first monitor")
+      ("one_file"         , po::bool_switch(&opt.one_file), "Write data onto a single file")
       ;
     
     po::variables_map vm;
@@ -211,7 +212,9 @@ int main(int argc, char *argv[])
   bool write_output = !opt.output_filename.empty();
   if (write_output) {
     for (int i = 0; i < n_active_fifos; ++i) {
+      if (opt.one_file && i != 0) continue;
       std::string filename = opt.output_filename + ".fifo_" + std::to_string(fifo_id[i]) + ".dat";
+      if (opt.one_file) filename = opt.output_filename + ".dat";
       std::cout << " --- opening output file: " << filename << std::endl;
       fout[i].open(filename, std::ofstream::out | std::ofstream::binary);
     }
@@ -530,6 +533,7 @@ int main(int argc, char *argv[])
   for (int i = 0; i < n_active_fifos; ++i) {
     /** write staging buffer to file if requested **/
     if (write_output) {
+      if (opt.one_file && i !=  0) continue;
       //      std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
       write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
       fout[i].close();
