@@ -4,8 +4,26 @@
 #include <boost/program_options.hpp>
 
 bool verbose = false;
-int rollover = -1; // we start from -1 becaue the very first word is a rollover
-int hit_counter[4][8] = {0};
+int rollover = 0;//-1; // we start from -1 becaue the very first word is a rollover
+
+struct main_header_t {
+  uint32_t caffe;
+  uint32_t readout_version;
+  uint32_t firmware_release;
+  uint32_t run_number;
+  uint32_t timestamp;
+  uint32_t staging_size;
+  uint32_t run_mode;
+  uint32_t filter_mode;
+  uint32_t reserved0;
+  uint32_t reserved1;
+  uint32_t reserved2;
+  uint32_t reserved3;
+  uint32_t reserved4;
+  uint32_t reserved5;
+  uint32_t reserved6;
+  uint32_t reserved7;
+};
 
 struct buffer_header_t {
   uint32_t caffe;
@@ -15,17 +33,19 @@ struct buffer_header_t {
 };
 
 struct spill_t {
-  uint64_t coarse  : 40;
-  uint32_t counter : 12;
-  uint32_t mbz     : 8;
-  uint32_t id      : 4;
+  uint32_t coarse   : 15;
+  uint32_t rollover : 25;
+  uint32_t zero     : 8;
+  uint32_t counter  : 12;
+  uint32_t id       : 4;
 };
 
 struct trigger_t {
-  uint64_t coarse  : 40;
-  uint32_t counter : 16;
-  uint32_t type    : 4;
-  uint32_t id      : 4;
+  uint32_t coarse   : 15;
+  uint32_t rollover : 25;
+  uint32_t counter  : 16;
+  uint32_t type     : 4;
+  uint32_t id       : 4;
 };
 
 struct alcor_hit_t {
@@ -39,54 +59,173 @@ struct alcor_hit_t {
   }
 };
 
-void decode_trigger(char *buffer, int size, std::ofstream &fout)
+bool in_spill = false;
+
+void write_data_header(std::ofstream &fout)
+{
+  fout << "fifo/I:type/I:counter/I:column/I:pixel/I:tdc/I:rollover/I:coarse/I:fine/I" << std::endl;
+}
+
+void write_data(std::ofstream &fout, int fifo, int type, int counter, int column, int pixel, int tdc, int rollover, int coarse, int fine)
+{
+  fout << fifo << " " << type << " " << counter << " " << column << " " << pixel << " " << tdc << " " << rollover << " " << coarse << " " << fine << std::endl;
+}
+
+void write_trigger_data(std::ofstream &fout, int fifo, int type, int counter, int rollover, int coarse)
+{
+  write_data(fout, fifo, type, counter, -1, -1, -1, rollover, coarse, -1);
+}
+
+void write_alcor_data(std::ofstream &fout, int fifo, int column, int pixel, int tdc, int rollover, int coarse, int fine)
+{
+  write_data(fout, fifo, 1, -1, column, pixel, tdc, rollover, coarse, fine);
+}
+                
+void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
 {
   size /= 4;
   auto word = (uint32_t *)buffer;
   uint32_t pos = 0;
+
   while (pos < size) {
-    if ((*word & 0x60000000) == 0x60000000) {
-      if (verbose) printf(" 0x%08x -- spill header\n", *word);
-      ++word; ++pos;
-      if (verbose) printf(" 0x%08x -- \n", *word);
-      ++word; ++pos;
-    }
-    if ((*word & 0x90000000) == 0x90000000) {
+
+    /** spill header **/
+    if ((*word & 0xf0000000) == 0x70000000) {
+      uint32_t counter = (*word & 0xfff000) >> 16;
       uint64_t trigger_time = 0x0;
-      if (verbose) printf(" 0x%08x -- trigger header\n", *word);
+      if (verbose) printf(" 0x%08x -- spill header (counter=%d)\n", *word, counter);
       trigger_time = (uint64_t)(*word & 0xff) << 32;
       ++word; ++pos;
-      if (verbose) printf(" 0x%08x -- \n", *word);
+      if (verbose) printf(" 0x%08x -- spill header continued \n", *word);
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
-      fout << -1 << " " << -1 << " " << -1 << " " << -1 << " " << rollover << " " << coarse << " " << -1 << std::endl;
+      write_trigger_data(fout, fifo, 7, counter, rollover, coarse);
+      ++word; ++pos;
+    }
+    
+    /** spill trailer **/
+    if ((*word & 0xf0000000) == 0xf0000000) {
+      spill_t *spill = (spill_t *)word;
+      uint32_t counter = (*word & 0xfff000) >> 16;
+      uint64_t trigger_time = 0x0;
+      if (verbose) printf(" 0x%08x -- spill trailer (counter=%d)\n", *word, counter);
+      trigger_time = (uint64_t)(*word & 0xff) << 32;
+      ++word; ++pos;
+      if (verbose) printf(" 0x%08x -- spill trailer continued \n", *word);
+      trigger_time |= *word;
+      uint32_t coarse = trigger_time & 0x7fff;
+      uint32_t rollover = trigger_time >> 15;
+      write_trigger_data(fout, fifo, 15, counter, rollover, coarse);
+      ++word; ++pos;
+    }
+    
+    /** trigger **/
+    if ((*word & 0xf0000000) == 0x90000000) {
+      trigger_t *trigger = (trigger_t *)word;
+      uint64_t trigger_time = 0x0;
+      if (verbose) printf(" 0x%08x -- trigger header\n", *word);
+      trigger_time = (uint64_t)(*word & 0xff) << 32;
+      uint32_t counter = (*word & 0xffff00) >> 16;
+      ++word; ++pos;
+      if (verbose) printf(" 0x%08x -- trigger header continued \n", *word);
+      trigger_time |= *word;
+      uint32_t coarse = trigger_time & 0x7fff;
+      uint32_t rollover = trigger_time >> 15;
+      write_trigger_data(fout, fifo, 9, counter, rollover, coarse);
       ++word; ++pos;
     }    
   }
 
-#if 0
-  size /= 8;
-  auto word = (uint64_t *)buffer;
-  spill_t *spill = nullptr;
-  uint32_t pos = 0;
-  while (pos < size) {
-    spill = (spill_t *)word;
-    if (verbose) printf(" 0x%016lx -- (%d, %010lx)\n", *word, spill->id, spill->coarse);
-    ++word; ++pos;
-  }
-#endif
 }
 
-void decode(char *buffer, int size, bool raw_mode, std::ofstream &fout)
+void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filtered)
 {
   size /= 4;
   auto word = (uint32_t *)buffer;
   alcor_hit_t *hit;
   uint32_t pos = 0;
 
+  // loop over buffer data
   while (pos < size) {
+
+    // find spill header if not in spill already
+    while (!in_spill && pos < size) {
+      
+      /** spill header **/
+      if ((*word & 0xf0000000) == 0x70000000) {
+        uint32_t counter = (*word & 0xfff000) >> 16;
+        uint64_t trigger_time = 0x0;
+        if (verbose) printf(" 0x%08x -- spill header (counter=%d)\n", *word, counter);
+        trigger_time = (uint64_t)(*word & 0xff) << 32;
+        ++word; ++pos;
+        if (verbose) printf(" 0x%08x -- spill header continued \n", *word);
+        trigger_time |= *word;
+        uint32_t coarse = trigger_time & 0x7fff;
+        uint32_t rollover = trigger_time >> 15;
+        write_trigger_data(fout, fifo, 7, counter, rollover, coarse);
+        ++word; ++pos;
+        in_spill = true;
+        break;
+      }
+
+      /** something else **/
+      if (verbose) printf(" 0x%08x -- \n", *word);
+      ++word; ++pos;
+    }
     
+    // find spill trailer
+    while (pos < size) {
+
+      /** spill trailer **/
+      if ((*word & 0xf0000000) == 0xf0000000) {
+        spill_t *spill = (spill_t *)word;
+        uint32_t counter = (*word & 0xfff000) >> 16;
+        uint64_t trigger_time = 0x0;
+        if (verbose) printf(" 0x%08x -- spill trailer (counter=%d)\n", *word, counter);
+        trigger_time = (uint64_t)(*word & 0xff) << 32;
+        ++word; ++pos;
+        if (verbose) printf(" 0x%08x -- spill trailer continued \n", *word);
+        trigger_time |= *word;
+        uint32_t coarse = trigger_time & 0x7fff;
+        uint32_t rollover = trigger_time >> 15;
+        write_trigger_data(fout, fifo, 15, counter, rollover, coarse);
+        ++word; ++pos;
+        in_spill = false;
+        break;
+      }
+
+      /** rollover **/
+      if (*word == 0x5c5c5c5c) {
+        if (verbose) printf(" 0x%08x -- rollover \n", *word);
+        ++rollover;
+        ++word; ++pos;
+        continue;
+      }
+
+      /** hit **/
+      if (verbose) printf(" 0x%08x -- hit \n", *word);
+      hit = (alcor_hit_t *)word;
+      write_alcor_data(fout, fifo, hit->column, hit->pixel, hit->tdc, rollover, hit->coarse, hit->fine);
+      ++word; ++pos;
+      
+    }
+  }
+
+#if 0
+
+  
+  // find spill trailer
+  while (pos < size) {
+    if (*word & 0xf0000000 == 0x90000000) {
+      ++word; ++pos;
+      continue;
+    }
+    
+  }
+  
+  while (pos < size) {
+
     // find next rollover
     while (pos < size) {
       if (*word != 0x5c5c5c5c) {
@@ -100,7 +239,7 @@ void decode(char *buffer, int size, bool raw_mode, std::ofstream &fout)
     ++word; ++pos;
       
     // find frame header
-    while (pos < size) {
+    while (pos < size && !is_filtered) {
       if (*word == 0x1c1c1c1c) break;
       if (verbose) printf(" 0x%08x -- \n", *word);
       ++word; ++pos;
@@ -116,9 +255,8 @@ void decode(char *buffer, int size, bool raw_mode, std::ofstream &fout)
       if (*word == 0x5c5c5c5c) break;
       if (verbose) printf(" 0x%08x -- hit \n", *word);
       hit = (alcor_hit_t *)word;
-      fout << hit->column << " " << hit->pixel << " " << hit->tdc << " " << frame << " " << rollover << " " << hit->coarse << " " << hit->fine << std::endl;
+      fout << 1 << " " << -1 << " " << hit->column << " " << hit->pixel << " " << hit->tdc << " " << frame << " " << rollover << " " << hit->coarse << " " << hit->fine << std::endl;
       //      fout << rollover << " " << hit->coarse << std::endl;
-      hit_counter[hit->column][hit->pixel]++;
       ++word; ++pos;
     }
     
@@ -154,7 +292,8 @@ void decode(char *buffer, int size, bool raw_mode, std::ofstream &fout)
   }
 
 #endif
-
+#endif
+  
 }
 
 int main(int argc, char *argv[])
@@ -162,17 +301,16 @@ int main(int argc, char *argv[])
   std::cout << " --- welcome to ALCOR decoder " << std::endl;
 
   std::string input_filename, output_filename;
-  bool raw_mode = false;
   
   /** process arguments **/
   namespace po = boost::program_options;
   po::options_description desc("Options");
   try {
     desc.add_options()
-      ("help"   , "Print help messages")
-      ("input"  , po::value<std::string>(&input_filename), "Input data file")
-      ("output" , po::value<std::string>(&output_filename), "Output data file")
-      ("raw"    , po::bool_switch(&raw_mode)->default_value(true), "Raw mode flag")
+      ("help"    , "Print help messages")
+      ("input"   , po::value<std::string>(&input_filename), "Input data file")
+      ("output"  , po::value<std::string>(&output_filename), "Output data file")
+      ("verbose" , po::bool_switch(&verbose)->default_value(false), "Verbose mode flag")
       ;
     
     po::variables_map vm;
@@ -195,47 +333,77 @@ int main(int argc, char *argv[])
   std::ifstream fin;
   fin.open(input_filename, std::ofstream::in | std::ofstream::binary);
   
+  /** read main header **/ 
+  main_header_t main_header;
+  fin.read((char *)&main_header, sizeof(main_header_t));
+  if (main_header.caffe != 0x000caffe) {
+    printf(" --- [ERROR] caffe header mismatch in main header: 0x%08x \n", main_header.caffe);
+    return 1;
+  }
+  printf(" --- [main header] caffe header detected: 0x%08x \n", main_header.caffe);
+  printf(" --- [main header] readout version: 0x%08x \n", main_header.readout_version);
+  printf(" --- [main header] firmware release: 0x%08x \n", main_header.firmware_release);
+  printf(" --- [main header] run number: %d \n", main_header.run_number);
+  printf(" --- [main header] timestamp: %d \n", main_header.timestamp);
+  printf(" --- [main header] staging buffer size: %d \n", main_header.staging_size);
+  printf(" --- [main header] run mode: 0x%1x \n", main_header.run_mode);
+  printf(" --- [main header] filter mode: 0x%1x \n", main_header.filter_mode);
+  printf(" --- [main header] timestamp: %d \n", main_header.timestamp);
+
+  // check that we know how to decode it
+  bool is_filtered;
+  if (main_header.filter_mode == 0x0)
+    is_filtered = false;
+  else if (main_header.filter_mode == 0xf)
+    is_filtered = true;
+  else {
+    printf(" --- [ERROR] filter mode not supported: 0x%01x \n", main_header.filter_mode);
+    return 1;
+  }
+  
+  // create reading buffer
+  auto staging_size = 1048576;
+  char *buffer = new char[staging_size];
+  
   /** open output file **/
   std::cout << " --- opening output file: " << output_filename << std::endl;
   std::ofstream fout;
   fout.open(output_filename, std::ofstream::out);
-  fout << "column/I:pixel/I:tdc/I:frame/I:rollover/I:coarse/I:fine/I" << std::endl;
-  
+  write_data_header(fout);
+
   /** loop over data **/
-  buffer_header_t head;
+  buffer_header_t buffer_header;
   uint32_t word;
-  char *buffer = new char[500000000];
   while (true) {
-    fin.read((char *)(&head), sizeof(head));
+    fin.read((char *)(&buffer_header), sizeof(buffer_header_t));
     if (fin.eof()) break;
-    if (head.caffe != 0x123caffe) {
-      printf(" [ERROR] invalid caffe header: %08x \n", head.caffe);
+    if (buffer_header.caffe != 0x123caffe) {
+      printf(" --- [ERROR] caffe header mismatch in buffer header: %08x \n", buffer_header.caffe);
       break;
     }
-    printf(" 0x%08x -- caffe header \n", head.caffe);
-    printf(" 0x%08x -- buffer id \n", head.id);
-    printf(" 0x%08x -- buffer counter \n", head.counter);
-    printf(" 0x%08x -- buffer size \n", head.size);
-    fin.read(buffer, head.size);
+    printf(" --- [buffer header] caffe header detected: 0x%08x \n", buffer_header.caffe);
+    printf(" --- [buffer header] buffer id: %d \n", buffer_header.id);
+    printf(" --- [buffer header] buffer counter: %d \n", buffer_header.counter);
+    printf(" --- [buffer header] buffer size: %d \n", buffer_header.size);
+    fin.read(buffer, buffer_header.size);
 
-    if (head.id < 24)
-      decode(buffer, head.size, raw_mode, fout);
-    else if (head.id == 24)
-      decode_trigger(buffer, head.size, fout);
+    if (buffer_header.id < 24) {
+      printf(" --- decoding ALCOR FIFO \n");
+      decode(buffer, buffer_header.id, buffer_header.size, fout, is_filtered);
+    }
+    else if (buffer_header.id == 24) {
+      printf(" --- decoding TRIGGER FIFO \n");
+      decode_trigger(buffer, buffer_header.id, buffer_header.size, fout);
+    }
   }
   
+  double integrated = (double)rollover * 0.0001024;
+  std::cout << " --- integrated seconds: " << integrated << std::endl;
+
   /** close input file **/
   fin.close();
   fout.close();
   std::cout << " --- all done, so long " << std::endl;
 
-  double integrated = (double)rollover * 0.0001024;
-  std::cout << " >>>integrated " << integrated << std::endl;
-  for (int i = 0; i < 8; ++i) {
-    for (int j = 0; j < 4; ++j) {
-      std::cout << ">>>channel " << i << " " << j << " " << (double)hit_counter[i][j] / integrated << " " << std::sqrt(hit_counter[i][j]) / integrated << std::endl;
-    }
-  }
-  
   return 0;
 }
