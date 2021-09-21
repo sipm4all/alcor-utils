@@ -4,7 +4,9 @@
 #include <boost/program_options.hpp>
 
 bool verbose = false;
-int rollover = 0;//-1; // we start from -1 becaue the very first word is a rollover
+int integrated_rollover = 0;
+int rollover_counter = 0;//-1; // we start from -1 becaue the very first word is a rollover
+int frame = 0;
 
 struct main_header_t {
   uint32_t caffe;
@@ -192,21 +194,23 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
         write_trigger_data(fout, fifo, 15, counter, rollover, coarse);
         ++word; ++pos;
         in_spill = false;
+	rollover_counter = 0;
         break;
       }
 
       /** rollover **/
       if (*word == 0x5c5c5c5c) {
-        if (verbose) printf(" 0x%08x -- rollover \n", *word);
-        ++rollover;
+        if (verbose) printf(" 0x%08x -- rollover (counter=%d) \n", *word, rollover_counter);
+        ++rollover_counter;
+	++integrated_rollover;
         ++word; ++pos;
         continue;
       }
 
       /** hit **/
-      if (verbose) printf(" 0x%08x -- hit \n", *word);
       hit = (alcor_hit_t *)word;
-      write_alcor_data(fout, fifo, hit->column, hit->pixel, hit->tdc, rollover, hit->coarse, hit->fine);
+      if (verbose) printf(" 0x%08x -- hit (fine=%d, column=%d, pixel=%d --> channel=%d)\n", *word, hit->fine, hit->column, hit->pixel, hit->column * 4 + hit->pixel);
+      write_alcor_data(fout, fifo, hit->column, hit->pixel, hit->tdc, rollover_counter, hit->coarse, hit->fine);
       ++word; ++pos;
       
     }
@@ -236,6 +240,7 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
       break;
     }
     ++rollover;
+    ++integrated_rollover;
     ++word; ++pos;
       
     // find frame header
@@ -397,7 +402,7 @@ int main(int argc, char *argv[])
     }
   }
   
-  double integrated = (double)rollover * 0.0001024;
+  double integrated = (double)integrated_rollover * 0.0001024;
   std::cout << " --- integrated seconds: " << integrated << std::endl;
 
   /** close input file **/

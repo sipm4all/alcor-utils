@@ -23,7 +23,9 @@
 
 #define PARANOID
 
+#define VERSION 0x20210919
 #define MAX_FIFOS 25
+#define MAX_ALCORS 6
 
 #define CTRL_SHMFILE "/tmp/alcorReadoutController.shmkey"
 #define CTRL_PROJID 2333
@@ -34,8 +36,8 @@ bool monitor = false;
 
 struct program_options_t {
   std::string connection_filename, device_id, output_filename;
-  int staging_size, fifo_mask, fifo_occupancy, monitor_period, usleep_period, run_mode, timeout;
-  bool standalone, merged_lanes, send_pulse, reset_fifo, send_reset, quit_on_monitor, one_file;
+  int staging_size, fifo_mask, fifo_occupancy, monitor_period, usleep_period, run_mode, timeout, filter_mode, run_number;
+  bool standalone, send_pulse, reset_fifo, send_reset, quit_on_monitor, one_file;
 };
 
 struct ipbus_struct_t {
@@ -121,11 +123,12 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("usleep"           , po::value<int>(&opt.usleep_period)->default_value(0), "Microsecond sleep between polling cycles")
       ("staging"          , po::value<int>(&opt.staging_size)->default_value(1048576), "Staging buffer size (bytes)")
       ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1), "Monitor period")
+      ("run"              , po::value<int>(&opt.run_number)->default_value(0x3), "Run number")
       ("mode"             , po::value<int>(&opt.run_mode)->default_value(0x3), "Run mode")
+      ("filter"            , po::value<int>(&opt.filter_mode)->default_value(0x0), "Filter mode")
       ("timeout"          , po::value<int>(&opt.timeout)->default_value(0), "Readout timeout")
       ("output"           , po::value<std::string>(&opt.output_filename), "Output data filename prefix")
       ("standalone"       , po::bool_switch(&opt.standalone), "Standalone operation mode")
-      ("merged_lanes"     , po::bool_switch(&opt.merged_lanes), "Use old FIFOs with merged lanes")
       ("send_pulse"       , po::bool_switch(&opt.send_pulse), "Send a pulse at the beginning")
       ("send_reset"       , po::bool_switch(&opt.send_reset), "Send a reset at the beginning")
       ("reset_fifo"       , po::bool_switch(&opt.reset_fifo), "Reset FIFOs at the beginning")
@@ -162,8 +165,9 @@ int main(int argc, char *argv[])
   const uhal::Node *occupancy_node[MAX_FIFOS] = {nullptr}, *reset_node[MAX_FIFOS], *data_node[MAX_FIFOS] = {nullptr};//, *pulse_node[6] = {nullptr};
   uhal::ValWord<uint32_t> occupancy_register[MAX_FIFOS];
   uhal::ValVector<uint32_t> data_register[MAX_FIFOS];
-  int n_active_fifos = 0;
+  int n_active_fifos = 0, n_active_alcors = 0;
   int fifo_id[MAX_FIFOS] = {0};
+  bool active_alcor[MAX_ALCORS] = {false};
   for (int i = 0; i < MAX_FIFOS; ++i) {
     if ( !(opt.fifo_mask & 1 << i ) ) continue;
     int chip = i / 4;
@@ -173,27 +177,15 @@ int main(int argc, char *argv[])
       occupancy_node[n_active_fifos] = &hardware.getNode("trigger_info.fifo_occupancy");
       reset_node[n_active_fifos]     = &hardware.getNode("trigger_info.fifo_reset");
       data_node[n_active_fifos]      = &hardware.getNode("trigger_info.fifo_data");
-      fifo_id[n_active_fifos] = i;
-      n_active_fifos++;
-      continue;
-    }
-    if (opt.merged_lanes) {
-      if (lane == 0) {
-	std::cout << " --- reading data from FIFO # " << i << " (chip = " << chip << ")" << std::endl;
-	occupancy_node[n_active_fifos] = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + ".fifo_occupancy");
-	reset_node[n_active_fifos]     = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + ".fifo_reset");
-	data_node[n_active_fifos]      = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + ".fifo_data");
-	fifo_id[n_active_fifos] = i;
-	n_active_fifos++;
-      }
     } else {
       std::cout << " --- reading data from FIFO # " << i << " (chip = " << chip << ", lane = " << lane << ")" << std::endl;
       occupancy_node[n_active_fifos] = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + "_lane" + std::to_string(lane) + ".fifo_occupancy");
       reset_node[n_active_fifos]     = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + "_lane" + std::to_string(lane) + ".fifo_reset");
       data_node[n_active_fifos]      = &hardware.getNode("alcor_readout_id" + std::to_string(chip) + "_lane" + std::to_string(lane) + ".fifo_data");
-      fifo_id[n_active_fifos] = i;
-      n_active_fifos++;
     }
+    fifo_id[n_active_fifos] = i;
+    n_active_fifos++;
+    active_alcor[chip] = true;
   }
 
   /** prepare staging buffers and pointers **/
@@ -217,6 +209,10 @@ int main(int argc, char *argv[])
       if (opt.one_file) filename = opt.output_filename + ".dat";
       std::cout << " --- opening output file: " << filename << std::endl;
       fout[i].open(filename, std::ofstream::out | std::ofstream::binary);
+      if (!fout[i].is_open()) {
+	std::cout << " --- cannot open output file: " << filename << std::endl;
+	return 1;
+      }
     }
   }
 
@@ -252,22 +248,39 @@ int main(int argc, char *argv[])
   std::cout << " --- setting run mode: " << 0 << std::endl;
   auto fwrev = fwrev_register.value();
 
+  // set filter mode
+  auto filter_command = 0x03300000 | opt.filter_mode;
+  std::cout << " --- setting ALCOR filter mode: " << opt.filter_mode << std::endl;
+  for (int i = 0; i < MAX_ALCORS; ++i) {
+    if (!active_alcor[i]) continue;
+    hardware.getNode("alcor_controller_id" + std::to_string(i)).write(filter_command);
+  }
+  hardware.dispatch();
+  for (int i = 0; i < MAX_ALCORS; ++i) {
+    if (!active_alcor[i]) continue;
+    auto controller_register = hardware.getNode("alcor_controller_id" + std::to_string(i)).read();
+    hardware.dispatch();
+    auto controller_value = controller_register.value();
+    if (controller_value != filter_command) {
+      std::cout << " [ERROR] filter command mismatch on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
+      return 1;
+    }
+    std::cout << " --- filter command OK on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
+  }
+
   /** write firmware info and other stuff in file header **/
   auto timestamp = std::time(nullptr);
-  auto run_number = 0;
   if (write_output) {
-      uint32_t header[8];
-      header[0] = 0x000caffe;
-      header[1] = fwrev; // firmware version
-      header[2] = run_number; // run number
-      header[3] = timestamp; // timestamp
-      header[4] = 0x0;
-      header[5] = 0x0;
-      header[6] = 0x0;
-      header[7] = 0x0;
-      for (int i = 0; i < n_active_fifos; ++i) { 
-	fout[i].write((char *)&header, 32);
-      }
+    uint32_t header[32] = {0x0};
+    header[0] = 0x000caffe;
+    header[1] = VERSION; // readout version
+    header[2] = fwrev; // firmware version
+    header[3] = opt.run_number; // run number
+    header[4] = timestamp; // timestamp
+    header[5] = opt.staging_size; // staging size 
+    header[6] = opt.run_mode; // run mode
+    header[7] = opt.filter_mode; // filter mode
+    for (int i = 0; i < n_active_fifos; ++i) fout[i].write((char *)&header, 64);
   }
   
   /** start infinite loop **/
@@ -297,7 +310,8 @@ int main(int argc, char *argv[])
 
   // send reset
   if (opt.send_reset) {
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < MAX_ALCORS; ++i) {
+      if (!active_alcor[i]) continue;
       hardware.getNode("pulser.reset_id" + std::to_string(i)).write(0x1);
     }
     hardware.dispatch();
@@ -308,15 +322,14 @@ int main(int argc, char *argv[])
   mode_node->write(1);
   hardware.dispatch();
   std::cout << " --- setting run mode: " << 1 << std::endl;
-
-  // go into real run mode
   mode_node->write(opt.run_mode);
   hardware.dispatch();
   std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
 
   // send pulse
   if (opt.send_pulse) {
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < MAX_ALCORS; ++i) {
+      if (!active_alcor[i]) continue;
       hardware.getNode("pulser.testpulse_id" + std::to_string(i)).write(0x1);
     }
     hardware.dispatch();
@@ -442,7 +455,7 @@ int main(int argc, char *argv[])
       data_register[i] = data_node[i]->readBlock(occupancy[i]);
     }
     hardware.dispatch();
-
+    
     if (flush_staging_buffers) {
       buffer_counter++;
       flush_staging_buffers = false;
@@ -506,7 +519,7 @@ int main(int argc, char *argv[])
 	nframes[i] = 0;
 	nhits[i] = 0;
       }
-      std::cout << " EOM " << std::string(16 * 8 - 5, '-') << std::endl;
+      std::cout << " EOM " << std::string(16 * 8 - 5, '-') << " RUN " << opt.run_number << std::endl;
 
       std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
       std::cout << std::right << std::setw(16) << std::setfill(' ') << " ";
@@ -524,7 +537,7 @@ int main(int argc, char *argv[])
       alarm(opt.monitor_period);
 
       if (opt.quit_on_monitor) running = false;
-      if (elapsed_start.count() > opt.timeout) running = false;
+      if (opt.timeout > 0 && elapsed_start.count() > opt.timeout) running = false;
     }
 
   }
@@ -544,11 +557,11 @@ int main(int argc, char *argv[])
     delete [] staging_buffer[i];
   }
   buffer_counter++;
-    
+   
+  // switch off run mode
   mode_node->write(1);
   hardware.dispatch();
   std::cout << " --- setting run mode: " << 1 << std::endl;
-
   mode_node->write(0);
   hardware.dispatch();
   std::cout << " --- setting run mode: " << 0 << std::endl;
