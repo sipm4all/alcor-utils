@@ -36,7 +36,7 @@ bool monitor = false;
 
 struct program_options_t {
   std::string connection_filename, device_id, output_filename;
-  int staging_size, fifo_mask, fifo_occupancy, monitor_period, usleep_period, run_mode, timeout, filter_mode, run_number;
+  int staging_size, fifo_mask, fifo_occupancy, monitor_period, usleep_period, run_mode, timeout, filter_mode, run_number, fifo_killer;
   bool standalone, send_pulse, reset_fifo, send_reset, quit_on_monitor, one_file;
 };
 
@@ -125,7 +125,8 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1), "Monitor period")
       ("run"              , po::value<int>(&opt.run_number)->default_value(0x3), "Run number")
       ("mode"             , po::value<int>(&opt.run_mode)->default_value(0x3), "Run mode")
-      ("filter"            , po::value<int>(&opt.filter_mode)->default_value(0x0), "Filter mode")
+      ("filter"           , po::value<int>(&opt.filter_mode)->default_value(0x0), "Filter mode")
+      ("killer"           , po::value<int>(&opt.fifo_killer)->default_value(8192), "Fifo killer")
       ("timeout"          , po::value<int>(&opt.timeout)->default_value(0), "Readout timeout")
       ("output"           , po::value<std::string>(&opt.output_filename), "Output data filename prefix")
       ("standalone"       , po::bool_switch(&opt.standalone), "Standalone operation mode")
@@ -289,6 +290,7 @@ int main(int argc, char *argv[])
   std::cout << " --- staging buffer size: " << opt.staging_size << " bytes" << std::endl;
   std::cout << " --- usleep period: " << opt.usleep_period << " us" << std::endl;
   std::cout << " --- monitor period: " << opt.monitor_period << " s" << std::endl;
+  std::cout << " --- fifo killer: " << opt.fifo_killer << std::endl;
   std::cout << " --- starting infinite loop: ctrl+c to interrupt " << std::endl;
   auto start = std::chrono::steady_clock::now();
   auto split = start;
@@ -298,6 +300,7 @@ int main(int argc, char *argv[])
   uint32_t occupancy[MAX_FIFOS], bytes[MAX_FIFOS];
   bool fifo_download = false;
   bool fifo_download_this[MAX_FIFOS] = {false};
+  bool fifo_killed[MAX_FIFOS] = {false};
 
   // reset fifos
   if (opt.reset_fifo) {
@@ -413,8 +416,10 @@ int main(int argc, char *argv[])
     usleep(opt.usleep_period);
 
     // dispatch read fifo occupancy
-    for (int i = 0; i < n_active_fifos; ++i)
+    for (int i = 0; i < n_active_fifos; ++i) {
+      if (fifo_killed[i]) continue;
       occupancy_register[i] = occupancy_node[i]->read();
+    }
     hardware.dispatch();
     
     // retrieve fifo occupancy
@@ -423,6 +428,7 @@ int main(int argc, char *argv[])
     fifo_download = false;
     flush_staging_buffers = false;
     for (int i = 0; i < n_active_fifos; ++i) {
+      if (fifo_killed[i]) continue;
 #ifdef PARANOID
       if (!occupancy_register[i].valid()) continue;
 #endif
@@ -434,6 +440,16 @@ int main(int argc, char *argv[])
 	fifo_download_this[i] = true;
       }
       if (staging_buffer_bytes[i] + bytes[i] > opt.staging_size) flush_staging_buffers = true;
+      // if FIFO saturared kill it and rearrange
+      if (occupancy[i] >= opt.fifo_killer) {
+	std::cout << " --- FIFO KILLED: " << fifo_id[i] << " (occupancy = " << occupancy[i] << ")"  << std::endl;
+	if (write_output) {
+	  write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
+	  uint32_t deadfifo = 0x666caffe;
+	  fout[i].write((char *)&deadfifo, 4);
+	}
+	fifo_killed[i] = true;
+      }
     }
 
     // download fifo data
@@ -443,6 +459,7 @@ int main(int argc, char *argv[])
     // write staging buffers to file if requested
     // dispatch block read of fifo data
     for (int i = 0; i < n_active_fifos; ++i) {
+      if (fifo_killed[i]) continue;
       if (flush_staging_buffers) {
         if (write_output) {
 	  //          std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
@@ -462,6 +479,7 @@ int main(int argc, char *argv[])
     }    
 
     for (int i = 0; i < n_active_fifos; ++i) {
+      if (fifo_killed[i]) continue;
 #ifdef PARANOID      
       if (!data_register[i].valid()) continue;
 #endif
@@ -500,15 +518,27 @@ int main(int argc, char *argv[])
 
       for (int i = 0; i < n_active_fifos; ++i) {
         
+	if (fifo_killed[i]) {
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << fifo_id[i];
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << "KILLED";
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
+	  std::cout << std::endl;
+	} else {
         std::cout << std::right << std::setw(16) << std::setfill(' ') << fifo_id[i];
         std::cout << std::right << std::setw(16) << std::setfill(' ') << max_occupancy[i];
-        std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i];
+	std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i];
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i] / n_polls;
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i] / elapsed_split.count();
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nbytes[i] / elapsed_split.count();
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nframes[i] / elapsed_split.count();
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nhits[i] / elapsed_split.count();
         std::cout << std::endl;
+	}
         
 	nwords_tot += nwords[i];
 	nbytes_tot += nbytes[i];
