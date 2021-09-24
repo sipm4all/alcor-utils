@@ -59,7 +59,8 @@ if __name__ == '__main__':
     # load setup
     if args.setup == True:
         print "Setting Alcor registers to default"
-        alc.setup(hw,chip,args.pulseType,args.mask)
+        alc.setup(hw,chip,args.pulseType,0)
+#        alc.setup(hw,chip,args.pulseType,args.mask)
 #        alc.setupECCR(hw,chip,alc.ECCR_default|alc.ECCR_RAWMODE)
         if args.eccr != None:
             print "Setting ECCR to: ",hex(args.eccr)

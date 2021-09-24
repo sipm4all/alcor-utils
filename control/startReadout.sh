@@ -16,9 +16,9 @@ OCCUPANCY=0
 FIFOS=$((0x1ffffff))
 FIFOS=$((0x1ff00f0))
 FIFOS=$((0x1ff0000))
-FIFOS=$((0x1fff0f0))
+FIFOS=$((0x1fffff0))
 MODE=5
-
+KILLER=8191
 
 
 TAG="alcdaq"
@@ -43,6 +43,7 @@ ${ALCOR_DIR}/bin/readout --connection ${ALCOR_ETC}/connection2.xml --device kc70
     --fifo $FIFOS \
     --mode $MODE \
     --filter $FILTER \
+    --killer $KILLER \
     --run $RUN \
     --output $OUTPUT | \
     tee $DIR/readout.log

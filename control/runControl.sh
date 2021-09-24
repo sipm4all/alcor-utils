@@ -61,7 +61,7 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
     ./startQA.sh $OUT_DIR
-    display $OUT_DIR/plotChips.png
+    display $OUT_DIR/plotChip.png
 fi
 
 cd $here
