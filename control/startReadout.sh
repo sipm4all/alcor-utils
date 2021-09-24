@@ -22,8 +22,6 @@ KILLER=8191
 
 
 TAG="alcdaq"
-DATE=`date '+%Y%m%d%H%M%S'`
-DIR="/home/eic/DATA/STANDALONE/$DATE"
 DIR=$2
 OUTPUT=$DIR/$TAG
 
@@ -33,7 +31,7 @@ echo "MODE: $MODE "  >> $OUTPUT/readoutConfig.dump
 
 #mkdir -p $DIR
 
-${ALCOR_DIR}/bin/readout --connection ${ALCOR_ETC}/connection2.xml --device kc705 \
+${ALCOR_DIR}/readout/bin/readout --connection ${ALCOR_ETC}/connection2.xml --device kc705 \
     --reset_fifo \
     --standalone \
     --usleep 1 \
