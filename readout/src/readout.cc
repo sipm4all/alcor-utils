@@ -13,6 +13,12 @@
 #include "sys/ipc.h"
 #include "sys/shm.h"
 
+
+/** system call to reset the chip 
+${ALCOR_DIR}/control/alcorInit.py ${ALCOR_ETC}/connection2.xml kc705 -c 5 -s -i -m 0xffffffff -p 1 --eccr 0xb81b --bcrfile manual.bcr --pcrfile manual.pcr
+**/
+
+
 /** readout control protocol works over SHM
     the following commands are accepted 
     R (Reset) 
@@ -33,6 +39,20 @@
 
 bool running = true;
 bool monitor = false;
+
+struct alcor_hit_t {
+  uint32_t fine   : 9;
+  uint32_t coarse : 15;
+  uint32_t tdc    : 2;
+  uint32_t pixel  : 3;
+  uint32_t column : 3;
+  void print() {
+    printf(" hit: %d %d %d %d %d \n", column, pixel, tdc, coarse, fine);
+  }
+  int get_channel() {
+    return pixel + 4 * column;
+  }
+};
 
 struct program_options_t {
   std::string connection_filename, device_id, output_filename;
@@ -301,6 +321,7 @@ int main(int argc, char *argv[])
   bool fifo_download = false;
   bool fifo_download_this[MAX_FIFOS] = {false};
   bool fifo_killed[MAX_FIFOS] = {false};
+  bool any_fifo_killed = false;
 
   // reset fifos
   if (opt.reset_fifo) {
@@ -443,12 +464,23 @@ int main(int argc, char *argv[])
       // if FIFO saturared kill it and rearrange
       if (occupancy[i] >= opt.fifo_killer) {
 	std::cout << " --- FIFO KILLED: " << fifo_id[i] << " (occupancy = " << occupancy[i] << ")"  << std::endl;
+
+	// attempt online post-mortem diagnosics
+	std::cout << " --- attempt online post-mortem diagnosics " << std::endl;
+	data_register[i] = data_node[i]->readBlock(occupancy[i]);
+	hardware.dispatch();
+	auto mortem = data_register[i].value();
+	auto mortem_data = mortem.back();
+	alcor_hit_t *alcor_hit = (alcor_hit_t*)&mortem_data;
+	std::cout << " --- 0x" << std::hex << mortem_data << std::dec << " --> channel " << alcor_hit->get_channel() << std::endl;
+
 	if (write_output) {
 	  write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
 	  uint32_t deadfifo = 0x666caffe;
 	  fout[i].write((char *)&deadfifo, 4);
 	}
 	fifo_killed[i] = true;
+	any_fifo_killed = true;
       }
     }
 
@@ -492,6 +524,35 @@ int main(int argc, char *argv[])
       staging_buffer_bytes[i] += bytes[i];
       fifo_download_this[i] = false;
     }
+
+    }
+
+    /** reset **/
+    if (any_fifo_killed) {
+
+      std::cout << " --- attempt chip reset via system call " << std::endl;
+
+      // switch off run mode
+      mode_node->write(1);
+      hardware.dispatch();
+      std::cout << " --- setting run mode: " << 1 << std::endl;
+      mode_node->write(0);
+      hardware.dispatch();
+      std::cout << " --- setting run mode: " << 0 << std::endl;
+      
+      // reset the chip
+      system("/home/eic/alcor/alcor-utils/control/alcorInit.py /home/eic/alcor/alcor-utils/etc/connection2.xml kc705 -c 5 -s -i -m 0xffffffff -p 1 --eccr 0xb81b --bcrfile /home/eic/alcor/manual.bcr --pcrfile /home/eic/alcor/manual.pcr");
+      for (int i = 0; i < n_active_fifos; ++i)
+	fifo_killed[i] = false;
+      any_fifo_killed = false;
+
+      // go into real run mode
+      mode_node->write(1);
+      hardware.dispatch();
+      std::cout << " --- setting run mode: " << 1 << std::endl;
+      mode_node->write(opt.run_mode);
+      hardware.dispatch();
+      std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
 
     }
 
