@@ -13,8 +13,8 @@
 
 struct program_options_t {
   std::string connection_filename, device_id, output;
-  int chip, channel, vth, range, offset1, min_counts, max_timer, min_timer, usleep, interesting, nretry, udelay;
-  bool forward, skip_user_settings;
+  int chip, channel, vth, range, offset1, min_counts, max_timer, min_timer, usleep, udelay;
+  bool skip_user_settings;
 };
 
 void process_program_options(int argc, char *argv[], program_options_t &opt);
@@ -41,9 +41,6 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("output"           , po::value<std::string>(&opt.output)->default_value("scan_thr.txt"), "Output filename")
       ("usleep"           , po::value<int>(&opt.usleep)->default_value(1000000), "Microsecond sleep")
       ("udelay"           , po::value<int>(&opt.udelay)->default_value(0), "Microsecond delay between measurements")
-      ("interesting"      , po::value<int>(&opt.interesting)->default_value(1000), "Interesting rate (Hz)")
-      ("nretry"           , po::value<int>(&opt.nretry)->default_value(10), "Number of trials for intersting rate")
-      ("forward"          , po::bool_switch(&opt.forward), "Forward scan mode")
       ("skip_user_settings"          , po::bool_switch(&opt.skip_user_settings), "Skip user settings")
       ;
     
@@ -74,86 +71,49 @@ int main(int argc, char *argv[])
   alcor::alcor_t alcor;
   alcor.init(hardware, opt.chip);
 
-  typedef union bcr0246_union_t {
-    uint16_t val;
-    struct alcor::bcr0246_t reg;
-  } bcr0246_union_t;
+  alcor::bcr0246_union_t bcr0246;
+  alcor::bcr1357_union_t bcr1357;
+  alcor::pcr2_union_t pcr2[4], pcr2_save[4];
+  alcor::pcr3_union_t pcr3_temp, pcr3[4], pcr3_save[4];
 
-  typedef union bcr1357_union_t {
-    uint16_t val;
-    struct alcor::bcr1357_t reg;
-  } bcr1357_union_t;
+  // save the coordinates
+  int channel[4], pix[4], col[4], add2[4], add3[4]; 
+  for (int lane = 0; lane < 4; ++lane) {
+    channel[lane] = opt.channel + 8 * lane;
+    pix[lane] = channel[lane] % 4;
+    col[lane] = channel[lane] / 4;
+    add2[lane] = PCR(2, pix[lane], col[lane]);
+    add3[lane] = PCR(3, pix[lane], col[lane]);
+  }
 
-  typedef union pcr2_union_t {
-    uint16_t val;
-    struct alcor::pcr2_t reg;
-  } pcr2_union_t;
+  // save pcr2 / pcr3 at start 
+  for (int lane = 0; lane < 4; ++lane) {
+    pcr2_save[lane].val = alcor.spi.read(add2[lane]);
+    pcr3_save[lane].val = alcor.spi.read(add3[lane]);
+  }  
 
-  typedef union pcr3_union_t {
-    uint16_t val;
-    struct alcor::pcr3_t reg;
-  } pcr3_union_t;
-
-  bcr0246_union_t bcr0246;
-  bcr1357_union_t bcr1357;
-  pcr2_union_t pcr2;
-  pcr3_union_t pcr3, pcr3_save;
-
-  // save pcr3 of current channel
-  int pix = opt.channel % 4;
-  int col = opt.channel / 4;
-  pcr3_save.val = alcor.spi.read(PCR(3, pix, col));
-  
   // switch off all channels
   for (int ich = 0; ich < 32; ++ich) {
-    pix = ich % 4;
-    col = ich / 4;
-    int add = PCR(3, pix, col);
-    pcr3.val = alcor.spi.read(PCR(3, pix, col));
-    pcr3.reg.OpMode = 0x0;
-    alcor.spi.write(add, pcr3.val);
-    std::cout << " channel " << ich << std::endl;
-    pcr3.reg.print();
+    int ipix = ich % 4;
+    int icol = ich / 4;
+    pcr3_temp.val = alcor.spi.read(PCR(3, ipix, icol));
+    pcr3_temp.reg.OpMode = 0x0;
+    alcor.spi.write(PCR(3, ipix, icol), pcr3_temp.val);
   }
 
-  // switch on desider channel
-  pcr3.val = pcr3_save.val;
-  pix = opt.channel % 4;
-  col = opt.channel / 4;
-  int lane = opt.channel / 8;
-  int add3 = PCR(3, pix, col);
-  pcr3.val = alcor.spi.read(PCR(3, pix, col));
-  pcr3.reg.OpMode = 1;
-  alcor.spi.write(add3, pcr3.val);
-  std::cout << " channel " << opt.channel << std::endl;  
-  pcr3.reg.print();
-
-  // baseline PCR2 register
-  pcr2.reg.LE2DAC = 0x3f;
-  pcr2.reg.LEDACVth = opt.vth;
-  pcr2.reg.LEDACrange = opt.range;
-  pcr2.reg.LE1DAC = 0x3f;
-  int add2 = PCR(2, pix, col);
-
-  // read PCR register
-  pcr2.val = alcor.spi.read(PCR(2, pix, col));
-  pcr3.val = alcor.spi.read(PCR(3, pix, col));
-
-  // apply user settings
+  // apply user settings on top of initial values, if not requested to skip them
   if (!opt.skip_user_settings) {
-    pcr2.reg.LEDACVth = opt.vth;
-    pcr2.reg.LEDACrange = opt.range;
-    pcr3.reg.Offset1 = opt.offset1;
+    for (int lane = 0; lane < 4; ++lane) {
+      pcr2[lane].val = pcr2_save[lane].val;
+      pcr3[lane].val = pcr3_save[lane].val;
+      pcr2[lane].reg.LEDACVth = opt.vth;
+      pcr2[lane].reg.LEDACrange = opt.range;
+      pcr3[lane].reg.Offset1 = opt.offset1;
+    }
   }
 
-  // read BCR register
-  int add_bcr0246 = BCR(lane * 2);
-  int add_bcr1357 = BCR(lane * 2 + 1);
-  bcr0246.val = alcor.spi.read(add_bcr0246);
-  bcr1357.val = alcor.spi.read(add_bcr1357);
-
-  uhal::ValWord<uint32_t> fifo_occupancy, fifo_timer;
-  uhal::ValVector<uint32_t> fifo_data;
+  uhal::ValWord<uint32_t> fifo_occupancy[4], fifo_timer[4];
+  uhal::ValVector<uint32_t> fifo_data[4];
 
   std::ofstream fout(opt.output);
   fout << "channel/I:threshold/I:range/I:vth/I:offset/I:rate/F:ratee/F" << std::endl;  
@@ -161,107 +121,165 @@ int main(int argc, char *argv[])
   hardware.getNode("regfile.mode").write(3);
   hardware.dispatch();
 
-  bool broken = false;
-
-  // fill threshold vector
-  std::vector<int> thresholds;
-  if (opt.forward) 
-    for (int threshold = 0; threshold <= 0x3f; ++threshold) thresholds.push_back(threshold);
-  else
-    for (int threshold = 0x3f; threshold >- 0; --threshold) thresholds.push_back(threshold);
+  int sum_occupancy[4] = {0};
+  int sum_timer[4] = {0};
+  bool lane_continue[4] = {false};
+  bool lane_done[4] = {false};
+  bool lane_broken[4] = {false};
+  int nbroken = 0;
 
   // loop over threshold
-  for (auto threshold : thresholds) {
+  for (int threshold = 0x3f; threshold >- 0; --threshold) {
 
+    std::cout << "--- new threshold setup ---" << std::endl;
+    
     // switch off
-    pcr3.reg.OpMode = 0;
-    alcor.spi.write(add3, pcr3.val);
+    for (int lane = 0; lane < 4; ++lane) {
+      pcr3[lane].reg.OpMode = 0;
+      alcor.spi.write(add3[lane], pcr3[lane].val);
+    }
 
     // set threshold
-    pcr2.reg.LE1DAC = threshold;
-    alcor.spi.write(add2, pcr2.val);
-    std::cout << "--- new threshold setup ---" << std::endl;
+    for (int lane = 0; lane < 4; ++lane) {
+      pcr2[lane].reg.LE1DAC = threshold;
+      alcor.spi.write(add2[lane], pcr2[lane].val);
+      std::cout << " --- setting PCR2 on lane " << lane << std::endl;
+      pcr2[lane].reg.print();
+    }
 
     // switch on
-    pcr3.reg.OpMode = 1;
-    alcor.spi.write(add3, pcr3.val);
+    for (int lane = 0; lane < 4; ++lane) {
+      pcr3[lane].reg.OpMode = 1;
+      alcor.spi.write(add3[lane], pcr3[lane].val);
+      std::cout << " --- setting PCR3 on lane " << lane << std::endl;
+      pcr3[lane].reg.print();
+    }
 
-    // print
-    bcr0246.reg.print();
-    bcr1357.reg.print();
-    pcr2.reg.print();
-    pcr3.reg.print();
+    // reset counters
+    for (int lane = 0; lane < 4; ++lane) {
+      sum_occupancy[lane] = 0;
+      sum_timer[lane] = 0;
+      lane_continue[lane] = false;
+    }
 
     usleep(opt.udelay);
     
-    for (int iretry = 0; iretry < opt.nretry; ++iretry) {
-
     // reset/read loop until minimum counts/timer achieved
-    int sum_occupancy = 0;
-    int sum_timer = 0;
     while (true) {
-      alcor.fifo[lane].reset->write(0x1);
-      hardware.dispatch();
-      usleep(opt.usleep);
-      fifo_occupancy = alcor.fifo[lane].occupancy->read();
-      fifo_timer = alcor.fifo[lane].timer->read();
+
+      // reset fifo lanes
+      for (int lane = 0; lane < 4; ++lane) {
+	if (lane_broken[lane]) continue;
+	alcor.fifo[lane].reset->write(0x1);
+      }
       hardware.dispatch();
 
-      if (fifo_occupancy.value() & 0xffff > 0) {
-	fifo_data = alcor.fifo[lane].data->readBlock(fifo_occupancy);
-	hardware.dispatch();
-	auto last = fifo_data.value()[fifo_data.size() - 1];
+      // sleep at least a few useconds
+      usleep(opt.usleep);
+
+      // read fifo lane occupancy
+      for (int lane = 0; lane < 4; ++lane) {
+	if (lane_broken[lane]) continue;
+	fifo_occupancy[lane] = alcor.fifo[lane].occupancy->read();
+	fifo_timer[lane] = alcor.fifo[lane].timer->read();
+      }
+      hardware.dispatch();
+
+      // read data from the lane
+      for (int lane = 0; lane < 4; ++lane) {
+	if (lane_broken[lane]) continue;
+	if (fifo_occupancy[lane].value() & 0xffff > 0)
+	  fifo_data[lane] = alcor.fifo[lane].data->readBlock(fifo_occupancy[lane]);
+      }
+      hardware.dispatch();
+      
+      // check if lane is broken
+      for (int lane = 0; lane < 4; ++lane) {
+	if (lane_broken[lane]) continue;
+	if (!fifo_data[lane].valid()) continue;
+	auto last = fifo_data[lane].value()[fifo_data[lane].size() - 1];
 	if ((last & 0x000000ff) == 0) {
-	  printf(" 0x%08x -- broken \n", last);
-	  broken = true;
+	  printf(" --- lane %d is broken: 0x%08x \n", lane, last);
+	  lane_broken[lane] = true;
+	  nbroken++;
 	  break;
 	}
       }
 
-      sum_occupancy += (fifo_occupancy.value() & 0xffff);
-      sum_timer += fifo_timer.value();
+      // increment counters
+      for (int lane = 0; lane < 4; ++lane) {
+	if (lane_broken[lane]) continue;
+	sum_occupancy[lane] += (fifo_occupancy[lane].value() & 0xffff);
+	sum_timer[lane] += fifo_timer[lane].value();
+	
+	if (sum_timer[lane] < opt.min_timer) {
+	  //	  std::cout << lane << " below min_timer " << std::endl;
+	  lane_continue[lane] = true;
+	}
+	if (sum_timer[lane] >= opt.max_timer) {
+	  //	  std::cout << lane << " above max_timer " << std::endl;
+	  lane_continue[lane] = false;
+	}
+	if (sum_occupancy[lane] >= opt.min_counts) {
+	  //	  std::cout << lane << " above min_counts " << std::endl;
+	  lane_continue[lane] = false;
+	}
 
-      if (sum_timer < opt.min_timer) continue;
-      if (sum_timer >= opt.max_timer) break;
-      if (sum_occupancy >= opt.min_counts) break;
+	std::cout << channel[lane] << " " << sum_timer[lane] << " " << sum_occupancy[lane] << std::endl;
+      }
+      
+      // check number of broken lanes
+      if (nbroken >= 4) {
+	std::cout << " --- all lanes are broken, quit " << std::endl;
+	break;
+      }
+      
+      // check if all lanes are done
+      bool all_lane_done = true;
+      for (int lane = 0; lane < 4; ++lane) {
+	if (lane_broken[lane]) continue;
+	if (lane_continue[lane]) {
+	  all_lane_done = false;
+	  break;
+	}
+      }      
+      if (all_lane_done) break;
+      
     }
 
-    if (broken) {
-      std::cout << " --- chip is broken, quit " << std::endl;
-      break;
-    }
-
-    double counts = sum_occupancy;
-    double period = sum_timer / 32.e6;
-    std::cout << pcr2.reg.LE1DAC << " " << counts / period << " " << 0. << " " << std::sqrt(counts) / period << std::endl;
-
-    fout << opt.channel << " "
-	 << pcr2.reg.LE1DAC << " "
-	 << pcr2.reg.LEDACrange << " "
-	 << pcr2.reg.LEDACVth << " " 
-	 << pcr3.reg.Offset1 << " " 
-	 << counts / period << " " 
-	 << std::sqrt(counts) / period << std::endl;
-
-    if (counts / period > opt.interesting) {
-      std::cout << "--- rate is interesting, let's try again " << std::endl;
-      continue;
-    }
-    break;
-
-    }
-
-    if (broken) {
-      std::cout << " --- chip is broken, quit " << std::endl;
+    // check number of broken lanes
+    if (nbroken >= 4) {
+      std::cout << " --- all lanes are broken, quit " << std::endl;
       break;
     }
     
-  }
+    // write output to file
+    for (int lane = 0; lane < 4; ++lane) {
+      if (lane_broken[lane]) continue;
+      double counts = sum_occupancy[lane];
+      double period = sum_timer[lane] / 32.e6;
 
+      std::cout << " --- " << channel[lane] << " " << sum_timer[lane] << " " << sum_occupancy[lane] << std::endl;
+      
+      std::cout << channel[lane] << " " << pcr2[lane].reg.LE1DAC << " " << counts / period << " " << 0. << " " << std::sqrt(counts) / period << std::endl;
+
+      fout << channel[lane] << " "
+	   << pcr2[lane].reg.LE1DAC << " "
+	   << pcr2[lane].reg.LEDACrange << " "
+	   << pcr2[lane].reg.LEDACVth << " " 
+	   << pcr3[lane].reg.Offset1 << " " 
+	   << counts / period << " " 
+	   << std::sqrt(counts) / period << std::endl;
+      
+    }
+    
+  }
+  
   hardware.getNode("regfile.mode").write(0);
   hardware.dispatch();
-
+  
   fout.close();
-
+  
   return 0;
 }
+  
