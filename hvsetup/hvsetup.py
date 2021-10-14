@@ -19,9 +19,9 @@ sure = raw_input('are you sure? (y/n) ')
 if sure != 'y':
     exit()
 
-ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, timeout=0.1)
+ser = serial.Serial(sys.argv[2], baudrate=115200, timeout=0.1)
 for line in lines:
-    data = line + '\n\r'
+    data = line + ' \r'
     ser.write(data)
     time.sleep(0.1)
     output = ser.readline()
