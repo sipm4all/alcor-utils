@@ -4,8 +4,9 @@ echo " --- progam kc705 FPGA ---"
 
 FWREL="pro"
 [ -z "$1" ] || FWREL=$1
-BIT="/home/eic/alcor/firmware/${FWREL}.bit"
-LTX="/home/eic/alcor/firmware/${FWREL}.ltx"
+DIR="${ALCOR_DIR}/firmware"
+BIT="${DIR}/${FWREL}.bit"
+LTX="${DIR}/${FWREL}.ltx"
 [ -f $BIT ] && { echo " using .bit file: $BIT"; } || { echo " cannot find .bit file: $BIT"; exit; }
 [ -f $LTX ] && { echo " using .ltx file: $LTX"; } || { echo " cannot find .ltx file: $LTX"; exit; }
 
