@@ -153,6 +153,28 @@ namespace alcor {
     };
   };
 
+
+  typedef union bcr0246_union_t {
+    uint16_t val;
+    struct bcr0246_t reg;
+  } bcr0246_union_t;
+  
+  typedef union bcr1357_union_t {
+    uint16_t val;
+    struct bcr1357_t reg;
+  } bcr1357_union_t;
+  
+  typedef union pcr2_union_t {
+    uint16_t val;
+    struct pcr2_t reg;
+  } pcr2_union_t;
+  
+  typedef union pcr3_union_t {
+    uint16_t val;
+    struct pcr3_t reg;
+  } pcr3_union_t;
+
+
   class spi_t {
 
   public:
