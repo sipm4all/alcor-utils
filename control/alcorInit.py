@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # grab the device's URI
     device_uri = hw.uri()
 
-    alc.verbose=1
+    alc.verbose=0
 
     print "-------- ALCOR # ",chip," Complete Setup"
     print "KC705 mode set to config"

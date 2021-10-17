@@ -3,30 +3,36 @@ here=`pwd`
 cd ${ALCOR_DIR}/control
 BCR_DIR=${ALCOR_CONF}/bcr
 PCR_DIR=${ALCOR_CONF}/pcr
+RDOUT_CONF=${ALCOR_CONF}/readout.conf
 CONN=${ALCOR_ETC}/connection2.xml
-DUMP_DIR=$2
-SWITCH="-s -i -m 0xFFFFFFFF -p 1 --eccr 0xb01b"
-declare mSipm=( [0]=FBK-2 [1]=HAMA1-2 [2]=FBK-1 [3]=HAMA2-2 [4]=BCOM-T1 [5]=BCOM-T2 )
-declare mAlcor=( [0]=004 [1]=012 [2]=013 [3]=007 [4]=0T1 [5]=0T2 )
-
-
 runNr=$1
+DUMP_DIR=$2
+SWITCH="-s -i -m 0xffffffff -p 1"
 
-# Init for all ALCOR inside detector box and 2 Timing Scint
-for i in {0..5}; do
-    sipm=${mSipm[$i]}
-    alc=${mAlcor[$i]}
-    conf=A$alc-$sipm
-    echo $conf
-   ./alcorInit.py $CONN kc705 -c $i $SWITCH --bcrfile ${BCR_DIR}/$conf.bcr --pcrfile ${PCR_DIR}/$conf.pcr 
-#   ./alcorInit.py $CONN kc705 -c $i $SWITCH --bcrfile ${BCR_DIR}/standard.bcr --pcrfile ${PCR_DIR}/standard.pcr 
+if [ $runNr -eq 0 ]; then
+ echo "Run Number 0"
+ DUMP_LOG=/dev/null
+ SWITCH="-s -i -m 0x0 -p 1"
+else
+ echo "Run Number not zero"
+ DUMP_LOG=$DUMP_DIR/alcorInit.log
+ cp $RDOUT_CONF $DUMP_DIR
+fi
 
-#    conf=A$alc-$sipm-C$i
-#   ./alcorDump.py $CONN kc705 -c $i > $DUMP_DIR/$conf.alcordump
-
-done | tee $DUMP_DIR/alcorInit.log
-
-# chanel settings
-
+while read -r chip lane eccr bcr pcr
+do
+ if [ $chip != "#" ]; then
+# echo $chip $lane $eccr $bcr $pcr
+   ldec=$(printf "%d" $lane)
+   if [ $ldec -ne 0 ]; then
+       echo Programming $chip
+       ./alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr $eccr --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr
+       if [ $runNr -ne 0 ]; then
+	   cp ${BCR_DIR}/$bcr.bcr $DUMP_DIR/chip$chip.bcr
+	   cp ${PCR_DIR}/$pcr.pcr $DUMP_DIR/chip$chip.pcr
+       fi
+   fi
+ fi
+done < $RDOUT_CONF | tee $DUMP_LOG
 
 cd $here

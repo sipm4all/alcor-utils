@@ -1,8 +1,17 @@
 #! /usr/bin/env bash
 
-MONITOR=1
-TIMEOUT=3600
+TAG="alcdaq"
 RUN=$1
+DIR=$2
+mkdir -p $DIR
+
+OCCUPANCY=0  # minimum occupancy to download fifo
+MODE=3       # run mode [should be 5 to use beam signals]
+KILLER=8191  # kill fifo is occupancy is >=
+
+USLEEP=1     # polling sleeps [us]
+MONITOR=5    # monitor cycle [s]
+TIMEOUT=3600  # terminate readout after [s]
 
 ### FILTER BITS
 ### bit-0 --> summary filter [status header (K28.3) + status words + checksum header (K28.4) + CRC are disabled]
@@ -12,36 +21,31 @@ RUN=$1
 
 FILTER=$((0xf))
 
-OCCUPANCY=0
-FIFOS=$((0x1ffffff))
-FIFOS=$((0x1ff00f0))
-FIFOS=$((0x1ff0000))
-FIFOS=$((0x1fffff0))
-MODE=5
-KILLER=8191
+### read fifo settings from ${ALCOR_CONF}/readout.conf
+RDOUT_CONF=${ALCOR_CONF}/readout.conf
+FIFOS=0
+while read -r chip lane eccr bcr pcr; do
+    if [ $chip != "#" ]; then
+	THISFIFO=$(( $lane << (4 * $chip) ))
+	FIFOS=$(($FIFOS + $THISFIFO))
+    fi
+done < $RDOUT_CONF
 
+### read the trigger fifo
+FIFOS=$(($FIFOS + 0x1000000))
 
-TAG="alcdaq"
-DIR=$2
+### save config
+echo "FIFOS:     $FIFOS "     | tee    $OUTPUT/readoutConfig.dump
+echo "MODE:      $MODE "      | tee -a $OUTPUT/readoutConfig.dump
+echo "FILTER:    $FILTER "    | tee -a $OUTPUT/readoutConfig.dump
+echo "OCCUPANCY: $OCCUPANCY " | tee -a $OUTPUT/readoutConfig.dump
+echo "KILLER:    $KILLER "    | tee -a $OUTPUT/readoutConfig.dump
+
+### start readout
 OUTPUT=$DIR/$TAG
-
-# save config
-echo "FIFO: $FIFOS " > $OUTPUT/readoutConfig.dump
-echo "MODE: $MODE "  >> $OUTPUT/readoutConfig.dump
-
-#mkdir -p $DIR
-
 ${ALCOR_DIR}/readout/bin/readout --connection ${ALCOR_ETC}/connection2.xml --device kc705 \
-    --reset_fifo \
-    --standalone \
-    --usleep 1 \
-    --monitor $MONITOR \
-    --occupancy $OCCUPANCY \
-    --timeout $TIMEOUT \
-    --fifo $FIFOS \
-    --mode $MODE \
-    --filter $FILTER \
-    --killer $KILLER \
-    --run $RUN \
-    --output $OUTPUT | \
-    tee $DIR/readout.log
+    --reset_fifo --standalone \
+    --usleep $USLEEP --monitor $MONITOR --occupancy $OCCUPANCY --timeout $TIMEOUT \
+    --fifo $FIFOS --mode $MODE --filter $FILTER --killer $KILLER \
+    --run $RUN --output $OUTPUT \
+    | tee $DIR/readout.log
