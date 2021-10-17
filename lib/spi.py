@@ -45,19 +45,19 @@ def execCmd(hw,chip,command,tdata):
     """Execute SPI command writing tdata via SPI interface"""
 
     r=alc.spiRegList[chip]
-    ipstat=ipbus.write(hw,r+".divider",0xF)
-    ipstat=ipbus.write(hw,r+".ss",0x1)
+    ipstat=ipbus.post(hw,r+".divider",0xF)
+    ipstat=ipbus.post(hw,r+".ss",0x1)
 
     data=bS(CTRL_ASS)|bS(CTRL_RX_NEGEDGE)|0x18
-    ipstat=ipbus.write(hw,r+".ctrl",data)
+    ipstat=ipbus.post(hw,r+".ctrl",data)
 
     data=CMD(command)|(tdata&0xFFFF)
 #    print "Writing ",hex(tdata)+" with SPI command "+spiCmdList[command]
 
-    ipstat=ipbus.write(hw,r+".tx0_rx0",data)  # when we transmit a command, we also pass data in lower 16 bits
+    ipstat=ipbus.post(hw,r+".tx0_rx0",data)  # when we transmit a command, we also pass data in lower 16 bits
 
     data=bS(CTRL_ASS)|bS(CTRL_RX_NEGEDGE)|bS(CTRL_GO)|0x18
-    ipstat=ipbus.write(hw,r+".ctrl",data)
+    ipstat=ipbus.post(hw,r+".ctrl",data)
 
     data=bS(CTRL_ASS)|bS(CTRL_RX_NEGEDGE)|0x18
     ipstat=ipbus.write(hw,r+".ctrl",data)

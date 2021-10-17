@@ -42,6 +42,13 @@ bit_boost=25 #  [25 for normal, 15 for test pulse]
 bit_cg=12 # [12 for normal, 29 for test pulse]
 BCR_1357 = (bit_cg << 0) | (bit_boost << 5) | (polarity_select << 10) | (0 << 11) | (0 << 12) | (3 << 14)
 
+## tags to steer set PCR2/PCR3
+PCR2thr=0
+PCR2off=1
+PCR2ran=2
+PCR3offset1=0
+PCR3opmode=1
+PCR3polarity=2
 
 # ECCR Registers
 ECCRregs = 4
@@ -303,6 +310,31 @@ def loadBCRSetup(hw,chip,BCRfile):
                 data=programPtrReg(hw,chip,BCR,reg,dreg,SETREG)
     print "Loaded configuration for ",loadReg," Bias Control Registers"
 
+def setPCR2(hw,chip,ch,field,value):
+    d  = 0
+    ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|2
+    data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
+    if (field == PCR2thr):
+        d= (data & 0xFFC0) | (value & 0x3F)
+    elif (field == PCR2off):
+        d= (data & 0xFF3F) | ((value&0x3)<< 8)
+    elif (field == PCR2ran):
+        d= (data & 0xFCFF) | ((value&0x3)<< 6)
+    data=programPtrReg(hw,chip,PCR,ad,d,SETREG)
+
+def setPCR3(hw,chip,ch,field,value):
+    d  = 0
+    ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
+    data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
+    if (field == PCR3offset1):
+        d= (data & 0x1FFF) | ((value & 0x7) << 13)
+    elif (field == PCR3opmode):
+        d= (data & 0xE1FF) | ((value&0xF)<< 9)
+    elif (field == PCR3polarity):
+        d= (data & 0xFFFD) | ((value&0x1)<< 1)
+    data=programPtrReg(hw,chip,PCR,ad,d,SETREG)
+
+
 def setPCR3Offset(hw,chip,ch,offset):
     d  = 0
     ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
@@ -338,11 +370,17 @@ def loadPCRSetup(hw,chip,PCRfile,mask):
                 Gain1=int(pcrList[8])
                 Gain2=int(pcrList[9])
                 Polarity=int(pcrList[10])
-                #            print "PCR 2 components"
-                #            print "   le2DAC ",le2DAC
-                #            print "   offset ",offset
-                #            print "   range ",rangeThr
-                #            print "   threshold ",threshold
+                #
+#                print "=== channel", ch
+#                print "PCR 2 components"
+#                print "   le2DAC ",le2DAC
+#                print "   offset ",offset
+#                print "   range ",rangeThr
+#                print "   threshold ",threshold
+                #
+#                print "PCR 3 components"
+#                print "   Offset1 ",Offset1
+#                print "   OpMode ",OpMode
                 pcr2=encodePCR2(le2DAC,offset,rangeThr,threshold)
                 pcr3=encodePCR3(Offset1,OpMode,Offset2,Gain1,Gain2,Polarity)
                 ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)
