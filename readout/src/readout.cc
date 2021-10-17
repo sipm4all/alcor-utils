@@ -9,6 +9,7 @@
 #include <ctime>
 #include <boost/program_options.hpp>
 #include "uhal/uhal.hpp"
+#include "alcor/alcor.hh"
 
 #include "sys/ipc.h"
 #include "sys/shm.h"
@@ -178,8 +179,7 @@ int main(int argc, char *argv[])
   std::cout << " --- welcome to ALCOR readout " << std::endl;
 
   program_options_t opt;
-  process_program_options(argc, argv, opt);
-  
+  process_program_options(argc, argv, opt);  
   /** initialise and retrieve hardware nodes **/
   uhal::ConnectionManager connection_manager("file://" + opt.connection_filename);
   uhal::HwInterface hardware = connection_manager.getDevice(opt.device_id);
@@ -207,6 +207,17 @@ int main(int argc, char *argv[])
     fifo_id[n_active_fifos] = i;
     n_active_fifos++;
     active_alcor[chip] = true;
+  }
+
+  /** read and save ALCOR registers **/
+  alcor::alcor_t alcor[6];
+  alcor::pcr3_union_t pcr3_init[6][8][4], pcr3;
+  for (int chip = 0; chip < 6; ++chip) {
+    if (!active_alcor[chip]) continue;
+    alcor[chip].init(hardware, chip);
+    for (int col = 0; col < 8; ++col)
+      for (int pix = 0; pix < 4; ++pix)
+	pcr3_init[chip][col][pix].val = alcor[chip].spi.read( PCR(3, pix, col) );
   }
 
   /** prepare staging buffers and pointers **/
@@ -316,7 +327,7 @@ int main(int argc, char *argv[])
   auto split = start;
   alarm(opt.monitor_period);
   int nwords[MAX_FIFOS] = {0}, nbytes[MAX_FIFOS] = {0}, nframes[MAX_FIFOS] = {0}, nhits[MAX_FIFOS] = {0};
-  uint32_t max_occupancy[MAX_FIFOS] = {0}, n_polls = 0;
+  uint32_t max_occupancy[MAX_FIFOS] = {0}, n_polls = 0, n_resets = 0;
   uint32_t occupancy[MAX_FIFOS], bytes[MAX_FIFOS];
   bool fifo_download = false;
   bool fifo_download_this[MAX_FIFOS] = {false};
@@ -472,7 +483,8 @@ int main(int argc, char *argv[])
 	auto mortem = data_register[i].value();
 	auto mortem_data = mortem.back();
 	alcor_hit_t *alcor_hit = (alcor_hit_t*)&mortem_data;
-	std::cout << " --- 0x" << std::hex << mortem_data << std::dec << " --> channel " << alcor_hit->get_channel() << std::endl;
+	int chip = fifo_id[i] / 4;
+	std::cout << " --- 0x" << std::hex << mortem_data << std::dec << " --> chip " << chip << " channel " << alcor_hit->get_channel() << std::endl;
 
 	if (write_output) {
 	  write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
@@ -540,8 +552,19 @@ int main(int argc, char *argv[])
       hardware.dispatch();
       std::cout << " --- setting run mode: " << 0 << std::endl;
       
-      // reset the chip
-      system("/home/eic/alcor/alcor-utils/control/alcorInit.py /home/eic/alcor/alcor-utils/etc/connection2.xml kc705 -c 5 -s -i -m 0xffffffff -p 1 --eccr 0xb81b --bcrfile /home/eic/alcor/manual.bcr --pcrfile /home/eic/alcor/manual.pcr");
+      // reset all chips
+      system("/home/eic/alcor/alcor-utils/control/alcorInit.sh 0");
+      n_resets++;
+
+      // restore PCR3 registers
+      for (int chip = 0; chip < 6; ++chip) {
+	if (!active_alcor[chip]) continue;
+	for (int col = 0; col < 8; ++col)
+	  for (int pix = 0; pix < 4; ++pix)
+	    alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
+      }
+      
+
       for (int i = 0; i < n_active_fifos; ++i)
 	fifo_killed[i] = false;
       any_fifo_killed = false;
@@ -573,14 +596,14 @@ int main(int argc, char *argv[])
       std::cout << std::right << std::setw(16) << std::setfill(' ') << "frames/s";
       std::cout << std::right << std::setw(16) << std::setfill(' ') << "hits/s";
       std::cout << std::endl;
-      std::cout << " SOM " << std::string(16 * 8 - 5, '-') << " " << elapsed_start.count() << " " << n_polls / elapsed_split.count() << std::endl;
+      std::cout << " SOM " << std::string(16 * 8 - 5, '-') << " " << elapsed_start.count() << " " << n_polls / elapsed_split.count() << " " << n_resets << std::endl;
 
       int nwords_tot = 0, nbytes_tot = 0;
 
       for (int i = 0; i < n_active_fifos; ++i) {
         
 	if (fifo_killed[i]) {
-	  std::cout << std::right << std::setw(16) << std::setfill(' ') << fifo_id[i];
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << (fifo_id[i] == 24 ? "TRG" : std::to_string(fifo_id[i]));
 	  std::cout << std::right << std::setw(16) << std::setfill(' ') << "KILLED";
 	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
 	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
@@ -590,7 +613,7 @@ int main(int argc, char *argv[])
 	  std::cout << std::right << std::setw(16) << std::setfill(' ') << 0.;
 	  std::cout << std::endl;
 	} else {
-        std::cout << std::right << std::setw(16) << std::setfill(' ') << fifo_id[i];
+	  std::cout << std::right << std::setw(16) << std::setfill(' ') << (fifo_id[i] == 24 ? "TRG" : std::to_string(fifo_id[i]));
         std::cout << std::right << std::setw(16) << std::setfill(' ') << max_occupancy[i];
 	std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i];
         std::cout << std::right << std::setw(16) << std::setfill(' ') << nwords[i] / n_polls;
@@ -629,6 +652,17 @@ int main(int argc, char *argv[])
 
       if (opt.quit_on_monitor) running = false;
       if (opt.timeout > 0 && elapsed_start.count() > opt.timeout) running = false;
+
+      // if mode == 3, terminate spill and start new one
+      if (opt.run_mode == 3) {
+	mode_node->write(1);
+	hardware.dispatch();
+	std::cout << " --- setting run mode: " << 1 << std::endl;
+	mode_node->write(opt.run_mode);
+	hardware.dispatch();
+	std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
+      }
+
     }
 
   }
