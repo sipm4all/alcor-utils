@@ -126,13 +126,13 @@ int main(int argc, char *argv[])
     }
   }
 
-  // apply user settings on top of initial values, if not requested to skip them
-  if (!opt.skip_user_settings) {
-    for (int chip = 0; chip < 6; ++chip) {
+  // restore initial settings and apply user setting on top of initial values, if not requested to skip them
+  for (int chip = 0; chip < 6; ++chip) {
     if (!chip_active[chip]) continue;
-      for (int lane = 0; lane < 4; ++lane) {
-	pcr2[chip][lane].val = pcr2_save[chip][lane].val;
-	pcr3[chip][lane].val = pcr3_save[chip][lane].val;
+    for (int lane = 0; lane < 4; ++lane) {
+      pcr2[chip][lane].val = pcr2_save[chip][lane].val;
+      pcr3[chip][lane].val = pcr3_save[chip][lane].val;
+      if (!opt.skip_user_settings) {
 	pcr2[chip][lane].reg.LEDACVth = opt.vth;
 	pcr2[chip][lane].reg.LEDACrange = opt.range;
 	pcr3[chip][lane].reg.Offset1 = opt.offset1;
