@@ -564,7 +564,26 @@ int main(int argc, char *argv[])
 	    alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
       }
       
-
+      // set filter mode
+      auto filter_command = 0x03300000 | opt.filter_mode;
+      std::cout << " --- setting ALCOR filter mode: " << opt.filter_mode << std::endl;
+      for (int i = 0; i < MAX_ALCORS; ++i) {
+	if (!active_alcor[i]) continue;
+	hardware.getNode("alcor_controller_id" + std::to_string(i)).write(filter_command);
+      }
+      hardware.dispatch();
+      for (int i = 0; i < MAX_ALCORS; ++i) {
+	if (!active_alcor[i]) continue;
+	auto controller_register = hardware.getNode("alcor_controller_id" + std::to_string(i)).read();
+	hardware.dispatch();
+	auto controller_value = controller_register.value();
+	if (controller_value != filter_command) {
+	  std::cout << " [ERROR] filter command mismatch on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
+	  return 1;
+	}
+	std::cout << " --- filter command OK on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
+      }
+      
       for (int i = 0; i < n_active_fifos; ++i)
 	fifo_killed[i] = false;
       any_fifo_killed = false;
