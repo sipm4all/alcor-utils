@@ -56,17 +56,23 @@ draw_lanechannel(const char *dirname, int chip, int channel, std::vector<std::st
         for (int vth = 0; vth < 4; ++vth) {
           draw(dirname, tags[tag].c_str(), chip, channel, vth, range, offset, col[vth], 3, sty[tag], Form("vth=%d", vth));
         }
-        // draw legend
-        if (tag == 0 && icanvas == 8) {
-          auto legend = c->cd(icanvas)->BuildLegend(0.1, 0.1, 0.9, 0.9);
-          legend->DeleteEntry();
-        }
-        
 
       }
 
     }}
+
+  // draw legend
+  c->cd(8);
+  auto legend = new TLegend(0.1, 0.1, 0.9, 0.9);
+  for (int vth = 0; vth < 4; ++vth) {
+    auto g = new TGraph;
+    g->SetLineColor(col[vth]);
+    g->SetLineWidth(3);
+    legend->AddEntry(g, Form("vth=%d", vth), "l");
+  }
+  legend->Draw("same");
   
+          
   c->SaveAs(Form("%s/scanthr.chip_%d.channel_%d.png", dirname, chip, channel));
 
   } else {
