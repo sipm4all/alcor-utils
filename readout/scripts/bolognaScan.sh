@@ -1,19 +1,22 @@
 #! /usr/bin/env bash
 
-BCR_DIR=${ALCOR_CONF}/bcr
-PCR_DIR=${ALCOR_CONF}/pcr
 CONN=${ALCOR_ETC}/connection2.xml
-SWITCH="-s -i -m 0x00000000 -p 0 --eccr 0xb81b"
-OUTDIR="/home/eic/DATA/Bologna/scan/TIMING/dev"
-#TAGNAME="opti"
-#TAGNAME="hvzero.minus20c"
-#TAGNAME="hvzero.20c.ibsf.ib2.cg"
+OUTDIR="${HOME}/DATA/CERN/scan/rich3.bcom"
 TAGNAME="vover3"
-
 mkdir -p $OUTDIR
 
-CHIPS="4 5"
 FINAL_SCAN=true
+
+### read fifo settings from ${ALCOR_CONF}/readout.conf
+### to make make the chip mask
+CHIPMASK=0
+RDOUT_CONF=${ALCOR_CONF}/readout.conf
+while read -r chip lane eccr bcr pcr; do
+    if [ $chip != "#" ] && [ $lane != "0x0" ]; then
+	echo " --- chip $chip is active"
+	CHIPMASK=$(($CHIPMASK + (1 << $chip)))
+    fi
+done < $RDOUT_CONF
 
 ### settings for baseline scan
 LANECHANNELS=$(seq 0 7)
@@ -32,17 +35,11 @@ if [ "$FINAL_SCAN" = true ]; then
     OFFSETS=$(seq -1 -1)
     VTHS=$(seq -1 -1)
     MINTIMER=320000 ## 10 ms
-    MAXTIMER=320000000 ## 1 s
+    MINTIMER=3200000 ## 100 ms
+    MAXTIMER=32000000 ## 1 s
     MINCOUNTS=10000
     SKIP_USER_SETTINGS="--skip_user_settings"
 fi
-
-### make the chip mask
-CHIPMASK=0
-for CHIP in $CHIPS; do
-    echo " --- chip $CHIP is active"
-    CHIPMASK=$(($CHIPMASK + (1 << $CHIP)))
-done
 
 # compute how many scans to be done
 NTOBEDONE=0
@@ -67,12 +64,8 @@ for VTH in $VTHS; do
 
 ### initialise
 
-for CHIP in $CHIPS; do
-    echo " --- initialising chip $CHIP"
-    ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $CHIP $SWITCH --bcrfile manual.chip_$CHIP.bcr --pcrfile manual.chip_$CHIP.pcr &> /dev/null & 
-done
-wait
-sleep 0.1
+echo " --- initialising chips "
+${ALCOR_DIR}/control/alcorInit.sh 0 /tmp true &> /dev/null
 
 ### scan
 
@@ -104,9 +97,6 @@ echo " --- expected finish date/time: $FINISHDATE "
 done
 done
 done
-
-#root -b -q -l "draw_channel.C(\"$OUTDIR\", \"$TAGNAME\", $CHIP, $CHANNEL, $RANGE)"
-
 done
 
 echo " --- all done, so long"
