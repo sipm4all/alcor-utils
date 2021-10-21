@@ -70,7 +70,7 @@ coincidence()
       nhits[chip] += frame[fifo].n;
       for (int hit = 0; hit < frame[fifo].n; ++hit) {
         rollover[chip] += frame[fifo].rollover[hit];
-        coarse[chip] += frame[fifo].coarse[hit];
+        coarse[chip] += (frame[fifo].coarse[hit] - frame[fifo].fine[hit] / 64.);
         auto eochannel = frame[fifo].pixel[hit] + 4 * frame[fifo].column[hit];
         auto dochannel = eo2do[eochannel];
       }
