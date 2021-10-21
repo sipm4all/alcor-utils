@@ -1,4 +1,6 @@
 
+EIC firmware:
+
 Firmware for Alcor-Firefly board
 
 	firmware revisions:
@@ -32,3 +34,7 @@ Firmware for Alcor-Firefly board
 				-- built on top of top_06Oct2021.bit, with free Ethernet core
 		- top_13Oct2021.bit:
 				-- in trigger_info.vhd, I replaced fifo_data with fifo_data_trigger which is a standard fifo
+		- top_19Oct2021.bit:
+				-- in top.vhd, I replaced fifo_data with fifo_data_trigger which is a standard fifo
+		- top_21Oct2021.bit:
+				-- ip_addr <= X"0a000" & dip_sw & x"0f"; -- 10.0.#dip_switch.15
