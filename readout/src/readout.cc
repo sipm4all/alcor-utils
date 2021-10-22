@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <chrono>
 #include <ctime>
+#include <cstdlib>
 #include <boost/program_options.hpp>
 #include "uhal/uhal.hpp"
 #include "alcor/alcor.hh"
@@ -30,7 +31,7 @@ ${ALCOR_DIR}/control/alcorInit.py ${ALCOR_ETC}/connection2.xml kc705 -c 5 -s -i 
 
 #define PARANOID
 
-#define VERSION 0x20210919
+#define VERSION 0x20211021
 #define MAX_FIFOS 25
 #define MAX_ALCORS 6
 
@@ -181,6 +182,7 @@ int main(int argc, char *argv[])
   program_options_t opt;
   process_program_options(argc, argv, opt);  
   /** initialise and retrieve hardware nodes **/
+  uhal::disableLogging();
   uhal::ConnectionManager connection_manager("file://" + opt.connection_filename);
   uhal::HwInterface hardware = connection_manager.getDevice(opt.device_id);
   const uhal::Node *occupancy_node[MAX_FIFOS] = {nullptr}, *reset_node[MAX_FIFOS], *data_node[MAX_FIFOS] = {nullptr};//, *pulse_node[6] = {nullptr};
@@ -252,6 +254,7 @@ int main(int argc, char *argv[])
   signal(SIGINT, sigint_handler);
   signal(SIGALRM, sigalrm_handler);
 
+#if 0
   /** connect and initialise control shm **/
   auto control_shmid = shm_connect(CTRL_SHMFILE, CTRL_PROJID, CTRL_SHMSIZE);
   auto control_ptr = (char *)shmat(control_shmid, 0, 0);
@@ -270,7 +273,13 @@ int main(int argc, char *argv[])
   //  char last_received = '\0';
   bool begin_received = false;
   std::string run_tag;
+#endif
   
+
+  /** status register to retrive the spill bit **/
+  auto status_node = &hardware.getNode("regfile.status");
+  uhal::ValWord<uint32_t> status_register;
+
   /** make sure run mode is off before starting **/
   auto fwrev_node = &hardware.getNode("regfile.fwrev");
   auto fwrev_register = fwrev_node->read();
@@ -279,6 +288,12 @@ int main(int argc, char *argv[])
   hardware.dispatch();
   std::cout << " --- setting run mode: " << 0 << std::endl;
   auto fwrev = fwrev_register.value();
+
+  /** reset ALCOR **/
+  std::string alcor_reset_system = std::getenv("ALCOR_DIR");
+  alcor_reset_system += "/control/alcorInit.sh 0";
+  auto alcor_reset_system_c = alcor_reset_system.c_str();
+  system(alcor_reset_system_c);
 
   // set filter mode
   auto filter_command = 0x03300000 | opt.filter_mode;
@@ -371,8 +386,68 @@ int main(int argc, char *argv[])
     std::cout << " --- pulse sent " << std::endl;
   }
 
+  int status;
+  bool in_spill = false;
   while (running) {
 
+    /** read status register to know about the spill status **/
+    if (opt.run_mode == 5) {
+      status_register = status_node->read();
+      hardware.dispatch();
+      status = status_register.value();
+      /** spill went up **/
+      if (status == 0x1 && !in_spill) {
+	in_spill = true;
+	/** must restore PCR3 values **/
+	for (int chip = 0; chip < 6; ++chip) {
+	  if (!active_alcor[chip]) continue;
+	  for (int col = 0; col < 8; ++col)
+	    for (int pix = 0; pix < 4; ++pix)
+	      alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
+	}
+      }
+      /** spill went down **/
+      if (status == 0x0 && in_spill) {
+	 in_spill = false;
+	 /** pause run **/
+	 mode_node->write(1);
+	 hardware.dispatch();
+	 std::cout << " --- setting run mode: " << 1 << std::endl;
+	 /** must rest chips **/
+	 std::cout << " --- spill down, chip reset via system call " << std::endl;
+	 system(alcor_reset_system_c);
+	 /** set filter mode **/
+	 auto filter_command = 0x03300000 | opt.filter_mode;
+	 std::cout << " --- setting ALCOR filter mode: " << opt.filter_mode << std::endl;
+	 for (int i = 0; i < MAX_ALCORS; ++i) {
+	   if (!active_alcor[i]) continue;
+	   hardware.getNode("alcor_controller_id" + std::to_string(i)).write(filter_command);
+	 }
+	 hardware.dispatch();
+	 for (int i = 0; i < MAX_ALCORS; ++i) {
+	   if (!active_alcor[i]) continue;
+	   auto controller_register = hardware.getNode("alcor_controller_id" + std::to_string(i)).read();
+	   hardware.dispatch();
+	   auto controller_value = controller_register.value();
+	   if (controller_value != filter_command) {
+	     std::cout << " [ERROR] filter command mismatch on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
+	     return 1;
+	   }
+	   std::cout << " --- filter command OK on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
+	 }
+	 /** reset killed fifos **/
+	 for (int i = 0; i < n_active_fifos; ++i)
+	   fifo_killed[i] = false;
+	 any_fifo_killed = false;
+	 /** restore run mode **/
+	 mode_node->write(opt.run_mode);
+	 hardware.dispatch();
+	 std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
+
+      }
+    }
+    
+#if 0
     if (!opt.standalone) {
     
       // read control SHM
@@ -442,6 +517,7 @@ int main(int argc, char *argv[])
       
       if (!begin_received) continue;
     }
+#endif
 
     // increment poll counter and usleep
     n_polls++;
@@ -539,6 +615,7 @@ int main(int argc, char *argv[])
 
     }
 
+#if 0
     /** reset **/
     if (any_fifo_killed) {
 
@@ -597,6 +674,7 @@ int main(int argc, char *argv[])
       std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
 
     }
+#endif
 
     /** monitor **/
     if (monitor) {
