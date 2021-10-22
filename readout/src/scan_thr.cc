@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
   program_options_t opt;
   process_program_options(argc, argv, opt);
 
+  uhal::disableLogging();
   uhal::ConnectionManager connection_manager("file://" + opt.connection_filename);
   uhal::HwInterface hardware = connection_manager.getDevice(opt.device_id);
 
