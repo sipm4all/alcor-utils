@@ -2,10 +2,10 @@
 
 CONN=${ALCOR_ETC}/connection2.xml
 OUTDIR="${HOME}/DATA/CERN/scan/rich3.bcom"
-TAGNAME="hvzero"
+TAGNAME="vover3"
 mkdir -p $OUTDIR
 
-FINAL_SCAN=false
+FINAL_SCAN=true
 
 ### read fifo settings from ${ALCOR_CONF}/readout.conf
 ### to make make the chip mask
