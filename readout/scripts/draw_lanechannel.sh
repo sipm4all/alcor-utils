@@ -8,7 +8,8 @@ dir=$1
 
 for chip in 0 1 2 3 4; do
 for channel in {0..31}; do
-    root -b -q -l "${ALCOR_DIR}/readout/macros/draw_lanechannel.C(\"$dir\", $chip, $channel, {\"hvzero\", \"vover3\"})" &
+    root -b -q -l "${ALCOR_DIR}/readout/macros/draw_lanechannel.C(\"$dir\", $chip, $channel, {\"hvzero\"})" &
+#    root -b -q -l "${ALCOR_DIR}/readout/macros/draw_lanechannel.C(\"$dir\", $chip, $channel, {\"hvzero\", \"vover3\"})" &
 done
 wait
 done

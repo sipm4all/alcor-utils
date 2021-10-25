@@ -15,7 +15,7 @@ if len(sys.argv) == 1:
         print(d)
         print()
 
-if (len(sys.argv)) is not 5:
+if (len(sys.argv)) != 5:
     print('usage: ./tti.py [address] [voltage] [current] [0/1]')
     exit()
 address = int(sys.argv[1])
@@ -47,17 +47,17 @@ for d in dev:
     send_command(d, 'V1 ' + voltage);
     send_command(d, 'I1 ' + current);
     send_command(d, 'OP1 ' + on);
-    time.sleep(5)
+    time.sleep(1)
 
     ### read back values
-    send_command(d, 'V1O?')
-    val = read_back(d)
-    print(val);
+#    send_command(d, 'V1O?')
+#    val = read_back(d)
+#    print(val);
 
-    send_command(d, 'I1O?')
-    val = read_back(d)
-    print(val);
-    command = 'I1O? \n'
+#    send_command(d, 'I1O?')
+#    val = read_back(d)
+#    print(val);
+#    command = 'I1O? \n'
 
 #    usb.util.release_interface(d, 0)
 #    d.attach_kernel_driver(0)

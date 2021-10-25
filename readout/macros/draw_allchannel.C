@@ -48,7 +48,7 @@ draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags)
         
         // loop over vth values
         for (int vth = 0; vth < 4; ++vth) {
-          draw(dirname, tags[tag].c_str(), chip, channel, -1, -1, -1, kAzure-3, 3, kSolid, Form("vth=%d", vth));
+          draw(dirname, tags[tag].c_str(), chip, channel, -1, -1, -1, col[tag], 3, kSolid, Form("vth=%d", vth));
         }
         
       }

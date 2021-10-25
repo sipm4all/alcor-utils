@@ -1,6 +1,7 @@
 #!/bin/sh
 here=`pwd`
 cd ${ALCOR_DIR}/control
+pwd
 BCR_DIR=${ALCOR_CONF}/bcr
 PCR_DIR=${ALCOR_CONF}/pcr
 RDOUT_CONF=${ALCOR_CONF}/readout.conf
@@ -31,9 +32,9 @@ do
    if [ $ldec -ne 0 ]; then
        echo Programming $chip
        if [ "$THRSCAN" = true ]; then
-	   ./alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr 0xb81b --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr &
+	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr 0xb81b --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr
        else
-	   ./alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr $eccr --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr
+	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr $eccr --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr
        fi
        if [ $runNr -ne 0 ]; then
 	   cp ${BCR_DIR}/$bcr.bcr $DUMP_DIR/chip$chip.bcr

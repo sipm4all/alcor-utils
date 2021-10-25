@@ -9,6 +9,7 @@ peltier_control(int begint, int endt)
   c->Divide(1, 3, 0.005, 0.005);
 
   TH1 *h = c->cd(1)->DrawFrame(begint, -30., endt, 0.);
+  c->cd(1)->SetGridy();
   h->GetXaxis()->SetTimeDisplay(1);
   t.Draw("Tsmall : timestamp" , "", "l,same");
   auto g = (TGraph *)gPad->GetListOfPrimitives()->Last();
@@ -22,6 +23,7 @@ peltier_control(int begint, int endt)
   l->DeleteEntry();
   
   h = c->cd(2)->DrawFrame(begint, -30., endt, 0.);
+  c->cd(2)->SetGridy();
   h->GetXaxis()->SetTimeDisplay(1);
   t.Draw("Tbig0 : timestamp" , "", "l,same");
   g = (TGraph *)gPad->GetListOfPrimitives()->Last();
@@ -35,6 +37,7 @@ peltier_control(int begint, int endt)
   l->DeleteEntry();
   
   h = c->cd(3)->DrawFrame(begint, -30., endt, 0.);
+  c->cd(3)->SetGridy();
   h->GetXaxis()->SetTimeDisplay(1);
   t.Draw("Tbig1 : timestamp" , "", "l,same");
   g = (TGraph *)gPad->GetListOfPrimitives()->Last();
