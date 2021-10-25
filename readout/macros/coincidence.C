@@ -82,6 +82,7 @@ coincidence()
       tin[fifo]->GetEvent(iframe);
       nhits[chip] += frame[fifo].n;
       for (int hit = 0; hit < frame[fifo].n; ++hit) {
+        rollover[chip] += frame[fifo].rollover[hit];
         auto eochannel = frame[fifo].pixel[hit] + 4 * frame[fifo].column[hit];
         auto dochannel = eo2do[eochannel];
         rollover[chip] += frame[fifo].rollover[hit];
@@ -93,7 +94,7 @@ coincidence()
         if (frame[fifo].fine[hit] > CUT)
           fine_time = (frame[fifo].fine[hit] - MIN) / IF - 1.;
         //        std::cout << fine_time << std::endl;
-        auto time = frame[fifo].coarse[hit] - fine_time;
+        auto time = frame[fifo].coarse[hit];// - fine_time;
         coarse[chip] += time;
         if (time < fastest[chip]) {
           fastest[chip] = time;

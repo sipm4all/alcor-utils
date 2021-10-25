@@ -6,7 +6,7 @@ DIR=$2
 mkdir -p $DIR
 
 OCCUPANCY=0  # minimum occupancy to download fifo
-MODE=5       # run mode [should be 5 to use beam signals]
+MODE=3       # run mode [should be 5 to use beam signals]
 KILLER=8191  # kill fifo is occupancy is >=
 
 USLEEP=1     # polling sleeps [us]

@@ -35,10 +35,12 @@ if [ "$FINAL_SCAN" = true ]; then
     OFFSETS=$(seq -1 -1)
     VTHS=$(seq -1 -1)
     MINTIMER=320000 ## 10 ms
-    MAXTIMER=320000 ## 10 ms
-    MINTIMER=3200000 ## 10 ms
-    MAXTIMER=3200000 ## 100 ms
-#    MAXTIMER=32000000 ## 1 s
+    MINTIMER=3200000 ## 100 ms
+    MINTIMER=9600000 ## 300 ms                                                                                       
+    MAXTIMER=3200000  ## 100 ms                                                                                          
+    MAXTIMER=32000000  ## 1 s
+    MAXTIMER=9600000 ## 300 ms
+    MAXTIMER=3200000  ## 100 ms
     MINCOUNTS=10000
     SKIP_USER_SETTINGS="--skip_user_settings"
 fi

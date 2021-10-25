@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
   uint8_t *staging_buffer_pointer[MAX_FIFOS] = {nullptr};
   uint32_t staging_buffer_bytes[MAX_FIFOS] = {0};
   uint32_t buffer_counter = 0;
-  bool flush_staging_buffers = false;
+  bool flush_staging_buffers = true; // false;
   for (int i = 0; i < n_active_fifos; ++i) {
     staging_buffer[i] = new uint8_t[opt.staging_size];
     staging_buffer_pointer[i] = staging_buffer[i];

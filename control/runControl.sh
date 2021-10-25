@@ -19,7 +19,7 @@ mkdir $OUT_DIR
 ### -- dump HV settings
 #./hvdump.sh | tee $OUT_DIR/HV.dump
 ### -- dump TEMP status
-#./tempstatus.sh | tee $OUT_DIR/TEMP.dump 
+./tempstatus.sh | tee $OUT_DIR/TEMP.dump 
 
 read -p " Check temperatures! And then press any key to continue or ctrl-c to exit " -n 1 -r
 
