@@ -57,39 +57,73 @@ coincidence()
   }
   std::cout << " --- we will loop over " << nframes << " frames " << std::endl;
 
-  TH1 *hDelta = new TH1F("hDelta", "", 100000, -50000., 50000.);
-  
-  for (int iframe = 0; iframe < nframes; ++iframe) {
-    int nhits[6] = {0};
-    float rollover[6] = {0.}, coarse[6] = {0.};
+  TH1 *hDelta = new TH1F("hDelta", "", 100000, -5000., 5000.);
+  TH1 *hDelta_fastest = new TH1F("hDelta_fastest", "", 1000000, -5000., 5000.);
+  TH2 *hDelta_fastest_fine_4 = new TH2F("hDelta_fastest_fine_4", "", 200, 0, 200, 1000, -5., 5.);
 
+  float MIN = 38.;
+  float MAX = 100.;
+  float CUT = (MAX + MIN) * 0.5;
+  float IF = MAX - MIN;
+  
+  int nhits[6] = {0}, fastest_fine[6];
+  float rollover[6] = {0.}, coarse[6] = {0.}, fastest[6] = {99999999.};
+  for (int iframe = 0; iframe < nframes; ++iframe) {
+    
+    for (int i = 0; i < 6; ++i) {
+      nhits[i] = 0;
+      rollover[i] = 0.;
+      coarse[i] = 0.;
+      fastest[i] = 999999999.;
+    }
     for (int ififo = 0; ififo < n_active_fifos; ++ififo) {
       auto fifo = active_fifo[ififo];
       auto chip = fifo / 4;
       tin[fifo]->GetEvent(iframe);
       nhits[chip] += frame[fifo].n;
       for (int hit = 0; hit < frame[fifo].n; ++hit) {
-        rollover[chip] += frame[fifo].rollover[hit];
-        coarse[chip] += (frame[fifo].coarse[hit] - frame[fifo].fine[hit] / 64.);
         auto eochannel = frame[fifo].pixel[hit] + 4 * frame[fifo].column[hit];
         auto dochannel = eo2do[eochannel];
+        rollover[chip] += frame[fifo].rollover[hit];
+        if (frame[fifo].fine[hit] < MIN)
+          frame[fifo].fine[hit] = MIN;
+        if (frame[fifo].fine[hit] > MAX)
+          frame[fifo].fine[hit] = MAX;
+        float fine_time = (frame[fifo].fine[hit] - MIN) / IF;
+        if (frame[fifo].fine[hit] > CUT)
+          fine_time = (frame[fifo].fine[hit] - MIN) / IF - 1.;
+        //        std::cout << fine_time << std::endl;
+        auto time = frame[fifo].coarse[hit] - fine_time;
+        coarse[chip] += time;
+        if (time < fastest[chip]) {
+          fastest[chip] = time;
+          fastest_fine[chip] = frame[fifo].fine[hit];
+        }
       }
     }
 
-    if (nhits[4] < 1 || nhits[5] < 1) continue;
+    if (nhits[4] < 9 || nhits[5] < 9) continue;
 
     coarse[4] /= nhits[4];
     coarse[5] /= nhits[5];
     
     auto delta = coarse[4] - coarse[5];
+    auto delta_fastest = fastest[4] - fastest[5];
     hDelta->Fill(delta);
+    hDelta_fastest->Fill(delta_fastest);
+    hDelta_fastest_fine_4->Fill(fastest_fine[4], delta_fastest);
     
     //    hDelta->Draw();
     //    gPad->Update();
     
   }
 
-  hDelta->Draw();
+  hDelta_fastest->Draw();
+  hDelta->Draw("same");
+
+  new TCanvas("c4");
+  hDelta_fastest_fine_4->Draw("colz");
+  
   fout.close();
   
 }
