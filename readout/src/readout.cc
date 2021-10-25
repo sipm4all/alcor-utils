@@ -12,32 +12,11 @@
 #include "uhal/uhal.hpp"
 #include "alcor/alcor.hh"
 
-#include "sys/ipc.h"
-#include "sys/shm.h"
-
-
-/** system call to reset the chip 
-${ALCOR_DIR}/control/alcorInit.py ${ALCOR_ETC}/connection2.xml kc705 -c 5 -s -i -m 0xffffffff -p 1 --eccr 0xb81b --bcrfile manual.bcr --pcrfile manual.pcr
-**/
-
-
-/** readout control protocol works over SHM
-    the following commands are accepted 
-    R (Reset) 
-    B (Begin) [runParams]
-    E (End)
-    Q (Quit)
-**/
-
 #define PARANOID
 
 #define VERSION 0x20211021
 #define MAX_FIFOS 25
 #define MAX_ALCORS 6
-
-#define CTRL_SHMFILE "/tmp/alcorReadoutController.shmkey"
-#define CTRL_PROJID 2333
-#define CTRL_SHMSIZE 1024
 
 bool running = true;
 bool monitor = false;
@@ -90,43 +69,6 @@ void write_buffer_to_file(std::ofstream &fout, int buffer_source, int buffer_cou
   header[3] = buffer_size;
   fout.write((char *)&header, 16);
   fout.write((char *)buffer, buffer_size);
-}
-
-int
-shm_connect(const char* keyFile, int proj, size_t size)
-{
-  auto key = ftok(keyFile, proj);
-  if (key < 0) {
-    std::cerr << " [shm_connect] ftok error: " << strerror(errno) << std::endl;
-    exit(1);
-  }
-  auto shmid = shmget(key, size, IPC_CREAT | IPC_EXCL | 0664);
-  if (shmid == -1) {
-    if (errno == EEXIST) {
-      shmid = shmget(key, 0, 0);
-      std::cout << " [shm_connect] shared memory already exists: shmid = " << shmid << std::endl;
-    } else {
-      std::cerr << " [shm_connect] shmget error: " << strerror(errno) << std::endl;
-      exit(1);
-    }
-  } else {
-    std::cout << " [shm_connect] shared memory succesfully created: shmid = " << shmid << std::endl;
-  }
-  return shmid;
-}
-
-void
-shm_cleanup(int id, void *p, char *d)
-{
-  if (shmdt(p) < 0) {
-    std::cerr << " [shm_cleanup] shmdt error: " << strerror(errno) << std::endl;
-    exit(1);
-  }
-  if (shmctl(id, IPC_RMID, nullptr) == -1) {
-    std::cerr << " [shm_cleanup] shmctl error: " << strerror(errno) << std::endl;
-    exit(1);
-  }
-  std::cout << " [shm_cleanup] shared memory succesfully removed: shmid = " << id << std::endl;
 }
 
 void
@@ -254,28 +196,6 @@ int main(int argc, char *argv[])
   signal(SIGINT, sigint_handler);
   signal(SIGALRM, sigalrm_handler);
 
-#if 0
-  /** connect and initialise control shm **/
-  auto control_shmid = shm_connect(CTRL_SHMFILE, CTRL_PROJID, CTRL_SHMSIZE);
-  auto control_ptr = (char *)shmat(control_shmid, 0, 0);
-  if (control_ptr == (void *)-1) {
-    if (shmctl(control_shmid, IPC_RMID, nullptr) == -1) {
-      std::cerr << " --- shmget error: " << strerror(errno) << std::endl;
-      exit(1);
-    } else {
-      printf("Attach shared memory failed\n");
-      printf("remove shared memory identifier successful\n");
-    }
-    std::cerr << " --- shmat error: " << strerror(errno) << std::endl;
-    exit(1);
-  }
-  control_ptr[0] = '\0';
-  //  char last_received = '\0';
-  bool begin_received = false;
-  std::string run_tag;
-#endif
-  
-
   /** status register to retrive the spill bit **/
   auto status_node = &hardware.getNode("regfile.status");
   uhal::ValWord<uint32_t> status_register;
@@ -291,7 +211,7 @@ int main(int argc, char *argv[])
 
   /** reset ALCOR **/
   std::string alcor_reset_system = std::getenv("ALCOR_DIR");
-  alcor_reset_system += "/control/alcorInit.sh 0";
+  alcor_reset_system += "/control/alcorInit.sh 0 /tmp";
   auto alcor_reset_system_c = alcor_reset_system.c_str();
   system(alcor_reset_system_c);
 
@@ -386,6 +306,16 @@ int main(int argc, char *argv[])
     std::cout << " --- pulse sent " << std::endl;
   }
 
+  if (opt.run_mode == 3) {
+    /** must restore PCR3 values **/
+    for (int chip = 0; chip < 6; ++chip) {
+      if (!active_alcor[chip]) continue;
+      for (int col = 0; col < 8; ++col)
+        for (int pix = 0; pix < 4; ++pix)
+          alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
+    }
+  }
+  
   int status;
   bool in_spill = false;
   while (running) {
@@ -395,6 +325,9 @@ int main(int argc, char *argv[])
       status_register = status_node->read();
       hardware.dispatch();
       status = status_register.value();
+      /** spill is down and did not change **/
+      if (status == 0x0 && !in_spill)
+        continue;
       /** spill went up **/
       if (status == 0x1 && !in_spill) {
 	in_spill = true;
@@ -407,7 +340,7 @@ int main(int argc, char *argv[])
 	}
       }
       /** spill went down **/
-      if (status == 0x0 && in_spill) {
+      else if (status == 0x0 && in_spill) {
 	 in_spill = false;
 	 /** pause run **/
 	 mode_node->write(1);
@@ -445,80 +378,9 @@ int main(int argc, char *argv[])
 	 std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
 
       }
-    }
-    
-#if 0
-    if (!opt.standalone) {
-    
-      // read control SHM
-      if (control_ptr[0] == 'R') {
-        std::cout << " --- reset command received: " << control_ptr << std::endl;
-	for (int i = 0; i < n_active_fifos; ++i) {
-	  if (fout[i].is_open()) {
-	    std::cout << " --- output file closed: " << std::endl;
-	    fout[i].close();
-	  }
-	}
-        begin_received = false;
-	control_ptr[0] = 'A';
-      }
-      if (control_ptr[0] == 'B' && !begin_received) {
-        std::cout << " --- begin command received: " << control_ptr << std::endl;
-        run_tag = control_ptr;
-        run_tag = run_tag.substr(6);
-	for (int i = 0; i < n_active_fifos; ++i) {
-	  if (fout[i].is_open()) {
-	    std::cout << " --- output file closed: " << std::endl;
-	    fout[i].close();
-	  }
-	}
-        write_output = !opt.output_filename.empty();
-        if (write_output) {
-	  for (int i = 0; i < n_active_fifos; ++i) {
-	    std::string filename = opt.output_filename + "." + run_tag + ".fifo_" + std::to_string(fifo_id[i]) + ".dat";
-	    std::cout << " --- opening output file: " << filename << std::endl;
-	    fout[i].open(filename , std::ofstream::out | std::ofstream::binary);
-	  }
-        }
-        begin_received = true;
-	buffer_counter = 0;
-	control_ptr[0] = 'A';
-      }
-      if (control_ptr[0] == 'E' && begin_received) {
-        std::cout << " --- end command received: " << control_ptr << std::endl;
-        
-        /** flush staging buffers **/
-        for (int i = 0; i < n_active_fifos; ++i) {
-          /** write staging buffer to file if requested **/
-          if (write_output) {
-	    //            std::cout << " --- flushing FIFO #" << fifo_id[i] << ": " << staging_buffer_bytes[i] << std::endl;
-            write_buffer_to_file(fout[i], fifo_id[i], buffer_counter, staging_buffer[i], staging_buffer_bytes[i]);
-          }
-          staging_buffer_pointer[i] = staging_buffer[i];
-          staging_buffer_bytes[i] = 0;
-        }
-	buffer_counter++;
-        
-        for (int i = 0; i < n_active_fifos; ++i) {
-	  if (fout[i].is_open()) {
-	    std::cout << " --- output file closed: " << std::endl;
-	    fout[i].close();
-	  }
-	}
-        begin_received = false;
-	control_ptr[0] = 'A';
-      }
-      if (control_ptr[0] == 'Q') {
-        std::cout << " --- quit command received: " << control_ptr << std::endl;
-        running = false;
-	control_ptr[0] = 'A';
-        continue;
-      }
       
-      if (!begin_received) continue;
     }
-#endif
-
+    
     // increment poll counter and usleep
     n_polls++;
     usleep(opt.usleep_period);
@@ -615,9 +477,9 @@ int main(int argc, char *argv[])
 
     }
 
-#if 0
+#if 1
     /** reset **/
-    if (any_fifo_killed) {
+    if (any_fifo_killed && opt.run_mode == 3) {
 
       std::cout << " --- attempt chip reset via system call " << std::endl;
 
@@ -630,7 +492,7 @@ int main(int argc, char *argv[])
       std::cout << " --- setting run mode: " << 0 << std::endl;
       
       // reset all chips
-      system("/home/eic/alcor/alcor-utils/control/alcorInit.sh 0");
+      system(alcor_reset_system_c);
       n_resets++;
 
       // restore PCR3 registers
