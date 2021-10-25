@@ -31,7 +31,7 @@ peltier_control(int begint, int endt)
   g->SetLineWidth(2);
   g->SetFillStyle(0);
   g->SetFillColor(0);
-  g->SetTitle("BIG-1");
+  g->SetTitle("BIG-0");
   l = c->cd(2)->BuildLegend();
   l->SetBorderSize(0);
   l->DeleteEntry();
@@ -45,7 +45,7 @@ peltier_control(int begint, int endt)
   g->SetLineWidth(2);
   g->SetFillStyle(0);
   g->SetFillColor(0);
-  g->SetTitle("BIG-0");
+  g->SetTitle("BIG-1");
   l = c->cd(3)->BuildLegend();
   l->SetBorderSize(0);
   l->DeleteEntry();
