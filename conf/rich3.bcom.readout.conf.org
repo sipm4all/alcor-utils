@@ -3,6 +3,6 @@
 1  	 0xf 		 0xb01b 	plus20c         rich3.bcom.minus15c.vover3.ff1
 2  	 0xf 		 0xb01b 	plus20c         rich3.bcom.minus15c.vover3.ff2
 3  	 0xf		 0xb01b 	plus20c         rich3.bcom.minus15c.vover3.ff3
-4  	 0xf 		 0xb01b 	plus20c         timing.bcom.ff4               
+4  	 0x0 		 0xb01b 	plus20c         rich3.bcom.minus15c.vover3.ff4
 5  	 0xf 		 0xb01b 	plus20c         timing.bcom.ff5
 # don't delete this line

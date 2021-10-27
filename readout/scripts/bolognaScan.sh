@@ -1,11 +1,11 @@
 #! /usr/bin/env bash
 
 CONN=${ALCOR_ETC}/connection2.xml
-OUTDIR="${HOME}/DATA/CERN/scan/rich3.bcom/T10"
-TAGNAME="vover3"
+OUTDIR="${HOME}/DATA/CERN/scan/rich3.bcom/T10/20211026/"
+TAGNAME="hvzero"
 mkdir -p $OUTDIR
 
-FINAL_SCAN=true
+FINAL_SCAN=false
 
 ### read fifo settings from ${ALCOR_CONF}/readout.conf
 ### to make make the chip mask
@@ -20,8 +20,8 @@ done < $RDOUT_CONF
 
 ### settings for baseline scan
 LANECHANNELS=$(seq 0 7)
-RANGES=$(seq 0 3)
-OFFSETS=$(seq 0 7)
+RANGES=$(seq 0 1)
+OFFSETS=$(seq 0 4)
 VTHS=$(seq 0 3)
 MINTIMER=320000 ## 10 ms
 MAXTIMER=320000 ## 10 ms

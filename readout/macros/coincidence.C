@@ -22,18 +22,15 @@ coincidence()
 {
 
   auto fin = TFile::Open("alcdaq.miniframe.root");
-  TTree *tin[24] = {nullptr};
-  frame_data_t frame[24];
-  int nev[24] = {0}, nframes = kMaxInt;
+  TTree *tin[25] = {nullptr};
+  frame_data_t frame[25];
+  int nev[25] = {0}, nframes = kMaxInt;
   int n_active_fifos = 0;
-  int active_fifo[24];
+  int active_fifo[25];
 
-  std::ofstream fout("coincidence.txt");
-  fout << "chip/I:frame/I:rollover/F:coarse/F" << std::endl;
-
-  
   // loop and link available fifos
-  for (int fifo = 0; fifo < 24; ++fifo) {
+  for (int fifo = 0; fifo <= 24; ++fifo) {
+    if (fifo != 0 && fifo != 24) continue;
     tin[fifo] = (TTree *)fin->Get(Form("miniframe_%d", fifo));
     if (!tin[fifo]) continue;
     nev[fifo] = tin[fifo]->GetEntries();
@@ -57,74 +54,30 @@ coincidence()
   }
   std::cout << " --- we will loop over " << nframes << " frames " << std::endl;
 
-  TH1 *hDelta = new TH1F("hDelta", "", 100000, -5000., 5000.);
-  TH1 *hDelta_fastest = new TH1F("hDelta_fastest", "", 1000000, -5000., 5000.);
-  TH2 *hDelta_fastest_fine_4 = new TH2F("hDelta_fastest_fine_4", "", 200, 0, 200, 1000, -5., 5.);
+  TH1 *hDelta = new TH1F("hDelta", "", 100000, -5000000., 5000000.);
 
-  float MIN = 38.;
-  float MAX = 100.;
-  float CUT = (MAX + MIN) * 0.5;
-  float IF = MAX - MIN;
-  
   int nhits[6] = {0}, fastest_fine[6];
-  float rollover[6] = {0.}, coarse[6] = {0.}, fastest[6] = {99999999.};
+  float rollover[6] = {0.}, coarse[6] = {0.}, fastest[6] = {99999999.}, fastest_rollover[6], fastest_coarse[6];
   for (int iframe = 0; iframe < nframes; ++iframe) {
-    
-    for (int i = 0; i < 6; ++i) {
-      nhits[i] = 0;
-      rollover[i] = 0.;
-      coarse[i] = 0.;
-      fastest[i] = 999999999.;
-    }
-    for (int ififo = 0; ififo < n_active_fifos; ++ififo) {
-      auto fifo = active_fifo[ififo];
-      auto chip = fifo / 4;
-      tin[fifo]->GetEvent(iframe);
-      nhits[chip] += frame[fifo].n;
-      for (int hit = 0; hit < frame[fifo].n; ++hit) {
-        rollover[chip] += frame[fifo].rollover[hit];
-        auto eochannel = frame[fifo].pixel[hit] + 4 * frame[fifo].column[hit];
-        auto dochannel = eo2do[eochannel];
-        rollover[chip] += frame[fifo].rollover[hit];
-        if (frame[fifo].fine[hit] < MIN)
-          frame[fifo].fine[hit] = MIN;
-        if (frame[fifo].fine[hit] > MAX)
-          frame[fifo].fine[hit] = MAX;
-        float fine_time = (frame[fifo].fine[hit] - MIN) / IF;
-        if (frame[fifo].fine[hit] > CUT)
-          fine_time = (frame[fifo].fine[hit] - MIN) / IF - 1.;
-        //        std::cout << fine_time << std::endl;
-        auto time = frame[fifo].coarse[hit];// - fine_time;
-        coarse[chip] += time;
-        if (time < fastest[chip]) {
-          fastest[chip] = time;
-          fastest_fine[chip] = frame[fifo].fine[hit];
-        }
+
+    std::cout << iframe << std::endl;
+
+    // for each trigger in frame
+    tin[24]->GetEvent(iframe);
+    tin[1]->GetEvent(iframe);
+    for (int trigger = 0; trigger < frame[24].n; ++trigger) {
+      float reference_coarse = frame[24].coarse[trigger];
+      float reference_rollover = frame[24].rollover[trigger];
+      
+      for (int hit = 0; hit < frame[0].n && hit < MAXDATA; ++hit) {
+	auto delta_coarse = frame[0].coarse[hit] - reference_coarse;
+	auto delta_rollover = frame[0].rollover[hit] - reference_rollover;
+	auto delta = delta_coarse + 32768. * delta_rollover;
+	hDelta->Fill(delta);      
       }
     }
-
-    if (nhits[4] < 9 || nhits[5] < 9) continue;
-
-    coarse[4] /= nhits[4];
-    coarse[5] /= nhits[5];
-    
-    auto delta = coarse[4] - coarse[5];
-    auto delta_fastest = fastest[4] - fastest[5];
-    hDelta->Fill(delta);
-    hDelta_fastest->Fill(delta_fastest);
-    hDelta_fastest_fine_4->Fill(fastest_fine[4], delta_fastest);
-    
-    //    hDelta->Draw();
-    //    gPad->Update();
-    
   }
 
-  hDelta_fastest->Draw();
-  hDelta->Draw("same");
-
-  new TCanvas("c4");
-  hDelta_fastest_fine_4->Draw("colz");
-  
-  fout.close();
+  hDelta->Draw();
   
 }

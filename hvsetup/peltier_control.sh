@@ -2,26 +2,32 @@
 
 START=3
 NLOOPS=10
-TARGET=-15
+target_small=-15
+target_big0=-15
+target_big1=-15
 EPSILON="0.5"
 
-if [ "$#" -ne 4 ]; then
-    echo " usage: ./peltier_control.sh [target temperature] [start current SMALL] [BIG0] [BIG1] "
+if [ "$#" -ne 6 ]; then
+    echo " usage: ./peltier_control.sh [target SMALL] [target BIG0] [target BIG1] [start current SMALL] [BIG0] [BIG1] "
     echo
-    echo " possible magic command: ./peltier_control.sh -15 5.55 4.32 3.50 "
+#    echo " possible magic command: ./peltier_control.sh -15 5.55 4.32 3.50 "
     echo
     exit 1
 fi
 
-TARGET=$1
-current_small=$2
-current_big0=$3
-current_big1=$4
+target_small=$1
+target_big0=$2
+target_big1=$3
+current_small=$4
+current_big0=$5
+current_big1=$6
 
-echo " --- Peltier control: target temperature:  $TARGET C "
-echo "                      SMALL start current: $current_small A "
-echo "                      BIG-0 start current: $current_big0 A "
-echo "                      BIG-1 start current: $current_big1 A "
+echo " --- Peltier control: SMALL target temperature:  $target_small C "
+echo "                      BIG-0 target temperature:  $target_big0 C "
+echo "                      BIG-1 target temperature:  $target_big1 C "
+echo "                      SMALL start current:       $current_small A "
+echo "                      BIG-0 start current:       $current_big0 A "
+echo "                      BIG-1 start current:       $current_big1 A "
 
 ./set_small.sh $current_small # $START
 ./set_big0.sh $current_big0 # $START
@@ -102,8 +108,8 @@ while true; do
 
     echo "$Tstamp $T0 $T1 $T2 $T3 $T4 $Tsmall $Tbig0 $Tbig1" | tee -a peltier_control.dat
 
-    Tstamp_start=$(($Tstamp - 3600)) 
-    Tstamp_stop=$(($Tstamp + 3600)) 
+    Tstamp_start=$(($Tstamp - 7200)) 
+    Tstamp_stop=$(($Tstamp + 60)) 
     root -b -q -l "peltier_control.C($Tstamp_start, $Tstamp_stop)"
     
 #    delta_Tstamp=$(bc <<< "scale=2; $Tstamp - $Tstart")
@@ -112,9 +118,9 @@ while true; do
 #        continue
 #    fi
     
-    delta_small=$(bc <<< "scale=2; $Tsmall - $TARGET")
-    delta_big0=$(bc <<< "scale=2; $Tbig0 - $TARGET")
-    delta_big1=$(bc <<< "scale=2; $Tbig1 - $TARGET")
+    delta_small=$(bc <<< "scale=2; $Tsmall - $target_small")
+    delta_big0=$(bc <<< "scale=2; $Tbig0 - $target_big0")
+    delta_big1=$(bc <<< "scale=2; $Tbig1 - $target_big1")
 
     if (( $(echo "$delta_small > $EPSILON" | bc -l) )); then
         echo " --- increase the current of SMALL "

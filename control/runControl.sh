@@ -17,7 +17,7 @@ echo Output Directory: $OUT_DIR
 mkdir $OUT_DIR
 
 ### -- dump HV settings
-#./hvdump.sh | tee $OUT_DIR/HV.dump
+./hvdump.sh | tee $OUT_DIR/HV.dump
 ### -- dump TEMP status
 ./tempstatus.sh | tee $OUT_DIR/TEMP.dump 
 

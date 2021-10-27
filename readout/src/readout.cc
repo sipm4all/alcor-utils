@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -20,6 +21,7 @@
 
 bool running = true;
 bool monitor = false;
+bool reset = false;
 
 struct alcor_hit_t {
   uint32_t fine   : 9;
@@ -212,8 +214,8 @@ int main(int argc, char *argv[])
   /** reset ALCOR **/
   std::string alcor_reset_system = std::getenv("ALCOR_DIR");
   alcor_reset_system += "/control/alcorInit.sh 0 /tmp";
-  auto alcor_reset_system_c = alcor_reset_system.c_str();
-  system(alcor_reset_system_c);
+  std::cout << " calling system: " << alcor_reset_system << std::endl;
+  system(alcor_reset_system.c_str());
 
   // set filter mode
   auto filter_command = 0x03300000 | opt.filter_mode;
@@ -306,6 +308,7 @@ int main(int argc, char *argv[])
     std::cout << " --- pulse sent " << std::endl;
   }
 
+#if 1
   if (opt.run_mode == 3) {
     /** must restore PCR3 values **/
     for (int chip = 0; chip < 6; ++chip) {
@@ -315,75 +318,55 @@ int main(int argc, char *argv[])
           alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
     }
   }
+#endif
   
   int status;
   bool in_spill = false;
+  bool force_flush_staging_buffers = false;
   while (running) {
+
+    bool force_flush_staging_buffers = false;
 
     /** read status register to know about the spill status **/
     if (opt.run_mode == 5) {
       status_register = status_node->read();
       hardware.dispatch();
       status = status_register.value();
-      /** spill is down and did not change **/
-      if (status == 0x0 && !in_spill)
-        continue;
+
       /** spill went up **/
       if (status == 0x1 && !in_spill) {
 	in_spill = true;
-	/** must restore PCR3 values **/
-	for (int chip = 0; chip < 6; ++chip) {
+	std::cout << " --- spill up, restore PCR3 values " << std::endl;
+
+	/** here we restore PCR3 values of SiPM for Cerenkov light -- not timing  **/
+	for (int chip = 0; chip < 4; ++chip) {
 	  if (!active_alcor[chip]) continue;
-	  for (int col = 0; col < 8; ++col)
-	    for (int pix = 0; pix < 4; ++pix)
+	  for (int col = 0; col < 8; ++col) {
+	    for (int pix = 0; pix < 4; ++pix) {
 	      alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
+	    }
+	    //	    for (int chip = 0; chip < 4; ++chip) {
+	    //  if (!active_alcor[chip]) continue;
+	    //	    alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
+	    //  alcor[chip].spi.cmd_hack( WDAT, pcr3_init[chip][col][pix].val );
+	    //  }
+	  }
 	}
+	hardware.dispatch();
+
+
       }
       /** spill went down **/
       else if (status == 0x0 && in_spill) {
 	 in_spill = false;
-	 /** pause run **/
-	 mode_node->write(1);
-	 hardware.dispatch();
-	 std::cout << " --- setting run mode: " << 1 << std::endl;
-	 /** must rest chips **/
+	 reset = true;
 	 std::cout << " --- spill down, chip reset via system call " << std::endl;
-	 system(alcor_reset_system_c);
-	 /** set filter mode **/
-	 auto filter_command = 0x03300000 | opt.filter_mode;
-	 std::cout << " --- setting ALCOR filter mode: " << opt.filter_mode << std::endl;
-	 for (int i = 0; i < MAX_ALCORS; ++i) {
-	   if (!active_alcor[i]) continue;
-	   hardware.getNode("alcor_controller_id" + std::to_string(i)).write(filter_command);
-	 }
-	 hardware.dispatch();
-	 for (int i = 0; i < MAX_ALCORS; ++i) {
-	   if (!active_alcor[i]) continue;
-	   auto controller_register = hardware.getNode("alcor_controller_id" + std::to_string(i)).read();
-	   hardware.dispatch();
-	   auto controller_value = controller_register.value();
-	   if (controller_value != filter_command) {
-	     std::cout << " [ERROR] filter command mismatch on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
-	     return 1;
-	   }
-	   std::cout << " --- filter command OK on ALCOR #" << i << ": " << std::hex << "0x" << controller_value << " != 0x" << filter_command << std::dec << std::endl;
-	 }
-	 /** reset killed fifos **/
-	 for (int i = 0; i < n_active_fifos; ++i)
-	   fifo_killed[i] = false;
-	 any_fifo_killed = false;
-	 /** restore run mode **/
-	 mode_node->write(opt.run_mode);
-	 hardware.dispatch();
-	 std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
-
-      }
-      
+      } 
     }
     
     // increment poll counter and usleep
     n_polls++;
-    usleep(opt.usleep_period);
+    //    usleep(opt.usleep_period);
 
     // dispatch read fifo occupancy
     for (int i = 0; i < n_active_fifos; ++i) {
@@ -394,9 +377,9 @@ int main(int argc, char *argv[])
     
     // retrieve fifo occupancy
     // set download flag if at least one fifo is above threshold
-    // set flush staging is at least one will overflow
-    fifo_download = false;
-    flush_staging_buffers = false;
+    // set flush staging if at least one will overflow
+    fifo_download = true; // false;
+    flush_staging_buffers = force_flush_staging_buffers;
     for (int i = 0; i < n_active_fifos; ++i) {
       if (fifo_killed[i]) continue;
 #ifdef PARANOID
@@ -405,6 +388,8 @@ int main(int argc, char *argv[])
       occupancy[i] = occupancy_register[i].value() & 0xffff;
       bytes[i] = occupancy[i] * 4;
       if (occupancy[i] > max_occupancy[i]) max_occupancy[i] = occupancy[i];
+      fifo_download = true; //R+hack
+      fifo_download_this[i] = true; //R+hack
       if (occupancy[i] >= opt.fifo_occupancy) {
 	fifo_download = true;
 	fifo_download_this[i] = true;
@@ -477,24 +462,29 @@ int main(int argc, char *argv[])
 
     }
 
-#if 1
+    if (any_fifo_killed) reset = true;
+
     /** reset **/
-    if (any_fifo_killed && opt.run_mode == 3) {
+    if ( (!in_spill || opt.run_mode == 3) && reset) {
 
       std::cout << " --- attempt chip reset via system call " << std::endl;
 
+#if 1
       // switch off run mode
       mode_node->write(1);
       hardware.dispatch();
       std::cout << " --- setting run mode: " << 1 << std::endl;
-      mode_node->write(0);
-      hardware.dispatch();
-      std::cout << " --- setting run mode: " << 0 << std::endl;
-      
+      //      mode_node->write(0);
+      //      hardware.dispatch();
+      //      std::cout << " --- setting run mode: " << 0 << std::endl;
+#endif     
+ 
       // reset all chips
-      system(alcor_reset_system_c);
+      std::cout << " calling system: " << alcor_reset_system << std::endl;
+      system(alcor_reset_system.c_str());
       n_resets++;
 
+#if 0
       // restore PCR3 registers
       for (int chip = 0; chip < 6; ++chip) {
 	if (!active_alcor[chip]) continue;
@@ -502,7 +492,8 @@ int main(int argc, char *argv[])
 	  for (int pix = 0; pix < 4; ++pix)
 	    alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
       }
-      
+#endif     
+ 
       // set filter mode
       auto filter_command = 0x03300000 | opt.filter_mode;
       std::cout << " --- setting ALCOR filter mode: " << opt.filter_mode << std::endl;
@@ -527,16 +518,40 @@ int main(int argc, char *argv[])
 	fifo_killed[i] = false;
       any_fifo_killed = false;
 
-      // go into real run mode
-      mode_node->write(1);
+      /** reset fifos **/
+      for (int i = 0; i < n_active_fifos; ++i) {
+	reset_node[i]->write(0x1);
+      }
       hardware.dispatch();
-      std::cout << " --- setting run mode: " << 1 << std::endl;
+      std::cout << " --- FIFO reset sent " << std::endl;
+      
+      std::cout << " --- spill up, restore PCR3 values " << std::endl;
+      /** here we restore PCR3 values of timing **/
+      for (int chip = 4; chip < 6; ++chip) {
+	if (!active_alcor[chip]) continue;
+	for (int col = 0; col < 8; ++col) {
+	  for (int pix = 0; pix < 4; ++pix) {
+	    alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
+	    //	    alcor[chip].spi.cmd_hack( WPTR, PCR(3, pix, col) );
+	    //	    alcor[chip].spi.cmd_hack( WDAT, pcr3_init[chip][col][pix].val );
+	  }
+	}
+      }
+      //      hardware.dispatch();
+
+      
+#if 1
+      // go into real run mode
+      //      mode_node->write(1);
+      //      hardware.dispatch();
+      //      std::cout << " --- setting run mode: " << 1 << std::endl;
       mode_node->write(opt.run_mode);
       hardware.dispatch();
       std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
-
-    }
 #endif
+
+      reset = false;
+    }
 
     /** monitor **/
     if (monitor) {

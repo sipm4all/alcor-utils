@@ -1,17 +1,24 @@
 #! /usr/bin/env bash
 
+_term() { 
+  echo "Caught SIGINT signal!" 
+  kill -INT "$child" 2>/dev/null
+}
+
+trap _term SIGINT
+
 TAG="alcdaq"
 RUN=$1
 DIR=$2
 mkdir -p $DIR
 
 OCCUPANCY=0  # minimum occupancy to download fifo
-MODE=3       # run mode [should be 5 to use beam signals]
-KILLER=8191  # kill fifo is occupancy is >=
+MODE=5       # run mode [should be 5 to use beam signals]
+KILLER=8193  # kill fifo is occupancy is >=
 
 USLEEP=1     # polling sleeps [us]
-MONITOR=1    # monitor cycle [s]
-TIMEOUT=3600  # terminate readout after [s]
+MONITOR=2   # monitor cycle [s]
+TIMEOUT=900  # terminate readout after [s]
 
 ### FILTER BITS
 ### bit-0 --> summary filter [status header (K28.3) + status words + checksum header (K28.4) + CRC are disabled]
@@ -48,4 +55,9 @@ ${ALCOR_DIR}/readout/bin/readout --connection ${ALCOR_ETC}/connection2.xml --dev
     --usleep $USLEEP --monitor $MONITOR --occupancy $OCCUPANCY --timeout $TIMEOUT \
     --fifo $FIFOS --mode $MODE --filter $FILTER --killer $KILLER \
     --run $RUN --output $OUTPUT \
-    | tee $DIR/readout.log
+    | tee $DIR/readout.log &
+
+child=$!
+wait "$child"
+sleep 2
+exit 0

@@ -219,6 +219,34 @@ namespace alcor {
       
       hardware->dispatch();
       
+      if (command != RDAT) return 0;
+
+      uhal::ValWord<uint32_t> reg = tx0_rx0->read();
+      hardware->dispatch();
+      return (reg.value() & 0xffff);
+    };
+    
+    int cmd_hack(int command, int tdata) {
+      int data;
+      divider->write(0xf);
+      ss->write(0x1);
+      
+      data = bS(CTRL_ASS) | bS(CTRL_RX_NEGEDGE) | 0x18;
+      ctrl->write(data);
+      
+      data = CMD(command) | (tdata & 0xffff);
+      tx0_rx0->write(data);
+      
+      data = bS(CTRL_ASS) | bS(CTRL_RX_NEGEDGE) | bS(CTRL_GO) | 0x18;
+      ctrl->write(data);
+      
+      data = bS(CTRL_ASS) | bS(CTRL_RX_NEGEDGE) | 0x18;
+      ctrl->write(data);
+      
+      //      hardware->dispatch();
+      
+      if (command != RDAT) return 0;
+
       uhal::ValWord<uint32_t> reg = tx0_rx0->read();
       hardware->dispatch();
       return (reg.value() & 0xffff);
@@ -232,7 +260,7 @@ namespace alcor {
     int write(int address, int data) {
       cmd(WPTR, address);
       cmd(WDAT, data);
-      return cmd(RDAT, 0);
+      return 0; //cmd(RDAT, 0);
     };
     
   };

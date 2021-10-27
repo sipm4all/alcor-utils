@@ -179,6 +179,16 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
     // find spill trailer
     while (pos < size) {
 
+      /** killed fifo **/
+      if (*word == 0x666caffe) {
+        if (verbose) printf(" 0x%08x -- killed fifo \n", *word);
+        write_trigger_data(fout, fifo, 15, -1, -1, -1);
+        ++word; ++pos;
+        in_spill = false;
+	rollover_counter = 0;
+        break;	
+      }
+      
       /** spill trailer **/
       if ((*word & 0xf0000000) == 0xf0000000) {
         spill_t *spill = (spill_t *)word;

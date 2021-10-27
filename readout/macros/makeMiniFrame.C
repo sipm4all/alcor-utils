@@ -1,6 +1,6 @@
 #define FRAME_SIZE 64
 #define MAXFRAMES 65536 / FRAME_SIZE
-#define MAXDATA 1024
+#define MAXDATA 1048576
 
 void
 makeMiniFrame(const char *fnamein, const char *fnameout, bool verbose = false)
