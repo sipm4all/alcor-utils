@@ -29,6 +29,7 @@ makeMiniFrame(const char *fnamein, const char *fnameout, bool verbose = false)
   tin->SetBranchAddress("coarse", &data.coarse);
   tin->SetBranchAddress("fine", &data.fine);
   auto nev = tin->GetEntries();
+  std::cout << " --- got " << nev << " entries from file " << fnamein << std::endl;
   tin->GetEntry(0);
   
   auto fout = TFile::Open(fnameout, "RECREATE");
@@ -90,6 +91,7 @@ makeMiniFrame(const char *fnamein, const char *fnameout, bool verbose = false)
       frame[frame_id].coarse[n] = data.coarse;
       frame[frame_id].fine[n] = data.fine;
       frame[frame_id].n++;
+      //      std::cout << " frame id " << frame_id << " has " << frame[frame_id].n << " hits " << std::endl;
       continue;
     }
 
@@ -110,6 +112,22 @@ makeMiniFrame(const char *fnamein, const char *fnameout, bool verbose = false)
         tout->Fill();
       }
     }
+  }
+
+  // R+hack in case no spill trailer is added at the end
+  for (int iframe = 0; iframe < MAXFRAMES; ++iframe) {
+    if (verbose) std::cout << " --- filling tree with frame #" << iframe << ": " << frame[iframe].n << " entries" << std::endl;
+    tout->SetBranchAddress("spill_id", &frame[iframe].spill_id);
+    tout->SetBranchAddress("frame_id", &frame[iframe].frame_id);
+    tout->SetBranchAddress("fifo", &frame[iframe].fifo);
+    tout->SetBranchAddress("n", &frame[iframe].n);
+    tout->SetBranchAddress("column", &frame[iframe].column);
+    tout->SetBranchAddress("pixel", &frame[iframe].pixel);
+    tout->SetBranchAddress("tdc", &frame[iframe].tdc);
+    tout->SetBranchAddress("rollover", &frame[iframe].rollover);
+    tout->SetBranchAddress("coarse", &frame[iframe].coarse);
+    tout->SetBranchAddress("fine", &frame[iframe].fine);
+    tout->Fill();
   }
 
   tout->Write();
