@@ -1,0 +1,5 @@
+#! /usr/bin/env bash
+
+echo -e "OP1 1  \n\r" > /dev/PLH250
+sleep 0.5
+./hv.status

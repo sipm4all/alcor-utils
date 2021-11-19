@@ -1,0 +1,13 @@
+#! /usr/bin/env bash
+
+(cat /dev/QL355P > alcor_analog.status.out) &
+sleep 0.2
+echo -e "OP1? \n\r" > /dev/QL355P 
+sleep 0.2
+echo -e "V1O? \n\r" > /dev/QL355P 
+sleep 0.2
+echo -e "I1O? \n\r" > /dev/QL355P 
+sleep 0.2
+kill %1
+echo "ALCOR analog:  $(cat alcor_analog.status.out | tr "\r" " " | tr "\n" " ")"
+rm -rf alcor_analog.status.out

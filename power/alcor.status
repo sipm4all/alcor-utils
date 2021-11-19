@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+./alcor_analog.status
+./alcor_digital.status

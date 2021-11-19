@@ -1,0 +1,5 @@
+#! /usr/bin/env bash
+
+echo -e "OP2 1  \n\r" > /dev/QL355P 
+sleep 0.5
+./alcor_digital.status

@@ -1,0 +1,5 @@
+#! /usr/bin/env bash
+
+echo -e "OP1 0  \n\r" > /dev/QL355P 
+sleep 0.5
+./alcor_analog.status

@@ -1,0 +1,13 @@
+#! /usr/bin/env bash
+
+(cat /dev/PLH250 > hv.status.out) &
+sleep 0.2
+echo -e "OP1? \n\r" > /dev/PLH250
+sleep 0.2
+echo -e "V1O? \n\r" > /dev/PLH250
+sleep 0.2
+echo -e "I1O? \n\r" > /dev/PLH250 
+sleep 0.2
+kill %1
+echo "HV: $(cat hv.status.out | tr "\r" " " | tr "\n" " ")"
+rm -rf hv.status.out
