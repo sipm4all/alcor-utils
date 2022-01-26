@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+if [ $($HOME/alcor/alcor-utils/pulser/pulser_cmd.py "OUTPUT2:STATE?") == "1" ]; then
+    echo "ON"
+else
+    echo "OFF"
+fi

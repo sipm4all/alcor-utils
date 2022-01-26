@@ -1,0 +1,3 @@
+#! /usr/bin/env bash
+
+$HOME/alcor/alcor-utils/pulser/pulser_cmd.py "OUTPUT2:STATE OFF"
