@@ -13,12 +13,12 @@ DIR=$2
 mkdir -p $DIR
 
 OCCUPANCY=0  # minimum occupancy to download fifo
-MODE=5       # run mode [should be 5 to use beam signals]
-KILLER=8193  # kill fifo is occupancy is >=
+MODE=3       # run mode [should be 5 to use beam signals]
+KILLER=8191  # kill fifo is occupancy is >=
 
-USLEEP=1     # polling sleeps [us]
-MONITOR=2   # monitor cycle [s]
-TIMEOUT=900  # terminate readout after [s]
+USLEEP=1       # polling sleeps [us]
+MONITOR=50000   # monitor cycle [us]
+TIMEOUT=1000000   # terminate readout after [us]
 
 ### FILTER BITS
 ### bit-0 --> summary filter [status header (K28.3) + status words + checksum header (K28.4) + CRC are disabled]

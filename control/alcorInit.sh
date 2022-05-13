@@ -32,7 +32,7 @@ do
    if [ $ldec -ne 0 ]; then
        echo Programming $chip
        if [ "$THRSCAN" = true ]; then
-	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr 0xb81b --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr
+	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr 0xb81b --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr & 
        else
 	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr $eccr --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr
        fi

@@ -1,0 +1,47 @@
+Programming 1
+-------- ALCOR #  1  Complete Setup
+KC705 mode set to config
+Resetting fifos for ALCOR #  1
+Alcor reset and lanes alignment
+[AlcorLib] Loading conf from  /home/eic/alcor/alcor-utils/conf
+Loading command sequences to ALCOR controller from:  /home/eic/alcor/alcor-utils/conf/alcor-sync.cfg
+Sending command to ALCOR Controller #  1 :  0x100000 0x1 [Read back Register =   0x100000 ]
+Sending command to ALCOR Controller #  1 :  0x200000 0x2 [Read back Register =   0x200000 ]
+Sending command to ALCOR Controller #  1 :  0x35ad6b 0x3 [Read back Register =   0x35ad6b ]
+Sending command to ALCOR Controller #  1 :  0x400000 0x4 [Read back Register =   0x400000 ]
+Sending command to ALCOR Controller #  1 :  0x500000 0x5 [Read back Register =   0x500000 ]
+Sending command to ALCOR Controller #  1 :  0x1000000 0x10 [Read back Register =   0x1000000 ]
+Sending command to ALCOR Controller #  1 :  0x110000f 0x11 [Read back Register =   0x110000f ]
+Loading command sequences to ALCOR controller from:  /home/eic/alcor/alcor-utils/conf/alcor-align.cfg
+Sending command to ALCOR Controller #  1 :  0x1000000 0x10 [Read back Register =   0x1000000 ]
+Sending command to ALCOR Controller #  1 :  0x1100000 0x11 [Read back Register =   0x110000f ]
+Sending command to ALCOR Controller #  1 :  0x1200000 0x12 [Read back Register =   0x1200005 ]
+Sending command to ALCOR Controller #  1 :  0x1200001 0x12 [Read back Register =   0x1200005 ]
+Sending command to ALCOR Controller #  1 :  0x1200002 0x12 [Read back Register =   0x1200005 ]
+Sending command to ALCOR Controller #  1 :  0x1200003 0x12 [Read back Register =   0x1200005 ]
+Sending command to ALCOR Controller #  1 :  0x1300000 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1300001 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1300002 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1300003 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1300004 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1300005 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1300006 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1300007 0x13 [Read back Register =   0x1300000 ]
+Sending command to ALCOR Controller #  1 :  0x1400000 0x14 [Read back Register =   0x1400000 ]
+Sending command to ALCOR Controller #  1 :  0x1400001 0x14 [Read back Register =   0x1400001 ]
+Sending command to ALCOR Controller #  1 :  0x1400002 0x14 [Read back Register =   0x1400002 ]
+Sending command to ALCOR Controller #  1 :  0x1400003 0x14 [Read back Register =   0x1400003 ]
+Sending command to ALCOR Controller #  1 :  0x1500000 0x15 [Read back Register =   0x1500004 ]
+Sending command to ALCOR Controller #  1 :  0x1500001 0x15 [Read back Register =   0x1500004 ]
+Sending command to ALCOR Controller #  1 :  0x1500002 0x15 [Read back Register =   0x1500004 ]
+Sending command to ALCOR Controller #  1 :  0x1500003 0x15 [Read back Register =   0x1500004 ]
+Sending command to ALCOR Controller #  1 :  0x200000f 0x20 [Read back Register =   0x200000f ]
+Sending command to ALCOR Controller #  1 :  0x330000f 0x33 [Read back Register =   0x330000f ]
+Setting ECCR to:  0xb81b
+Executing custom BCR setup
+Loading BCR file  /au/conf/bcr/minus40c.bcr for chip #  1 ....
+Loaded configuration for  8  Bias Control Registers
+Executing custom PCR setup (channel ON/OFF driven by PCR file & mask)
+Loading PCR file  /au/conf/pcr/GIULIA/HAMA1_sn2/20220215/minus30c/chip1.range3.pcr for chip #  1 ....
+Loaded specific configuration for  1 channels
+------ End of configuration 

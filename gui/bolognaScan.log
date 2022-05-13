@@ -1,0 +1,62 @@
+ --- chip 2 is active
+ --- chip 3 is active
+ --- final scan settings
+ --- we need to do 8 scans: brace
+ --- doing lane channel 0
+ --- initialising chips 
+ --- starting threshold scan on lane channel 0 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_0.vth_-1.range_-1.offset_-1.txt 
+ --- did 1 scans in 6 seconds: 6.00 seconds/scan 
+ --- left with 7 scans: expected 42.00 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:31, CEST 
+ --- doing lane channel 1
+ --- initialising chips 
+ --- starting threshold scan on lane channel 1 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_1.vth_-1.range_-1.offset_-1.txt 
+ --- did 2 scans in 10 seconds: 5.00 seconds/scan 
+ --- left with 6 scans: expected 30.00 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:23, CEST 
+ --- doing lane channel 2
+ --- initialising chips 
+ --- starting threshold scan on lane channel 2 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_2.vth_-1.range_-1.offset_-1.txt 
+ --- did 3 scans in 16 seconds: 5.33 seconds/scan 
+ --- left with 5 scans: expected 26.65 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:25, CEST 
+ --- doing lane channel 3
+ --- initialising chips 
+ --- starting threshold scan on lane channel 3 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_3.vth_-1.range_-1.offset_-1.txt 
+ --- did 4 scans in 22 seconds: 5.50 seconds/scan 
+ --- left with 4 scans: expected 22.00 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:27, CEST 
+ --- doing lane channel 4
+ --- initialising chips 
+ --- starting threshold scan on lane channel 4 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_4.vth_-1.range_-1.offset_-1.txt 
+ --- did 5 scans in 28 seconds: 5.60 seconds/scan 
+ --- left with 3 scans: expected 16.80 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:27, CEST 
+ --- doing lane channel 5
+ --- initialising chips 
+ --- starting threshold scan on lane channel 5 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_5.vth_-1.range_-1.offset_-1.txt 
+ --- did 6 scans in 33 seconds: 5.50 seconds/scan 
+ --- left with 2 scans: expected 11.00 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:27, CEST 
+ --- doing lane channel 6
+ --- initialising chips 
+ --- starting threshold scan on lane channel 6 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_6.vth_-1.range_-1.offset_-1.txt 
+ --- did 7 scans in 39 seconds: 5.57 seconds/scan 
+ --- left with 1 scans: expected 5.57 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:27, CEST 
+ --- doing lane channel 7
+ --- initialising chips 
+ --- starting threshold scan on lane channel 7 with chipmask 12
+ --- output written to: /home/eic/DATA/baselineScan/20220505-172254/final.scanthr.lanechannel_7.vth_-1.range_-1.offset_-1.txt 
+ --- did 8 scans in 46 seconds: 5.75 seconds/scan 
+ --- left with 0 scans: expected 0 seconds left 
+ --- expected finish date/time: gio 5 mag 2022, 17:30:29, CEST 
+ --- all done, so long
+gio 5 mag 2022, 17:30:29, CEST

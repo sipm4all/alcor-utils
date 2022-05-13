@@ -1,0 +1,3 @@
+#! /usr/bin/env bash
+
+/au/pilas/pilas_cmd.py "ld=0"

@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+/au/pulser/cmd "OUTPUT2:STATE ON"
+/au/pulser/wait

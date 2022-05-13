@@ -219,6 +219,9 @@ int main(int argc, char *argv[])
 	for (int lane = 0; lane < 4; ++lane) {
 	  if (lane_broken[chip][lane]) continue;
 	  alcor[chip].fifo[lane].reset->write(0x1);
+	  if (opt.verbose) {
+	    std::cout << " --- resetting fifo on chip " << chip << ", lane " << lane << std::endl;
+	  }
 	}
       }
       hardware.dispatch();
@@ -233,6 +236,9 @@ int main(int argc, char *argv[])
 	  if (lane_broken[chip][lane]) continue;
 	  fifo_occupancy[chip][lane] = alcor[chip].fifo[lane].occupancy->read();
 	  fifo_timer[chip][lane] = alcor[chip].fifo[lane].timer->read();
+	  if (opt.verbose) {
+	    std::cout << " --- reading fifo occupancy and timer on chip " << chip << ", lane " << lane << std::endl;
+	  }
 	}
       }
       hardware.dispatch();
@@ -242,8 +248,12 @@ int main(int argc, char *argv[])
 	if (!chip_active[chip]) continue;
 	for (int lane = 0; lane < 4; ++lane) {
 	  if (lane_broken[chip][lane]) continue;
-	  if (fifo_occupancy[chip][lane].value() & 0xffff > 0)
+	  if (fifo_occupancy[chip][lane].value() & 0xffff > 0) {
 	    fifo_data[chip][lane] = alcor[chip].fifo[lane].data->readBlock(fifo_occupancy[chip][lane]);
+	    if (opt.verbose) {
+	      std::cout << " --- reading fifo data on chip " << chip << ", lane " << lane << " (" << fifo_occupancy[chip][lane] << ")" <<  std::endl;
+	    }
+	  }
 	}
       }
       hardware.dispatch();
