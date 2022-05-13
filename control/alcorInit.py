@@ -23,6 +23,7 @@ if __name__ == '__main__':
     my_parser.add_argument('-c','--chip',action='store',type=functools.partial(int,base=0),help='ALCOR chip # [0-5]')
     my_parser.add_argument('-p','--pulseType',action='store',type=functools.partial(int,base=0),help='PCR3 pulse field')
     my_parser.add_argument('-m','--mask',action='store',type=functools.partial(int,base=0),help='channel mask 0x0 - 0xFFFFFFFF')
+    my_parser.add_argument('--oneChannel',action='store',type=functools.partial(int,base=0),help='Single channel setup')
     args = my_parser.parse_args()
 
     uhal.disableLogging()
@@ -42,7 +43,16 @@ if __name__ == '__main__':
     device_uri = hw.uri()
 
     alc.verbose=0
-
+    doDefaultSetup = True
+    
+    # R+SPEED
+    if args.oneChannel == None:
+        alc.oneChannel = False
+    else:
+        alc.oneChannel = True
+        alc.theChannel = args.oneChannel
+        doDefaultSetup = False
+    
     print "-------- ALCOR # ",chip," Complete Setup"
     print "KC705 mode set to config"
     data=0x0
@@ -58,8 +68,10 @@ if __name__ == '__main__':
 
     # load setup
     if args.setup == True:
-        print "Setting Alcor registers to default"
-        alc.setup(hw,chip,args.pulseType,0)
+        ### R+SPEED
+        if doDefaultSetup:
+            print "Setting Alcor registers to default"
+            alc.setup(hw,chip,args.pulseType,0)
 #        alc.setup(hw,chip,args.pulseType,args.mask)
 #        alc.setupECCR(hw,chip,alc.ECCR_default|alc.ECCR_RAWMODE)
         if args.eccr != None:
