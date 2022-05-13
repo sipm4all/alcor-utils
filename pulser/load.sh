@@ -5,4 +5,7 @@ if [ -x $1 ]; then
     exit 1
 fi
 
-cat $1 | while read line; do ./pulser_cmd.py "$line"; done
+cat $1 | while read line; do
+    echo $line
+    ./pulser_cmd.py "$line"
+done

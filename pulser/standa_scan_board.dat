@@ -1,0 +1,12 @@
+xy_channel = C1 do_channel = 8  threshold = 63 timestamp = 1644249177 counts = 11393 period = 0.100411 rate = 113464 ratee = 1063.01
+xy_channel = C2 do_channel = 9  threshold = 63 timestamp = 1644249180 counts = 11368 period = 0.100676 rate = 112917 ratee = 1059.05
+xy_channel = C3 do_channel = 10  threshold = 63 timestamp = 1644249183 counts = 0 period = 0.100251 rate = 0 ratee = 0
+xy_channel = C4 do_channel = 11  threshold = 63 timestamp = 1644249186 counts = 9788 period = 0.10001 rate = 97870.1 ratee = 989.243
+xy_channel = E1 do_channel = 16  threshold = 63 timestamp = 1644249192 counts = 11318 period = 0.100164 rate = 112994 ratee = 1062.12
+xy_channel = E2 do_channel = 17  threshold = 63 timestamp = 1644249195 counts = 11581 period = 0.100104 rate = 115689 ratee = 1075.03
+xy_channel = E3 do_channel = 18  threshold = 63 timestamp = 1644249198 counts = 11397 period = 0.100668 rate = 113214 ratee = 1060.48
+xy_channel = E4 do_channel = 19  threshold = 63 timestamp = 1644249200 counts = 11571 period = 0.100327 rate = 115333 ratee = 1072.18
+xy_channel = G1 do_channel = 24  threshold = 63 timestamp = 1644249206 counts = 155 period = 0.100573 rate = 1541.17 ratee = 123.79
+xy_channel = G2 do_channel = 25  threshold = 63 timestamp = 1644249209 counts = 0 period = 0.100438 rate = 0 ratee = 0
+xy_channel = G3 do_channel = 26  threshold = 63 timestamp = 1644249212 counts = 11530 period = 0.100646 rate = 114560 ratee = 1066.88
+xy_channel = G4 do_channel = 27  threshold = 63 timestamp = 1644249215 counts = 0 period = 0.100761 rate = 0 ratee = 0
