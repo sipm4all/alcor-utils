@@ -3,12 +3,34 @@
 int col[4] = {kRed+1, kGreen+2, kAzure-3, kYellow+2};
 int sty[4] = {kSolid, kSolid, kDashed, kDashed};
 
+std::vector<std::pair<int, std::pair<int, int>>> thresholds[4];
+
 void draw(const char *dirname, const char *tagname, int chip, int channel, int vth, int range, int offset, int color, int width, int style, const char *title, const char *opt = "l,same") {  
   TTree t;
   t.ReadFile(Form("%s/%s.scanthr.lanechannel_%d.vth_%d.range_%d.offset_%d.txt", dirname, tagname, channel % 8, vth, range, offset));
   t.Draw("rate : threshold", Form("chip == %d && channel == %d", chip, channel), opt);
   
-  auto g = (TGraph*)gPad->GetListOfPrimitives()->Last();
+  auto g = (TGraph*)gPad->GetPrimitive("Graph");//ListOfPrimitives()->Last();
+  if (!g) return;
+
+  // find when we cross 1 Hz
+  int threshold = 63;
+  for (int i = 0; i < g->GetN(); ++i) {
+    if (g->GetY()[i] > 1.) {
+      threshold = g->GetX()[i];
+      break;
+    }
+  }
+  
+  //  auto f = (TF1 *)gROOT->GetFunction("expo");
+  //  g->Fit(f, "0", "same");
+  //  auto node = (std::log(0.01) - f->GetParameter(0)) / f->GetParameter(1);
+
+  //  std::cout << threshold << std::endl;
+  
+  if (threshold > 5. && threshold < 60) thresholds[range].push_back( {threshold , {vth, offset} } );
+  
+  g->SetName("Old");
   g->SetTitle(title);
   g->SetLineWidth(width);
   g->SetLineColor(color);
@@ -36,8 +58,11 @@ draw_lanechannel(const char *dirname, int chip, int channel, std::vector<std::st
   c->Divide(8, 4, 0., 0.);
   
   // loop over offset/range values
-  for (int offset = 0; offset < 8; ++offset) {
-    for (int range = 0; range < 4; ++range) {      
+  for (int range = 0; range < 4; ++range) {      
+    for (int offset = 0; offset < 8; ++offset) {
+
+      //      std::cout << " ---- "  << std::endl;
+
       int icanvas = range * 8 + offset + 1;
       c->cd(icanvas);
       auto hframe = c->cd(icanvas)->DrawFrame(0., 2.e-1, 63., 5.e6, ";threshold;rate (Hz)");
@@ -75,6 +100,20 @@ draw_lanechannel(const char *dirname, int chip, int channel, std::vector<std::st
           
   c->SaveAs(Form("%s/scanthr.chip_%d.channel_%d.png", dirname, chip, channel));
 
+  // print thresholds
+  std::ofstream outs(Form("%s/scanthr.chip_%d.channel_%d.threshold", dirname, chip, channel), std::ofstream::out);
+  std::cout << "# chip channel vth range offset thr" << std::endl;
+  outs << "# chip channel vth range offset thr" << std::endl;
+  for (int range = 0; range < 4; ++range) {
+    std::sort(thresholds[range].begin(), thresholds[range].end());
+    auto vth =  thresholds[range].size() > 0 ? thresholds[range][0].second.first : 3;
+    auto offset = thresholds[range].size() > 0 ? thresholds[range][0].second.second : 0;
+    auto thr = thresholds[range].size() > 0 ? thresholds[range][0].first : 63;
+    std::cout << chip << " " << channel << " " << vth << " " << range << " " << offset << " " << thr << std::endl;
+    outs << chip << " " << channel << " " << vth << " " << range << " " << offset << " " << thr << std::endl;
+  }
+  outs.close();
+  
   } else {
   
   auto c1 = new TCanvas("c1", "c1", 800, 800);

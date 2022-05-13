@@ -85,6 +85,8 @@ void write_alcor_data(std::ofstream &fout, int fifo, int column, int pixel, int 
                 
 void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
 {
+  if (verbose) printf(" --- decode_trigger: fifo%d, size=%d \n", fifo, size); 
+
   size /= 4;
   auto word = (uint32_t *)buffer;
   uint32_t pos = 0;
@@ -93,7 +95,7 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
 
     /** spill header **/
     if ((*word & 0xf0000000) == 0x70000000) {
-      uint32_t counter = (*word & 0xfff000) >> 16;
+      uint32_t counter = (*word & 0x0fff0000) >> 16;
       uint64_t trigger_time = 0x0;
       if (verbose) printf(" 0x%08x -- spill header (counter=%d)\n", *word, counter);
       trigger_time = (uint64_t)(*word & 0xff) << 32;
@@ -107,9 +109,9 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
     }
     
     /** spill trailer **/
-    if ((*word & 0xf0000000) == 0xf0000000) {
+    else if ((*word & 0xf0000000) == 0xf0000000) {
       spill_t *spill = (spill_t *)word;
-      uint32_t counter = (*word & 0xfff000) >> 16;
+      uint32_t counter = (*word & 0x0fff0000) >> 16;
       uint64_t trigger_time = 0x0;
       if (verbose) printf(" 0x%08x -- spill trailer (counter=%d)\n", *word, counter);
       trigger_time = (uint64_t)(*word & 0xff) << 32;
@@ -123,7 +125,7 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
     }
     
     /** trigger **/
-    if ((*word & 0xf0000000) == 0x90000000) {
+    else if ((*word & 0xf0000000) == 0x90000000) {
       trigger_t *trigger = (trigger_t *)word;
       uint64_t trigger_time = 0x0;
       if (verbose) printf(" 0x%08x -- trigger header\n", *word);
@@ -136,7 +138,14 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
       uint32_t rollover = trigger_time >> 15;
       write_trigger_data(fout, fifo, 9, counter, rollover, coarse);
       ++word; ++pos;
-    }    
+    }
+
+    /** else **/
+    else {
+      printf(" 0x%08x -- unexpected word \n", *word);
+      ++word; ++pos;
+    }
+    
   }
 
 }
@@ -156,7 +165,7 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
       
       /** spill header **/
       if ((*word & 0xf0000000) == 0x70000000) {
-        uint32_t counter = (*word & 0xfff000) >> 16;
+        uint32_t counter = (*word & 0x0fff0000) >> 16;
         uint64_t trigger_time = 0x0;
         if (verbose) printf(" 0x%08x -- spill header (counter=%d)\n", *word, counter);
         trigger_time = (uint64_t)(*word & 0xff) << 32;
@@ -168,7 +177,20 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
         write_trigger_data(fout, fifo, 7, counter, rollover, coarse);
         ++word; ++pos;
         in_spill = true;
-        break;
+
+	// [R+HACK] check first word in spill, if rollover skip it
+	//	if (*word == 0x5c5c5c5c) {
+	//	  if (verbose) printf(" 0x%08x -- rollover to skip (counter=%d) \n", *word, rollover_counter);
+	//	  ++word; ++pos;
+	//	}
+	
+	// [R+HACK] check first word in spill, if not rollover pretend there was one
+	//	if (*word != 0x5c5c5c5c) {
+	//	  if (verbose) printf(" 0x%08x -- not a rollover (counter=%d) \n", *word, rollover_counter);
+	//	  rollover_counter++;
+	//	}
+	
+	break;
       }
 
       /** something else **/
@@ -192,7 +214,7 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
       /** spill trailer **/
       if ((*word & 0xf0000000) == 0xf0000000) {
         spill_t *spill = (spill_t *)word;
-        uint32_t counter = (*word & 0xfff000) >> 16;
+        uint32_t counter = (*word & 0x0fff0000) >> 16;
         uint64_t trigger_time = 0x0;
         if (verbose) printf(" 0x%08x -- spill trailer (counter=%d)\n", *word, counter);
         trigger_time = (uint64_t)(*word & 0xff) << 32;
@@ -219,7 +241,7 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
 
       /** hit **/
       hit = (alcor_hit_t *)word;
-      if (verbose) printf(" 0x%08x -- hit (fine=%d, column=%d, pixel=%d --> channel=%d)\n", *word, hit->fine, hit->column, hit->pixel, hit->column * 4 + hit->pixel);
+      if (verbose) printf(" 0x%08x -- hit (coarse=%d, fine=%d, column=%d, pixel=%d --> channel=%d)\n", *word, hit->coarse, hit->fine, hit->column, hit->pixel, hit->column * 4 + hit->pixel);
       write_alcor_data(fout, fifo, hit->column, hit->pixel, hit->tdc, rollover_counter, hit->coarse, hit->fine);
       ++word; ++pos;
       

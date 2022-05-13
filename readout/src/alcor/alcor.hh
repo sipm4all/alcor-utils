@@ -364,14 +364,31 @@ namespace alcor {
     }
   };
 
+  class trigger_t {
+  public:
+    const uhal::Node *occupancy;
+    const uhal::Node *reset;
+    const uhal::Node *data;
+    
+    trigger_t() = default;
+
+    void init(uhal::HwInterface &hw) {
+      occupancy = &hw.getNode("trigger_info.fifo_occupancy");
+      reset = &hw.getNode("trigger_info.fifo_reset");
+      data = &hw.getNode("trigger_info.fifo_data");
+    };
+  };
+
   class daq_t {
   public:
     daq_t() = default;
     uhal::HwInterface *hardware;
     regfile_t regfile;
+    trigger_t trigger;
     alcor_t alcor[6];
     void init(uhal::HwInterface &hw) {
       regfile.init(hw);
+      trigger.init(hw);
       for (int chip = 0; chip < 6; ++chip)
 	alcor[chip].init(hw, chip);
     };

@@ -88,12 +88,12 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("occupancy"        , po::value<int>(&opt.fifo_occupancy)->default_value(4096), "FIFO minimum occupancy")
       ("usleep"           , po::value<int>(&opt.usleep_period)->default_value(0), "Microsecond sleep between polling cycles")
       ("staging"          , po::value<int>(&opt.staging_size)->default_value(1048576), "Staging buffer size (bytes)")
-      ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1), "Monitor period")
+      ("monitor-period"   , po::value<int>(&opt.monitor_period)->default_value(1000000), "Monitor period (microseconds)")
       ("run"              , po::value<int>(&opt.run_number)->default_value(0x3), "Run number")
       ("mode"             , po::value<int>(&opt.run_mode)->default_value(0x3), "Run mode")
       ("filter"           , po::value<int>(&opt.filter_mode)->default_value(0x0), "Filter mode")
       ("killer"           , po::value<int>(&opt.fifo_killer)->default_value(8192), "Fifo killer")
-      ("timeout"          , po::value<int>(&opt.timeout)->default_value(0), "Readout timeout")
+      ("timeout"          , po::value<int>(&opt.timeout)->default_value(0), "Readout timeout (microseconds)")
       ("output"           , po::value<std::string>(&opt.output_filename), "Output data filename prefix")
       ("standalone"       , po::bool_switch(&opt.standalone), "Standalone operation mode")
       ("send_pulse"       , po::bool_switch(&opt.send_pulse), "Send a pulse at the beginning")
@@ -215,8 +215,10 @@ int main(int argc, char *argv[])
   std::string alcor_reset_system = std::getenv("ALCOR_DIR");
   alcor_reset_system += "/control/alcorInit.sh 0 /tmp";
   std::cout << " calling system: " << alcor_reset_system << std::endl;
+  //  #if TESTBEAMFAILURE
   system(alcor_reset_system.c_str());
-
+  //  #endif
+  
   // set filter mode
   auto filter_command = 0x03300000 | opt.filter_mode;
   std::cout << " --- setting ALCOR filter mode: " << opt.filter_mode << std::endl;
@@ -257,12 +259,12 @@ int main(int argc, char *argv[])
   std::cout << " --- FIFO minimum occupancy: " << opt.fifo_occupancy << std::endl;
   std::cout << " --- staging buffer size: " << opt.staging_size << " bytes" << std::endl;
   std::cout << " --- usleep period: " << opt.usleep_period << " us" << std::endl;
-  std::cout << " --- monitor period: " << opt.monitor_period << " s" << std::endl;
+  std::cout << " --- monitor period: " << opt.monitor_period << " us" << std::endl;
   std::cout << " --- fifo killer: " << opt.fifo_killer << std::endl;
   std::cout << " --- starting infinite loop: ctrl+c to interrupt " << std::endl;
   auto start = std::chrono::steady_clock::now();
   auto split = start;
-  alarm(opt.monitor_period);
+  ualarm(opt.monitor_period, 0);
   int nwords[MAX_FIFOS] = {0}, nbytes[MAX_FIFOS] = {0}, nframes[MAX_FIFOS] = {0}, nhits[MAX_FIFOS] = {0};
   uint32_t max_occupancy[MAX_FIFOS] = {0}, n_polls = 0, n_resets = 0;
   uint32_t occupancy[MAX_FIFOS], bytes[MAX_FIFOS];
@@ -290,6 +292,18 @@ int main(int argc, char *argv[])
     std::cout << " --- reset sent " << std::endl;
   }
 
+  //#if TESTBEAMFAILURE
+  if (opt.run_mode == 3) {
+    /** must restore PCR3 values **/
+    for (int chip = 0; chip < 6; ++chip) {
+      if (!active_alcor[chip]) continue;
+      for (int col = 0; col < 8; ++col)
+        for (int pix = 0; pix < 4; ++pix)
+          alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
+    }
+  }
+  //#endif
+  
   // go into real run mode
   mode_node->write(1);
   hardware.dispatch();
@@ -308,18 +322,6 @@ int main(int argc, char *argv[])
     std::cout << " --- pulse sent " << std::endl;
   }
 
-#if 1
-  if (opt.run_mode == 3) {
-    /** must restore PCR3 values **/
-    for (int chip = 0; chip < 6; ++chip) {
-      if (!active_alcor[chip]) continue;
-      for (int col = 0; col < 8; ++col)
-        for (int pix = 0; pix < 4; ++pix)
-          alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
-    }
-  }
-#endif
-  
   int status;
   bool in_spill = false;
   bool force_flush_staging_buffers = false;
@@ -327,6 +329,7 @@ int main(int argc, char *argv[])
 
     bool force_flush_staging_buffers = false;
 
+#if TESTBEAMFAILURE
     /** read status register to know about the spill status **/
     if (opt.run_mode == 5) {
       status_register = status_node->read();
@@ -363,6 +366,8 @@ int main(int argc, char *argv[])
 	 std::cout << " --- spill down, chip reset via system call " << std::endl;
       } 
     }
+    
+#endif
     
     // increment poll counter and usleep
     n_polls++;
@@ -465,6 +470,7 @@ int main(int argc, char *argv[])
     if (any_fifo_killed) reset = true;
 
     /** reset **/
+#if TESTBEAMFAILURE
     if ( (!in_spill || opt.run_mode == 3) && reset) {
 
       std::cout << " --- attempt chip reset via system call " << std::endl;
@@ -552,6 +558,7 @@ int main(int argc, char *argv[])
 
       reset = false;
     }
+#endif
 
     /** monitor **/
     if (monitor) {
@@ -622,10 +629,10 @@ int main(int argc, char *argv[])
       split = std::chrono::steady_clock::now();
       monitor = false;
       n_polls = 0;
-      alarm(opt.monitor_period);
+      ualarm(opt.monitor_period, 0);
 
       if (opt.quit_on_monitor) running = false;
-      if (opt.timeout > 0 && elapsed_start.count() > opt.timeout) running = false;
+      if (opt.timeout > 0 && elapsed_start.count() * 1000000. > opt.timeout) running = false;
 
       // if mode == 3, terminate spill and start new one
       if (opt.run_mode == 3) {

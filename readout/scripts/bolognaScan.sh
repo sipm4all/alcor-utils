@@ -1,11 +1,31 @@
 #! /usr/bin/env bash
 
 CONN=${ALCOR_ETC}/connection2.xml
-OUTDIR="${HOME}/DATA/CERN/scan/rich3.bcom/T10/20211026/"
+OUTDIR="${HOME}/DATA/scan/GIULIA/HAMA1_sn2/20220420/minus30c"
 TAGNAME="hvzero"
-mkdir -p $OUTDIR
-
 FINAL_SCAN=false
+
+RANGEMIN=1    ### [0]
+RANGEMAX=1    ### [3]
+OFFSETMIN=0   ### [0]
+OFFSETMAX=7   ### [7]
+VTHMIN=0      ### [0]
+VTHMAX=3      ### [3]
+
+if [ -n "$1" ]; then
+    OUTDIR=$1
+fi
+
+if [ -n "$2" ]; then
+    TAGNAME=$2
+fi
+
+if [ -n "$3" ]; then
+    FINAL_SCAN=$3
+fi
+
+### create output directory
+mkdir -p $OUTDIR
 
 ### read fifo settings from ${ALCOR_CONF}/readout.conf
 ### to make make the chip mask
@@ -20,9 +40,9 @@ done < $RDOUT_CONF
 
 ### settings for baseline scan
 LANECHANNELS=$(seq 0 7)
-RANGES=$(seq 0 1)
-OFFSETS=$(seq 0 4)
-VTHS=$(seq 0 3)
+RANGES=$(seq $RANGEMIN $RANGEMAX)
+OFFSETS=$(seq $OFFSETMIN $OFFSETMAX)
+VTHS=$(seq $VTHMIN $VTHMAX)
 MINTIMER=320000 ## 10 ms
 MAXTIMER=320000 ## 10 ms
 MINCOUNTS=100
@@ -35,12 +55,12 @@ if [ "$FINAL_SCAN" = true ]; then
     OFFSETS=$(seq -1 -1)
     VTHS=$(seq -1 -1)
     MINTIMER=320000 ## 10 ms
-    MINTIMER=3200000 ## 100 ms
-    MINTIMER=9600000 ## 300 ms                                                                                       
+
+    MAXTIMER=320000   ## 10 ms
     MAXTIMER=3200000  ## 100 ms                                                                                          
-    MAXTIMER=32000000  ## 1 s
-    MAXTIMER=9600000 ## 300 ms
-    MAXTIMER=3200000  ## 100 ms
+#    MAXTIMER=9600000  ## 300 ms
+#    MAXTIMER=32000000 ## 1 s
+
     MINCOUNTS=10000
     SKIP_USER_SETTINGS="--skip_user_settings"
 fi
@@ -69,7 +89,7 @@ for VTH in $VTHS; do
 ### initialise
 
 echo " --- initialising chips "
-${ALCOR_DIR}/control/alcorInit.sh 0 /tmp true &> /dev/null
+${ALCOR_DIR}/control/alcorInit.sh 0 /tmp true > /dev/null
 
 ### scan
 
@@ -81,7 +101,7 @@ ${ALCOR_DIR}/readout/bin/scan_thr --connection ${CONN} --device kc705 \
     --vth $VTH --range $RANGE --offset1 $OFFSET $SKIP_USER_SETTINGS \
     --usleep 1000 --udelay 1000 --min_counts $MINCOUNTS \
     --min_timer $MINTIMER --max_timer $MAXTIMER \
-    --output $OUTPUT #&> /dev/null
+    --output $OUTPUT > /dev/null
 
 echo " --- output written to: $OUTPUT "
 
@@ -105,3 +125,8 @@ done
 
 echo " --- all done, so long"
 date
+
+### settings for final scan
+if [ "$FINAL_SCAN" = false ]; then
+    /au/readout/scripts/draw_lanechannel.sh $OUTDIR
+fi
