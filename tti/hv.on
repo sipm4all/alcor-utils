@@ -1,0 +1,6 @@
+/au/tti/12v.on
+sleep 0.5
+
+/au/tti/plh250.py "V1 70.0"
+/au/tti/plh250.py "I1 0.05"
+/au/tti/plh250.py "OP1 1"
