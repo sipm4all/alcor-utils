@@ -12,6 +12,7 @@ TARGET="210203A62F62A"
 [ -z "$2" ] && { echo " usage: ./program [firmware] [target] "; exit; }
 FWREL=$1
 TARGET=$2
+QUERY=$3
 DIR="${ALCOR_DIR}/firmware"
 BIT="${DIR}/${FWREL}.bit"
 LTX="${DIR}/${FWREL}.ltx"
@@ -33,10 +34,12 @@ program_hw_devices [get_hw_devices xc7k325t_0]
 refresh_hw_device [get_hw_devices xc7k325t_0]
 EOF
 
-read -p " are you sure? " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    exit
+if [ ! "$QUERY" == "true" ]; then
+    read -p " are you sure? " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	exit
+    fi
 fi
 
 vivado_lab -mode batch -source /tmp/program.tcl
