@@ -10,7 +10,18 @@ VALUE=0
 
 ### even channel
 for DAC in 0 1 2 3 4 5 6 7; do
-    $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $ML --cmd="D $DAC $VALUE " &> /dev/null
+
+    while true; do
+	timeout 2 $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $ML --cmd="D $DAC $VALUE " &> /dev/null
+	if [ $? == "124" ]; then
+	    echo " --- it timeout out, reset device "
+	    /au/masterlogic/reset $1
+	    sleep 3
+	    continue;
+	fi
+	break
+    done
+
 done
 
 ### read back

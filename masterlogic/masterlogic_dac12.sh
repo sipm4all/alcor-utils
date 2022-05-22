@@ -6,4 +6,14 @@ if [ -x $1 ]; then
 fi
 
 #./masterlogic_client.py --ml $1 --cmd="R" | grep DAC12 | awk {'print $2, $3, $4'} 
-$HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $1 --cmd="R" | grep DAC12
+while true; do
+    timeout 2 $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $1 --cmd="R" | grep DAC12
+    if [ $? == "124" ]; then
+	echo " --- it timeout out, reset device "
+	/au/masterlogic/reset $1
+	sleep 3
+	continue;
+    fi
+    break
+done
+

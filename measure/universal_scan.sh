@@ -175,8 +175,8 @@ sleep 1
 for PULSE_FREQUENCY in $PULSE_FREQUENCIES; do
     
     ### compute repetitions based on frequency scaling
-    REPEAT=$(bc -l <<< "scale=0; ( ${AU_REPEAT} * 100 / ${PULSE_FREQUENCY} ) / 1")
-    UREPEAT=$(bc -l <<< "scale=0; ( ${AU_UREPEAT} * 100 / ${PULSE_FREQUENCY} ) / 1")
+#    REPEAT=$(bc -l <<< "scale=0; ( ${AU_REPEAT} * 100 / ${PULSE_FREQUENCY} ) / 1")
+#    UREPEAT=$(bc -l <<< "scale=0; ( ${AU_UREPEAT} * 100 / ${PULSE_FREQUENCY} ) / 1")
     
     ### loop over Vpulse values
     for PULSE_VOLTAGE in $PULSE_VOLTAGES; do
