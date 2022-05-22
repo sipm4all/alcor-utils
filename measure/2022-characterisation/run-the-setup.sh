@@ -43,7 +43,7 @@ esac
 
 ### check token
 if [ -f "/tmp/run-the-setup.running" ]; then
-    echo " --- there is already a running THE setup"
+    echo " --- there is already a running THE setup: $(cat /tmp/run-the-setup.running)"
     exit 1
 fi
 echo "$$ $DIRNAME" > /tmp/run-the-setup.running
@@ -55,12 +55,12 @@ echo "$(date +%s) | $(date) "
 echo " --- "
 
 ### make sure LED is on reference before lowering temperature
-echo " --- move to reference sensor "
-#inhibit /au/standa/move_to_reference.sh &> move_to_reference.log
+echo " --- move to reference sensor: /au/standa/move_to_reference.sh "
+/au/standa/move_to_reference.sh &> move_to_reference.log
 
 ### make sure RH and temperature are reached
-echo " --- go to -30 C "
-#inhibit /au/memmert/memmert_go_to_minus_30.sh &> go_to_minus_30.log
+echo " --- go to -30 C: /au/memmert/memmert_go_to_minus_30.sh "
+/au/memmert/memmert_go_to_minus_30.sh &> go_to_minus_30.log
 
 ###################################################################
 
@@ -79,7 +79,7 @@ if [ ! -x $WHAT_IV_SETUP ]; then
     mkdir -p $IVDIRNAME
     cd $IVDIRNAME
     echo " --- starting IV setup: /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP}"
-#inhibit    nohup /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP} &> run-iv-setup.log < /dev/null &
+    nohup /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP} &> run-iv-setup.log < /dev/null &
     cd - &> /dev/null
 fi
 
@@ -88,7 +88,7 @@ if [ ! -x $WHAT_DCR_SETUP ]; then
     mkdir -p $DCRDIRNAME
     cd $DCRDIRNAME
     echo " --- starting DCR setup: /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP}"
-#inhibit    nohup /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP} &> run-dcr-setup.log < /dev/null &
+    nohup /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP} &> run-dcr-setup.log < /dev/null &
     cd - &> /dev/null
 fi
 
@@ -97,7 +97,7 @@ if [ ! -x $WHAT_LED_SETUP ]; then
     mkdir -p $LEDDIRNAME
     cd $LEDDIRNAME
     echo " --- starting LED setup: /au/measure/2022-characterisation/run-led-scan.sh ${WHAT_LED_SETUP}"
-#inhibit    nohup /au/measure/2022-characterisation/run-led-scan.sh ${WHAT_DCR_SETUP} &> run-led-scan.log < /dev/null &
+    nohup /au/measure/2022-characterisation/run-led-scan.sh ${WHAT_DCR_SETUP} &> run-led-scan.log < /dev/null &
     cd - &> /dev/null
 fi
 
@@ -112,15 +112,15 @@ echo " --- "
 
 ### switch off everything
 echo " --- switch off everything "
-#inhibit /au/tti/alcor.off &> /dev/null
-#inhibit /au/tti/hv.off &> /dev/null
-#inhibit /au/tti/12v.off &> /dev/null
-#inhibit /home/eic/alcor/sipm4eic/characterisation/keithley/checkcomm.py &> /dev/null
+/au/tti/alcor.off &> /dev/null
+/au/tti/hv.off &> /dev/null
+/au/tti/12v.off &> /dev/null
+/home/eic/alcor/sipm4eic/characterisation/keithley/checkcomm.py &> /dev/null
 sleep 2
 
 ### go back to 20 C
-echo " --- go back to 20 C "
-#inhibit /au/memmert/memmert_back_to_plus_20.sh &> back_to_plus_30.log
+echo " --- go back to 20 C: /au/memmert/memmert_back_to_plus_20.sh "
+/au/memmert/memmert_back_to_plus_20.sh &> back_to_plus_20.log
 
 ### clean token
 rm -rf /tmp/run-the-setup.running

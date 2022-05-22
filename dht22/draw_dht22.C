@@ -1,7 +1,7 @@
 #include "style.C"
 
 void
-draw_memmert(const char *fname, int seconds = kMaxInt, float tmin = -50., float tmax = 20.)
+draw_dht22(const char *fname, int seconds = kMaxInt, float tmin = 0., float tmax = 50.)
 {
   style();
 
@@ -20,23 +20,13 @@ draw_memmert(const char *fname, int seconds = kMaxInt, float tmin = -50., float 
   auto h1 = c->cd(1)->DrawFrame(std::max(tsi, tsf - seconds), tmin, tsf, tmax, ";time;T (#circC) RH (%)");
   h1->GetXaxis()->SetTimeDisplay(1);
   c->cd(2)->SetGridy();
-  auto h2 = c->cd(2)->DrawFrame(std::max(tsi, tsf - seconds), -5., tsf, 5, ";time;#DeltaT (#circC)");
+  auto h2 = c->cd(2)->DrawFrame(std::max(tsi, tsf - seconds), tmin, tsf, tmax, ";time;T_{dew} (#circC)");
   h2->GetXaxis()->SetTimeDisplay(1);
 
   TGraph *g = nullptr;
 
   c->cd(1);
   
-  t.Draw("tset:timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
-  g = (TGraph*)gPad->GetPrimitive("Graph");
-  g->SetName("TSET");
-  g->SetTitle("TSET");
-  g->SetLineWidth(3);
-  g->SetLineColor(kRed+1);
-  g->SetMarkerColor(kRed+1);
-  g->SetFillStyle(0);
-  g->SetFillColor(0);
-
   t.Draw("temp:timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
   g = (TGraph*)gPad->GetPrimitive("Graph");
   g->SetName("TEMP");
@@ -46,9 +36,9 @@ draw_memmert(const char *fname, int seconds = kMaxInt, float tmin = -50., float 
   g->SetMarkerColor(kAzure-3);
   g->SetFillStyle(0);
   g->SetFillColor(0);
-
-  auto gsave = g;
   
+  auto gsave = g;
+
   t.Draw("rh:timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
   g = (TGraph*)gPad->GetPrimitive("Graph");
   g->SetName("RH");
@@ -59,34 +49,41 @@ draw_memmert(const char *fname, int seconds = kMaxInt, float tmin = -50., float 
   g->SetFillStyle(0);
   g->SetFillColor(0);
 
-  auto l = c->cd(1)->BuildLegend(0.9, 0.85, 1.0, 1.0);
+  auto l = c->cd(1)->BuildLegend(0.9, 0.9, 1.0, 1.0);
   l->DeleteEntry();
   
   c->cd(2);
-  
-  t.Draw("(temp-tset):timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
-  g = (TGraph*)gPad->GetPrimitive("Graph");
-  g->SetName("OLD");
-  g->SetLineWidth(3);
-  g->SetLineColor(kAzure-3);
 
+  /*
+    float b = 18.678;
+    float c = 257.14;
+    auto ga = std::log(rh / 100.) + b * temp / (c + temp);
+    auto dp = c * ga / (b - ga);
+  */
+
+  t.Draw("257.14 * ( log(rh / 100.) + 18.678 * temp / (257.14 + temp) ) / (18.678 - ( log(rh / 100.) + 18.678 * temp / (257.14 + temp) )) : timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
+  g = (TGraph*)gPad->GetPrimitive("Graph");
+  g->SetName("DEW");
+  g->SetLineWidth(3);
+  g->SetLineColor(kRed+1);
+  
   std::string foutname = fname;
   size_t last_slash_idx = foutname.find_last_of('/');
   if (std::string::npos != last_slash_idx)
-    foutname = foutname.substr(0, last_slash_idx) + "/draw_memmert.png";
-  else foutname = "draw_memmert.png";
+    foutname = foutname.substr(0, last_slash_idx) + "/draw_dht22.png";
+  else foutname = "draw_dht22.png";
   c->SaveAs(foutname.c_str());
 
   foutname = fname;
   last_slash_idx = foutname.find_last_of('/');
   if (std::string::npos != last_slash_idx)
-    foutname = foutname.substr(0, last_slash_idx) + "/draw_memmert.root";
-  else foutname = "draw_memmert.root";
+    foutname = foutname.substr(0, last_slash_idx) + "/draw_dht22.root";
+  else foutname = "draw_dht22.root";
   TFile fout(foutname.c_str(), "RECREATE");
   gsave->Write("graph");
   fout.Close();
 
-  // check if memmert is stable
+  // check if dht22 is stable
 
   
 }

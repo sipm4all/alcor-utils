@@ -8,7 +8,7 @@ fi
 
 ### check token
 if [ -f "/tmp/run-the-setup.running" ]; then
-    echo " --- there is already a running THE setup"
+    echo " --- there is already a running THE setup: $(cat /tmp/run-the-setup.running)"
     exit 1
 fi
 
