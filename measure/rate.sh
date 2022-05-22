@@ -31,6 +31,7 @@ done
 /au/measure/alcor_fast_init.sh $chip $eo_channel &> /dev/null # .alcorInit.log
 output=$(/au/readout/bin/rate --connection /au/etc/connection2.xml --chip $chip --channel $eo_channel $options)
 [ -z "$output" ] && exit
-temperature=$(/au/memmert/get --temp | awk '{print $3}')
+#temperature=$(/au/memmert/get --temp | awk '{print $3}')
+temperature=0
 echo "$output $temperature_tag = $temperature"
 

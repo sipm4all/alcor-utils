@@ -3,7 +3,7 @@
 ### standard measurement settings
 export AU_TEMPERATURE="-30"             # [C]
 export AU_PULSE_VOLTAGES="960 1000"     # [mV] (was 960 980 1000)
-export AU_PULSE_FREQUENCIES="100"       # [kHz]
+export AU_PULSE_FREQUENCIES="100 1000"  # [kHz]
 export AU_BIAS_REF_VOLTAGES="54 56"     # [V @ T = 20C]
 export AU_DELTA_THRESHOLDS="3 5"
 export AU_INTEGRATED="0.1"              # pulser_rate integration
@@ -39,7 +39,11 @@ RECOVERYCHANNEL=NONE
 
 main()
 {
-
+    echo " --- running $1 LED setup "
+    
+    ### make sure ALCOR is on
+    /au/tti/alcor.on
+    
     ### check if channel to be recovered is requested
     if [ ! -z $1 ]; then
 	RECOVERYMODE=true
@@ -65,6 +69,8 @@ main()
     ### end run with reference sensor
     scan_reference
 
+    /au/tti/alcor.off
+    
     echo " --- THE END "
 }
 

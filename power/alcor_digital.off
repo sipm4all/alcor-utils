@@ -2,4 +2,4 @@
 
 echo -e "OP2 0  \n\r" > /dev/QL355P 
 sleep 0.5
-./alcor_digital.status
+$HOME/alcor/alcor-utils/power/alcor_digital.status

@@ -13,6 +13,10 @@ import spi
 
 verbose = 0
 
+### R+SPEED: allow for setup of a single channel
+oneChannel = False
+theChannel = 0
+
 SETREG  = 1
 RDREG   = 0
 
@@ -354,6 +358,9 @@ def loadPCRSetup(hw,chip,PCRfile,mask):
                 ll=' '.join(line.split())
                 pcrList = ll.split(" ")
                 ch=int(pcrList[0])
+                ### R+SPEED: allow for setup of a single channel
+                if oneChannel and ch != theChannel:
+                    continue
                 loadCh+=1
                 # PCR2 
                 le2DAC=int(pcrList[1])

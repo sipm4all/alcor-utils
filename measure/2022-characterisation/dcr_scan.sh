@@ -15,7 +15,7 @@ DAC12=$(echo "scale=0; $DOCHANNEL / 4" | bc -l)
 echo " --- "
 echo " --- running DCR $SCAN scan: chip $CHIP channel $CHANNEL "
 echo " --- "
-    
+
 ### sipm carrier
 if [ -z "$AU_CARRIER" ]; then
     echo " --- AU_CARRIER undefined "
@@ -128,7 +128,7 @@ for BIAS_VOLTAGE in $BIAS_VOLTAGES; do
 	    for i in $(seq 1 $REPEAT); do
 		OUTPUT=$(/au/measure/rate.sh $CHIP $CHANNEL $THRESHOLD_SETTINGS $THRESHOLD --min_timer $MIN_TIMER)
 		[ -z "$OUTPUT" ] && continue
-		echo "bias_voltage = ${BIAS_VOLTAGE} bias_dac = ${BIAS_DAC} ${OUTPUT}" | tee -a $FILENAME
+		echo "bias_voltage = ${BIAS_VOLTAGE} bias_dac = ${BIAS_DAC} base_threshold = ${BASE_THRESHOLD} ${OUTPUT}" | tee -a $FILENAME
 	    done
 	fi
 	
@@ -139,7 +139,7 @@ done
 
 ### create tree from rate measurements
 if [ -z "$AU_DRYRUN" ]; then
-    /au/measure/tree.sh $FILENAME bias_voltage/F bias_dac/I \
+    /au/measure/tree.sh $FILENAME bias_voltage/F bias_dac/I base_threshold/I \
 			threshold/I timestamp/I counts/I period/F rate/F ratee/F temperature/F 
 fi
 

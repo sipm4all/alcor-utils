@@ -1,4 +1,4 @@
 #! /usr/bin/env bash
 
-./alcor_analog.on
-./alcor_digital.on
+$HOME/alcor/alcor-utils/power/alcor_analog.on
+$HOME/alcor/alcor-utils/power/alcor_digital.on

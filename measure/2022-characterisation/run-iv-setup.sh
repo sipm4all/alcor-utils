@@ -3,13 +3,16 @@
 ### allow batch processing and plotting at the same time
 export PYTHONUNBUFFERED=1
 export MPLBACKEND=Agg
-
 nmeas=25
-nmeas=4
+nmeas_open=4
+
+ROWS="A B C D E F G H"
+COLS="1 2 3 4"
 
 main()
 {
-    run_fbk_setup
+    echo " --- running $1 IV setup "
+    $1
 }
 
 create_config_keithley()
@@ -35,25 +38,36 @@ SOUR:VOLT:ILIM 25.e-6
 EOF
 }
 
-run_hama_setup()
+run-hama-setup()
 {
     ### HAMA1/HAMA2
-#    run_scan HAMA1 1 1 ### board, serial, mux
-    run_scan HAMA2 1 2 ### board, serial, mux
+    ROWS="A B C D E F G H"
+    COLS="1 2 3 4"
+    run_scan HAMA1 2 1 ### board, serial, mux
+    run_scan HAMA2 2 2 ### board, serial, mux
 }
 
-run_bcom_setup()
+run-sensl-setup()
 {
-    ### BCOM/SENSL
-    run_scan BCOM  1 1 ### board, serial, mux
-    run_scan SENSL 1 2 ### board, serial, mux
+    ### BCOM/SENSL (nein)
+    ### BCOM/HAMA1L
+
+    ROWS="A B C D E F G H"
+    COLS="1 2 3 4"
+    run_scan SENSL 1 1 ### board, serial, mux
+
+    ROWS="A B"
+    COLS="1 2"
+    run_scan HAMA1 4 2 ### board, serial, mux
 }
 
-run_fbk_setup()
+run-fbk-setup()
 {
     ### FBK
-    run_scan FBK 10 1 ### board, serial, mux
-    run_scan FBK 11 2 ### board, serial, mux
+    ROWS="A B C D E F"
+    COLS="1 2 3 4"
+    run_scan FBK 1 1 ### board, serial, mux
+    run_scan FBK 2 2 ### board, serial, mux
 }
 
 run_scan()
@@ -66,18 +80,29 @@ run_scan()
     cd $dir
     create_config_keithley
     
-    /au/keythley/keythley_multiplexer_cmd.py "ROUTE:OPEN:ALL"
-    timeout 3600 /home/eic/alcor/sipm4eic/characterisation/keithley/ivscan.py --temperature 243 --nmeas $nmeas --board $board --serial $serial --channel OPEN
-    for row in A B C D E F G H; do
-	for col in 1 2 3 4; do
+    for row in $ROWS; do
+	for col in $COLS; do
 	    ch=$row$col
 	    echo $ch
+
+	    ### do open first
+	    echo "$(echo Data | ncat 10.0.8.101 3482)" > ${board}_sn${serial}_243K_OPEN-$ch.temprh
+	    /au/keythley/keythley_multiplexer_cmd.py "ROUTE:OPEN:ALL"
+	    /home/eic/alcor/sipm4eic/characterisation/keithley/ivscan.py --temperature 243 --nmeas $nmeas_open --board $board --serial $serial --channel OPEN-$ch
+	    
+	    ### then close and do channel
+	    echo "$(echo Data | ncat 10.0.8.101 3482)" > ${board}_sn${serial}_243K_$ch.temprh
 	    /au/keythley/keythley_multiplexer_close.sh $mux $ch
-	    timeout 3600 /home/eic/alcor/sipm4eic/characterisation/keithley/ivscan.py --temperature 243 --nmeas $nmeas --board $board --serial $serial --channel $ch
+	    /home/eic/alcor/sipm4eic/characterisation/keithley/ivscan.py --temperature 243 --nmeas $nmeas --board $board --serial $serial --channel $ch
+
 	done
+
+	### draw results
+	/au/measure/2022-characterisation/draw_iv.sh ${board}_sn${serial}_243K
+	
     done
 
     cd ..
 }
 
-main
+main $1
