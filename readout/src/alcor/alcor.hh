@@ -202,7 +202,8 @@ namespace alcor {
 
     int cmd(int command, int tdata) {
       int data;
-      divider->write(0xf);
+      //      divider->write(0xf);
+      divider->write(0x1f); // good for 4m cables
       ss->write(0x1);
       
       data = bS(CTRL_ASS) | bS(CTRL_RX_NEGEDGE) | 0x18;
@@ -228,7 +229,8 @@ namespace alcor {
     
     int cmd_hack(int command, int tdata) {
       int data;
-      divider->write(0xf);
+      //      divider->write(0xf);
+      divider->write(0x1f); // good for 4m cables
       ss->write(0x1);
       
       data = bS(CTRL_ASS) | bS(CTRL_RX_NEGEDGE) | 0x18;
