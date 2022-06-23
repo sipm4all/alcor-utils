@@ -1,1 +1,2 @@
-readout.conf
+*.conf
+*.readout

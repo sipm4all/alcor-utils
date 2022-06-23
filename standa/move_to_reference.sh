@@ -2,11 +2,6 @@
 
 STANDAMAP="/au/standa/maps/20220206/standa_map_extra.dat"
 
-if [ -x $1 ] || [ -x $2 ]; then
-    echo "usage: $0 [chip] [xy_channel]"
-    exit 1
-fi
-
 CHIP=1
 CHANNEL=A1
 
