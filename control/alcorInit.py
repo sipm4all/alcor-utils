@@ -64,8 +64,11 @@ if __name__ == '__main__':
     # 
     if args.init == True:
         print "Alcor reset and lanes alignment"
-        alc.init(hw,chip)
-
+        ### R+fix
+        retcode = alc.init(hw,chip)
+        while retcode != 0:
+            retcode = alc.init(hw,chip)
+            
     # load setup
     if args.setup == True:
         ### R+SPEED

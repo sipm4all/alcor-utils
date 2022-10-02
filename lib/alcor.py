@@ -10,6 +10,7 @@
 import os
 import ipbus
 import spi
+import time
 
 verbose = 0
 
@@ -241,9 +242,15 @@ def init(hw,chip):
     if (status == 1):
         print "---- FATAL FATAL FATAL ----"
         exit(1)
+    ### R+fix
+    if (status == 2):
+        print "---- RETRY RETRY RETRY ----"
+        return 1
     setupECCR(hw,chip,ECCR_default)
 
     resetFifo(hw,chip)
+
+    return 0
 #    data=1
 #    ipstat=ipbus.write(hw,r+".fifo_reset",data)
 ### R+HACK -- must reset all lanes
@@ -456,6 +463,10 @@ def threshold(hw,chip,thr,rangeThr,offset,channelMask):
     return 0
 
 def loadSequence(hw,chip,fileToLoad):
+    ### R+fix to detect lane not aligned
+    stored_lane_check = 0x0
+    has_stored_lane_check = False
+    
     print "Loading command sequences to ALCOR controller from: ",fileToLoad
     with open(fileToLoad,'r') as f:
         for line in f:
@@ -471,4 +482,12 @@ def loadSequence(hw,chip,fileToLoad):
                   if ( (ipstat & 0xF) != 0xF ):
 		  	print "FATAL: ALCOR lanes not correctly synced"
                         return 1
+            ### R+fix to detect lane not aligned
+            if ctrlCmd == 0x15:
+                if not has_stored_lane_check:
+                    stored_lane_check = ipstat
+                    has_stored_lane_check = True
+                elif ipstat != stored_lane_check:
+		    print "FATAL: ALCOR lanes not correctly synced"
+                    return 2
     return 0
