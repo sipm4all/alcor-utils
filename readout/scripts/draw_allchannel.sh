@@ -12,7 +12,7 @@ if [ -z $2 ]; then
 fi
 tag=$2
 
-for chip in 0 1 2 3; do
+for chip in {0..5}; do
     root -b -q -l "${ALCOR_DIR}/readout/macros/draw_allchannel.C(\"$dir\", $chip, {\"$tag\"})" &
 done
 mkdir -p $dir/PNG

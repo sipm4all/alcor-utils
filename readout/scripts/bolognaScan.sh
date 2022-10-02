@@ -5,8 +5,8 @@ OUTDIR="${HOME}/DATA/scan/GIULIA/HAMA1_sn2/20220420/minus30c"
 TAGNAME="hvzero"
 FINAL_SCAN=false
 
-RANGEMIN=1    ### [0]
-RANGEMAX=1    ### [3]
+RANGEMIN=0    ### [0]
+RANGEMAX=3    ### [3]
 OFFSETMIN=0   ### [0]
 OFFSETMAX=7   ### [7]
 VTHMIN=0      ### [0]
@@ -45,6 +45,7 @@ OFFSETS=$(seq $OFFSETMIN $OFFSETMAX)
 VTHS=$(seq $VTHMIN $VTHMAX)
 MINTIMER=320000 ## 10 ms
 MAXTIMER=320000 ## 10 ms
+#MAXTIMER=3200000 ## 100 ms
 MINCOUNTS=100
 SKIP_USER_SETTING=""
 
@@ -59,7 +60,6 @@ if [ "$FINAL_SCAN" = true ]; then
     MAXTIMER=320000   ## 10 ms
     MAXTIMER=3200000  ## 100 ms                                                                                          
 #    MAXTIMER=9600000  ## 300 ms
-#    MAXTIMER=32000000 ## 1 s
 
     MINCOUNTS=10000
     SKIP_USER_SETTINGS="--skip_user_settings"
