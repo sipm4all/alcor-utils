@@ -1,0 +1,3 @@
+/au/tti/tsx1820p_set.py --vset 9
+/au/tti/tsx1820p_set.py --iset 0.01
+/au/tti/tsx1820p_set.py --status 1
