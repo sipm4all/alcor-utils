@@ -32,6 +32,8 @@ set_property FULL_PROBES.FILE {$LTX} [get_hw_devices xc7k325t_0]
 set_property PROGRAM.FILE {$BIT} [get_hw_devices xc7k325t_0]
 program_hw_devices [get_hw_devices xc7k325t_0]
 refresh_hw_device [get_hw_devices xc7k325t_0]
+disconnect_hw_server
+close_hw_manager
 EOF
 
 if [ ! "$QUERY" == "true" ]; then

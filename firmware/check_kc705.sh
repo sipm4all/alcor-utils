@@ -5,8 +5,12 @@ source /home/eic/alcor/alcor-utils/etc/env.sh
 
 FW="new"
 TARGET=210203A62F62A
+TARGET=210203AB8FBFA
 if [ ! -x $KC705_TARGET ]; then
     TARGET=$KC705_TARGET
 fi
 
-ping -c1 10.0.8.15 || /home/eic/alcor/alcor-utils/firmware/program.sh $FW $TARGET true &> /tmp/firmware_program.log
+ping -c1 10.0.8.15 && exit 0
+
+/home/eic/alcor/alcor-utils/firmware/program.sh $FW $TARGET true &> /tmp/firmware_program.log
+/home/eic/alcor/alcor-utils/control/alcorInit.sh 666 /tmp &> /dev/null
