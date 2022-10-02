@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>This is test</title>
+  <style>
+    {
+        box-sizing: border-box;
+    }
+    .column {
+	float: left;
+    }
+    .alcor {
+	width: 20%;
+    }
+    .hv {
+	width: 20%;
+    }
+    .peltier {
+	width: 30%;
+    }
+    .masterlogic {
+	width: 100%;
+    }
+
+    
+    .row:after {
+	content: "";
+	display: table;
+	clear: both;
+    }
+  </style>
+</head>
+<body style="color:white;margin:0;padding:0">
+  <form method="POST">
+
+    <div class="column masterlogic">
+      <h3>MasterLogic {{number}}: {{name}}</h3>
+      <table>
+	<tr>
+	  <td style="text-align:right"><label>voltage</label>
+	  <td>
+	    <input type="text" style="min-width:50px" size="2" autocomplete="off" name="voltage">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="even">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="odd">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="all">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-0">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-1">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-2">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-3">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-4">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-5">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-6">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="ch-7">
+	    <input type="submit" style="min-width:50px" name="voltage_set" value="zero">
+	</tr>
+      </table>
+      <div style="position:absolute;bottom:10px"><h5 style="font-style:italic;">> {{message}}</h5></div>
+    </div>
+        
+  </form>
+</body>
+</html>
+
