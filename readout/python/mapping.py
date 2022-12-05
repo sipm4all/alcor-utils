@@ -8,8 +8,9 @@ xychoices = [str(row + col) for row in ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H') 
 
 parser = argparse.ArgumentParser()
 g = parser.add_mutually_exclusive_group()
-g.add_argument('--do2eo', type=int, choices=range(0, 32), help="Detector-oriented to electronics-oriented channel number")
+g.add_argument('--do2eo', help="Detector-oriented to electronics-oriented channel number")
 g.add_argument('--eo2do', type=int, choices=range(0, 32), help="Electronics-oriented to detector-oriented channel number")
+g.add_argument('--eo2xy', help="Electronics-oriented to channel oriented")
 g.add_argument('--xy2do', type=str, choices=xychoices, help="Carrier-oriented to detector-oriented channel number")
 g.add_argument('--xy2eo', type=str, choices=xychoices, help="Carrier-oriented to electronics-oriented channel number")
 args = vars(parser.parse_args())
@@ -17,6 +18,8 @@ args = vars(parser.parse_args())
 if not any(args.values()):
     parser.error('no arguments provided')
 
+eo2xy = {}
+    
 def build_xy2doeo():
     doch = 0
     xy2do = {}
@@ -25,6 +28,7 @@ def build_xy2doeo():
         for col in ('1', '2', '3', '4'):
             xy2do[row + col] = doch
             xy2eo[row + col] = do2eo[doch]
+            eo2xy[do2eo[doch]] = row + col
             doch = doch + 1
     return (xy2do, xy2eo)
 
@@ -41,6 +45,9 @@ if args['do2eo'] is not None:
 
 if args['eo2do'] is not None:
     print(eo2do[args['eo2do']])
+
+if args['eo2xy'] is not None:
+    print(eo2xy[int(args['eo2xy'])])
 
 if args['xy2eo'] is not None:
     print(xy2eo[args['xy2eo']])

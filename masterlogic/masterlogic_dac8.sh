@@ -5,4 +5,4 @@ if [ -x $1 ]; then
     exit 1
 fi
 
-./masterlogic_client.py --ml $1 --cmd="R" | grep DAC8
+/au/masterlogic/masterlogic_client.py --ml $1 --cmd="R" | grep DAC8

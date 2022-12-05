@@ -7,6 +7,14 @@ add_executable(readout readout.cc)
 target_link_libraries(readout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
 install(TARGETS readout RUNTIME DESTINATION bin)
 
+add_executable(nano-readout nano-readout.cc)
+target_link_libraries(nano-readout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES} rt)
+install(TARGETS nano-readout RUNTIME DESTINATION bin)
+
+add_executable(ctrl-readout ctrl-readout.cc)
+target_link_libraries(ctrl-readout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES} rt)
+install(TARGETS ctrl-readout RUNTIME DESTINATION bin)
+
 add_executable(ureadout ureadout.cc)
 target_link_libraries(ureadout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
 install(TARGETS ureadout RUNTIME DESTINATION bin)

@@ -1,0 +1,10 @@
+peltier_monitor,source=power_supply,name=VSET value=5.00 1659992438000000000
+peltier_monitor,source=power_supply,name=VOUT value=-0.22 1659992438000000000
+peltier_monitor,source=power_supply,name=ISET value=2.00 1659992438000000000
+peltier_monitor,source=power_supply,name=IOUT value=0.00 1659992438000000000
+peltier_monitor,source=masterlogic1,name=TEMP value=29.62 1659992438000000000
+peltier_monitor,source=masterlogic2,name=TEMP value=29.25 1659992438000000000
+peltier_monitor,source=masterlogic3,name=TEMP value=29.28 1659992438000000000
+peltier_monitor,source=masterlogic4,name=TEMP value=29.59 1659992438000000000
+peltier_monitor,source=rhtempsensor,name=TEMP value=28.9 1659992438000000000
+peltier_monitor,source=rhtempsensor,name=RH value=1.0 1659992438000000000

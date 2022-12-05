@@ -28,7 +28,7 @@ void draw(const char *dirname, const char *tagname, int chip, int channel, int v
 
   //  std::cout << threshold << std::endl;
   
-  if (threshold > 5. && threshold < 60) thresholds[range].push_back( {threshold , {vth, offset} } );
+  if (threshold >= 3. && threshold < 60) thresholds[range].push_back( {threshold , {vth, offset} } );
   
   g->SetName("Old");
   g->SetTitle(title);

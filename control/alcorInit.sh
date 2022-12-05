@@ -34,7 +34,7 @@ do
        if [ "$THRSCAN" = true ]; then
 	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr 0xb81b --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr & 
        else
-	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr $eccr --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr
+	   ${ALCOR_DIR}/control/alcorInit.py $CONN kc705 -c $chip $SWITCH --eccr $eccr --bcrfile ${BCR_DIR}/$bcr.bcr --pcrfile ${PCR_DIR}/$pcr.pcr &
        fi
        if [ $runNr -ne 0 ]; then
 	   cp ${BCR_DIR}/$bcr.bcr $DUMP_DIR/chip$chip.bcr
@@ -44,9 +44,10 @@ do
  fi
 done < $RDOUT_CONF | tee $DUMP_LOG
 
-if [ "$THRSCAN" = true ]; then
-    wait
-fi
+#if [ "$THRSCAN" = true ]; then
+#    wait
+#fi
+wait
 sleep 0.1
 
 cd $here
