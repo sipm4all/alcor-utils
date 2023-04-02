@@ -2,9 +2,22 @@
    write some thinking here
  **/
 
-#define FRAME_SIZE 8
-#define MAXFRAMES 256
-#define MAXDATA 1024
+// before test beam
+//#define FRAME_SIZE 64 // 8
+//#define MAXFRAMES 256
+//#define MAXDATA 32768
+
+// test-beam optimised 
+//#define FRAME_SIZE 8
+//#define MAXFRAMES 1024
+//#define MAXDATA 32768
+
+// debug
+#define FRAME_SIZE 1
+#define MAXFRAMES 5000
+#define MAXDATA 32768
+
+
 
 void
 fastMiniFrame(const char *fnamein, const char *fnameout, bool verbose = true)
@@ -88,14 +101,20 @@ fastMiniFrame(const char *fnamein, const char *fnameout, bool verbose = true)
     if (data.type == 1 || data.type == 9) {
       int frame_id = data.rollover / FRAME_SIZE;
 
+      if (frame_id >= MAXFRAMES) {
+        std::cout << " [WARNING] frame overflow: " << frame_id << std::endl;
+	continue;
+      }
+
       // invalid frame id
       if (frame_id < current_frame) {
-	std::cout << " [ERROR] invalid frame id" << std::endl;
+	std::cout << " [ERROR] invalid frame id: " << frame_id << std::endl;
 	return;
       }
 
       // new frame id 
       else if (frame_id != current_frame) {
+	if (verbose) std::cout << " --- new frame detected: " << frame_id << std::endl;
 	// fill tree with current frame
 	if (verbose) std::cout << " --- filling tree with frame #" << current_frame << ": " << frame.n << " entries" << std::endl;
 	tout->Fill();
@@ -116,7 +135,6 @@ fastMiniFrame(const char *fnamein, const char *fnameout, bool verbose = true)
 	current_frame = frame_id;
       }
       
-      if (frame_id >= MAXFRAMES) continue;
       auto n = frame.n;
       if (n == MAXDATA) {
         std::cout << " [WARNING] buffer overflow " << std::endl;

@@ -20,6 +20,11 @@ case $SETUP in
 	CHIP=0
 	;;
     
+    "hama1-bis")
+	WHAT_DCR_SETUP="run-hama1-bis-setup"
+	CHIP=3
+	;;
+    
     "hama2")
 	WHAT_DCR_SETUP="run-hama2-setup"
 	CHIP=2
@@ -49,7 +54,7 @@ fi
 echo "$$ $DIRNAME" > /tmp/run-the-setup.running
 
 ### wait till good time to start
-sleep $(( $(date -d ${STARTTIME} +%s) - $(date +%s) ))
+# R+matilde sleep $(( $(date -d ${STARTTIME} +%s) - $(date +%s) ))
 
 echo " --- "
 echo " --- START: $DIRNAME "
@@ -58,12 +63,12 @@ echo "$(date +%s) | $(date) "
 echo " --- "
 
 ### anchor Peltier PID control on current chip
-echo " --- anchoring Peltier PID control on Masterlogic ${CHIP}"
-/au/peltier-bologna/peltier_pid_control_client.py "anchor ml${CHIP}"
+# R+matilde echo " --- anchoring Peltier PID control on Masterlogic ${CHIP}"
+# R+matilde /au/peltier-bologna/peltier_pid_control_client.py "anchor ml${CHIP}"
 
 ### make sure temperature is reached
-echo " --- waiting for -30 C on Masterlogic $CHIP"
-/au/measure/readout-box/temperature_wait.py --ml $CHIP --tset -30 --time 1800 --sleep 10 &> temperature_wait.log
+# R+matilde echo " --- waiting for -30 C on Masterlogic $CHIP"
+# R+matilde /au/measure/readout-box/temperature_wait.py --ml $CHIP --tset -30 --time 1800 --sleep 10 &> temperature_wait.log
 
 ###################################################################
 

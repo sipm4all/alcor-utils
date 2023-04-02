@@ -59,6 +59,28 @@ derivate(TGraphErrors *gin, double sign = 1.)
   return g;
 }
 
+TGraph *
+derivate(TGraph *gin, double sign = 1.)
+{
+  auto g = (TGraph*)gin->Clone();
+  g->Set(0);
+  g->SetName(gin->GetName());
+  for (int i = 0; i < gin->GetN(); ++i) {
+    auto x0 = gin->GetX()[i];
+    auto y0 = gin->GetY()[i];
+    for (int j = i + 1; j < gin->GetN(); ++j) {
+      auto x1 = gin->GetX()[j];
+      auto y1 = gin->GetY()[j];      
+      auto val = sign * (y1 - y0);
+      auto n = g->GetN();
+      g->SetPoint(n, x0, val);
+      break;
+    }
+  }
+  
+  return g;
+}
+
   /*
 TGraphErrors *
 derivate(TGraphErrors *gin)

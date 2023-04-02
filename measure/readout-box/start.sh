@@ -20,8 +20,9 @@ fi
 
 DATETIME=$(date +%Y%m%d-%H%M%S)
 
-DIRNAME=/home/eic/DATA/matilde-zucchini/actual/$DATETIME
-#DIRNAME=/home/eic/DATA/matilde-zucchini/preparation/$DATETIME
+DIRNAME=/home/eic/DATA/2023-airbox/preparation/$DATETIME
+#DIRNAME=/home/eic/DATA/2022-testbeam/preparation/$DATETIME
+# R+matilde DIRNAME=/home/eic/DATA/matilde-zucchini/actual/$DATETIME
 mkdir -p $DIRNAME
 cd $DIRNAME
 
