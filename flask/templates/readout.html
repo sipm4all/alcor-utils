@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>This is test</title>
+  <style>
+    {
+        box-sizing: border-box;
+    }
+    .column {
+	float: left;
+    }
+    .alcor {
+	width: 20%;
+    }
+    .hv {
+	width: 20%;
+    }
+    .peltier {
+	width: 30%;
+    }
+    .readout {
+	width: 100%;
+    }
+
+    
+    .row:after {
+	content: "";
+	display: table;
+	clear: both;
+    }
+  </style>
+</head>
+<body style="color:white;margin:0;padding:0">
+  <form method="POST">
+
+    <div class="column readout">
+      <table>
+	<tr>
+	  <td style="text-align:right"><label>processes</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="readout_proc" value="start">
+	    <input type="submit" style="min-width:50px" name="readout_proc" value="kill">
+	    <input type="submit" style="min-width:50px" name="readout_proc" value="reset">
+	    <input type="submit" style="min-width:50px" name="readout_proc" value="update">
+	</tr>
+	<tr>
+	  <td style="text-align:right"><label>run</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="readout_run" value="start">
+	    <input type="submit" style="min-width:50px" name="readout_run" value="stop">
+	</tr>
+	<tr>
+	  <td style="text-align:right"><label>spill</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="readout_spill" value="start">
+	    <input type="submit" style="min-width:50px" name="readout_spill" value="stop">
+	</tr>
+      </table>
+      <div style="position:absolute;bottom:10px"><h5 style="font-style:italic;">> {{message}}</h5></div>
+    </div>
+        
+  </form>
+</body>
+</html>
+
