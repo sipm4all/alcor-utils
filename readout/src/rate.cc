@@ -13,7 +13,7 @@
 
 struct program_options_t {
   std::string connection_filename, device_id, tag;
-  int chip, channel, max_timer, min_timer, usleep, udelay, threshold, vth, range, offset1, delta_threshold;
+  int chip, channel, max_timer, min_timer, usleep, udelay, threshold, vth, range, offset1, delta_threshold, mode;
   bool skip_user_settings, verbose, dump;
 };
 
@@ -43,7 +43,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("device"           , po::value<std::string>(&opt.device_id)->default_value("kc705"), "Device ID")
       ("chip"             , po::value<int>(&opt.chip)->required(), "ALCOR chip")
       ("channel"          , po::value<int>(&opt.channel)->required(), "ALCOR channel number")
-      ("min_timer"        , po::value<int>(&opt.min_timer)->default_value(32000), "Minimum number of timer")
+      ("min_timer"        , po::value<int>(&opt.min_timer)->default_value(3200000), "Minimum number of timer")
       ("max_timer"        , po::value<int>(&opt.max_timer)->default_value(32000000), "Maximum number of timer")
       ("usleep"           , po::value<int>(&opt.usleep)->default_value(1000), "Microsecond sleep")
       ("udelay"           , po::value<int>(&opt.usleep)->default_value(10000), "Microdelay sleep")
@@ -53,6 +53,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("range"            , po::value<int>(&opt.range)->default_value(-1), "ALCOR threshold range")
       ("offset1"          , po::value<int>(&opt.offset1)->default_value(-1), "ALCOR baseline offset")
       ("tag"              , po::value<std::string>(&opt.tag), "Output print tag")
+      ("mode"              , po::value<int>(&opt.mode)->default_value(3), "Readout mode")
       ;
     
     po::variables_map vm;
@@ -127,7 +128,8 @@ int main(int argc, char *argv[])
   // set run mode
   hardware.getNode("regfile.mode").write(1);
   hardware.dispatch();
-  hardware.getNode("regfile.mode").write(3);
+  //  hardware.getNode("regfile.mode").write(0x20b);
+  hardware.getNode("regfile.mode").write(opt.mode);
   hardware.dispatch();
 
   // reset
@@ -136,7 +138,7 @@ int main(int argc, char *argv[])
 
   // reset/read loop until minimum counts/timer achieved
   int sum_occupancy = 0, sum_timer = 0, sum_loops = 0;
-  bool broken = false;
+  bool broken = false, corrupted = false;
   while (sum_timer < opt.min_timer) {
     
     // reset
@@ -159,21 +161,22 @@ int main(int argc, char *argv[])
       hardware.dispatch();
 
       for (int i = 0; i < fifo_occupancy_value; ++i) {
-	//	printf(" %08x ", fifo_data.value()[i]);
+	//	printf(" %08x \n", fifo_data.value()[i]);
 	// check if corrupted
 	if ( (fifo_data.value()[i] & chmask) != chtag ) {
 	  //	  std::cout << " corrupted " << std::endl;
-	  return -1;
+	  corrupted = true;
+	  break;
 	}
 	// check if broken
-	if ((fifo_data.value()[i] & 0x000000ff) == 0) {
+	if ( (fifo_data.value()[i] & 0x000000ff) == 0 ) {
 	  broken = true;
 	  break;
 	}
       }
 
       // check if broken
-      if (broken)
+      if (broken || corrupted)
 	break;
 
     }
@@ -196,7 +199,7 @@ int main(int argc, char *argv[])
   alcor.spi.write(PCR(2, pixel, column), pcr2_init.val);
   alcor.spi.write(PCR(3, pixel, column), pcr3_init.val);
 
-  if (sum_timer == 0) return broken;
+  if (corrupted || sum_timer == 0) return broken;
   
   // print results
   auto counts = sum_occupancy;

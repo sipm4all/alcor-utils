@@ -106,9 +106,12 @@ draw_lanechannel(const char *dirname, int chip, int channel, std::vector<std::st
   outs << "# chip channel vth range offset thr" << std::endl;
   for (int range = 0; range < 4; ++range) {
     std::sort(thresholds[range].begin(), thresholds[range].end());
-    auto vth =  thresholds[range].size() > 0 ? thresholds[range][0].second.first : 3;
-    auto offset = thresholds[range].size() > 0 ? thresholds[range][0].second.second : 0;
-    auto thr = thresholds[range].size() > 0 ? thresholds[range][0].first : 63;
+    //    auto vth =  thresholds[range].size() > 0 ? thresholds[range][0].second.first : 3;
+    //    auto offset = thresholds[range].size() > 0 ? thresholds[range][0].second.second : 0;
+    //    auto thr = thresholds[range].size() > 0 ? thresholds[range][0].first : 63;
+    auto vth =  thresholds[range].size() > 0 ? thresholds[range][0].second.first : 0;
+    auto offset = thresholds[range].size() > 0 ? thresholds[range][0].second.second : 7;
+    auto thr = thresholds[range].size() > 0 ? thresholds[range][0].first : 0;
     std::cout << chip << " " << channel << " " << vth << " " << range << " " << offset << " " << thr << std::endl;
     outs << chip << " " << channel << " " << vth << " " << range << " " << offset << " " << thr << std::endl;
   }

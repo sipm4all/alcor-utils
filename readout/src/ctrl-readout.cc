@@ -23,7 +23,7 @@ struct shared_t {
 
 struct program_options_t {
   std::string connection_filename, device_id;
-  int usleep_period, run_number, run_mode, filter_mode, fifo_mask;
+  int usleep_period, run_number, run_mode, filter_mode, fifo_mask, max_spills;
   bool reset;
 } opt;
 
@@ -66,6 +66,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("mode"             , po::value<int>(&opt.run_mode)->default_value(0x3), "Run mode")
       ("filter"           , po::value<int>(&opt.filter_mode)->default_value(0x0), "Filter mode")
       ("usleep"           , po::value<int>(&opt.usleep_period)->default_value(1000), "Microsecond sleep between polling cycles")
+      ("nspill"           , po::value<int>(&opt.max_spills)->default_value(100), "Maximum number of spills")
       ;
 
     po::variables_map vm;
@@ -82,10 +83,11 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
     std::cout << desc << std::endl;
     exit(1);
   }
+
 }
 
 int
-ALCOR_reset(uhal::HwInterface &hardware)
+ALCOR_reset(uhal::HwInterface &hardware, bool really_doit = true)
 {
   std::cout << " --- ALCOR reset process " << std::endl;
 
@@ -97,8 +99,12 @@ ALCOR_reset(uhal::HwInterface &hardware)
   /** reset ALCOR **/
   std::string alcor_reset_system = std::getenv("ALCOR_DIR");
   alcor_reset_system += "/control/alcorInit.sh 666 /tmp > /dev/null";
-  std::cout << " --- calling system: " << alcor_reset_system << std::endl;
-  system(alcor_reset_system.c_str());
+  if (really_doit) {
+    std::cout << " --- calling system: " << alcor_reset_system << std::endl;
+    system(alcor_reset_system.c_str());
+  } else {
+    usleep(500000);
+  }
 
   /** set filter mode **/
   auto filter_command = 0x03300000 | opt.filter_mode;
@@ -107,6 +113,7 @@ ALCOR_reset(uhal::HwInterface &hardware)
     hardware.getNode("alcor_controller_id" + std::to_string(ichip)).write(filter_command);
   hardware.dispatch();
 
+#if 0
   /** reset fifos **/
   /** is this really needed? **/
   std::cout << " --- sending FIFO reset " << std::endl;
@@ -117,6 +124,7 @@ ALCOR_reset(uhal::HwInterface &hardware)
     hardware.getNode("alcor_readout_id" + std::to_string(chip) + "_lane" + std::to_string(lane) + ".fifo_reset").write(0x1);
   }
   hardware.dispatch();
+#endif
 
   /** setting mode **/
   std::cout << " --- setting run mode: 0x" << std::hex << shared_data->mode << std::dec << std::endl;
@@ -221,10 +229,11 @@ int main(int argc, char *argv[])
   } /** end of endless loop till start of run (or interrupted) **/
 
   /** reset ALCOR **/
-  ALCOR_reset(hardware);
+  ALCOR_reset(hardware, true);
   
   /** endless loop till end of run (or interrupted) **/
   std::cout << " --- serving till end of run " << std::endl;
+  int nspills = 0;
   while (running) {
 
     /** usleep a bit **/
@@ -260,7 +269,11 @@ int main(int argc, char *argv[])
       if (in_spill) std::cout << " --- start of spill detected " << std::endl;
       else {
 	std::cout << " --- end of spill detected " << std::endl;
-	if (opt.reset) do_reset = true;
+	nspills++;
+	if (opt.reset) {
+	  std::cout << " --- force reset at end of spill " << std::endl;
+	  do_reset = true;
+	}
 	usleep(1000); // sleep 1 ms to allow nano-readout processes to communicate reset requests 
       }
     }
@@ -285,7 +298,13 @@ int main(int argc, char *argv[])
 	do_reset = false;
       }
     }
-    
+
+    /** force end of run after exceeding max number of spills **/
+    if (nspills >= opt.max_spills) {
+      std::cout << " --- max number of spills exceeded: forcing end of run " << std::endl;	  
+      shared_data->mode = 0;
+    }
+
   } /** end of endless loop till end of run (or interrupted) **/
 
   std::cout << " --- it has been fun, so long " << std::endl;

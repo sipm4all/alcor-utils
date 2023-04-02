@@ -9,7 +9,7 @@ xychoices = [str(row + col) for row in ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H') 
 parser = argparse.ArgumentParser()
 g = parser.add_mutually_exclusive_group()
 g.add_argument('--do2eo', help="Detector-oriented to electronics-oriented channel number")
-g.add_argument('--eo2do', type=int, choices=range(0, 32), help="Electronics-oriented to detector-oriented channel number")
+g.add_argument('--eo2do', help="Electronics-oriented to detector-oriented channel number")
 g.add_argument('--eo2xy', help="Electronics-oriented to channel oriented")
 g.add_argument('--xy2do', type=str, choices=xychoices, help="Carrier-oriented to detector-oriented channel number")
 g.add_argument('--xy2eo', type=str, choices=xychoices, help="Carrier-oriented to electronics-oriented channel number")
@@ -44,7 +44,7 @@ if args['do2eo'] is not None:
     print(do2eo[args['do2eo']])
 
 if args['eo2do'] is not None:
-    print(eo2do[args['eo2do']])
+    print(eo2do[int(args['eo2do'])])
 
 if args['eo2xy'] is not None:
     print(eo2xy[int(args['eo2xy'])])

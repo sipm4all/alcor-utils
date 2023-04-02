@@ -1,7 +1,7 @@
 ### @author: Roberto Preghenella
 ### @email: preghenella@bo.infn.it
 
-include_directories(${uHAL_INCLUDE_DIR})
+include_directories(${uHAL_INCLUDE_DIR} ${ROOT_INCLUDE_DIR})
 
 add_executable(readout readout.cc)
 target_link_libraries(readout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
@@ -36,5 +36,5 @@ target_link_libraries(rate ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRA
 install(TARGETS rate RUNTIME DESTINATION bin)
 
 add_executable(decoder decoder.cc)
-target_link_libraries(decoder ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
+target_link_libraries(decoder ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES} ${ROOT_LIBS})
 install(TARGETS decoder RUNTIME DESTINATION bin)

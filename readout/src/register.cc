@@ -11,6 +11,7 @@
 
 struct program_options_t {
   std::string connection_filename, device_id, node_name, write_value;
+  int repeat, usleep;
 };
 
 void process_program_options(int argc, char *argv[], program_options_t &opt);
@@ -28,6 +29,8 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("device"           , po::value<std::string>(&opt.device_id)->default_value("kc705"), "Device ID")
       ("node"             , po::value<std::string>(&opt.node_name)->required(), "Name of the node")
       ("write"            , po::value<std::string>(&opt.write_value), "Write a value before reading")
+      ("repeat"           , po::value<int>(&opt.repeat)->default_value(1), "Number of write repetitions")
+      ("usleep"           , po::value<int>(&opt.usleep)->default_value(1000), "Sleep between write repetition")
       ;
     
     po::variables_map vm;
@@ -56,15 +59,18 @@ int main(int argc, char *argv[])
   uhal::ConnectionManager connection_manager("file://" + opt.connection_filename);
   uhal::HwInterface hardware = connection_manager.getDevice(opt.device_id);
   const uhal::Node &node = hardware.getNode(opt.node_name);
-  
+
   if (!opt.write_value.empty()) {
     unsigned int value;   
     std::stringstream ss;
     ss << std::hex << opt.write_value;
     ss >> value;
     std::cout << "--- writing " << std::hex << value << std::dec << " to " << opt.node_name << std::endl;
-    node.write(value);
-    hardware.dispatch();
+    for (int irepeat = 0; irepeat < opt.repeat; ++irepeat) {
+      node.write(value);
+      hardware.dispatch();
+      usleep(opt.usleep);
+    }
     return 0;
   }
 

@@ -23,7 +23,8 @@ struct program_options_t {
   po::variables_map vm;
   std::string connection, device, output;
   int chip, channel, filter, usleep, occupancy, timer, staging;
-  int threshold, vth, range, offset1, delta_threshold;
+  int opmode, threshold, vth, range, offset1, delta_threshold, gain1;
+  int max_resets;
   float integrated;
   bool skip_user_settings, verbose;
 };
@@ -55,13 +56,16 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("usleep"           , po::value<int>(&opt.usleep)->default_value(10), "Microsecond sleep")
       ("occupancy"        , po::value<int>(&opt.occupancy)->default_value(4096), "FIFO occupancy to download")
       ("timer"            , po::value<int>(&opt.timer)->default_value(32000000), "Spill length")
+      ("max_resets"       , po::value<int>(&opt.max_resets)->default_value(100), "Maximum number of allowed resets")
       ("integrated"       , po::value<float>(&opt.integrated)->default_value(1.), "Quit after integrated seconds")
       ("staging"          , po::value<int>(&opt.staging)->default_value(1048576), "Staging buffer size (bytes)")      
+      ("opmode"           , po::value<int>(&opt.opmode)->default_value(0x1), "ALCOR channel operation mode")
       ("threshold"        , po::value<int>(&opt.threshold), "ALCOR threshold value")
       ("delta_threshold"  , po::value<int>(&opt.delta_threshold), "ALCOR threshold delta")
       ("vth"              , po::value<int>(&opt.vth), "ALCOR threshold offset")
       ("range"            , po::value<int>(&opt.range), "ALCOR threshold range")
       ("offset1"          , po::value<int>(&opt.offset1), "ALCOR baseline offset")
+      ("gain1"            , po::value<int>(&opt.gain1), "ALCOR TIA gain")
       ;
     
     po::store(po::parse_command_line(argc, argv, desc), opt.vm);
@@ -138,39 +142,6 @@ int main(int argc, char *argv[])
     return 1;
   }
   
-  /** ALCOR init and reset **/
-  std::string alcor_init_system = std::string(std::getenv("ALCOR_DIR")) + "/control/alcorInit.sh 666 /tmp > /dev/null 2>&1";
-  std::string alcor_reset_system = std::string(std::getenv("ALCOR_DIR")) + "/control/alcorInit.sh 0 /tmp > /dev/null 2>&1";
-  system(alcor_init_system.c_str());
-  
-  /** read PCR2 and PCR3 register **/
-  alcor::pcr2_union_t pcr2, pcr2_init;
-  alcor::pcr3_union_t pcr3, pcr3_init;
-  int pixel = opt.channel % 4;
-  int column = opt.channel / 4;
-  pcr2.val = pcr2_init.val = alcor.spi.read(PCR(2, pixel, column));
-  pcr3.val = pcr3_init.val = alcor.spi.read(PCR(3, pixel, column));
-
-  /** set threshold values **/
-  if (opt.vm.count("threshold")) pcr2.reg.LE1DAC = opt.threshold;
-  if (opt.vm.count("vth")) pcr2.reg.LEDACVth = opt.vth;
-  if (opt.vm.count("range")) pcr2.reg.LEDACrange = opt.range;
-  if (opt.vm.count("offset1")) pcr3.reg.Offset1 = opt.offset1;
-
-  /** increment with delta_threshold **/
-  if (opt.vm.count("delta_threshold")) {
-    if (pcr2.reg.LE1DAC + opt.delta_threshold > 63) {
-      std::cout << " --- LE1DAC value overflow: " << pcr2.reg.LE1DAC + opt.delta_threshold << std::endl;
-      return 1; 
-    }
-    pcr2.reg.LE1DAC += opt.delta_threshold;
-  }
-  
-  /** print PCR2 and PCR3 registers **/
-  std::cout << " --- status of PCR2 and PRC3 registers " << std::endl;
-  pcr2.reg.print();
-  pcr3.reg.print();
-
   /** prepare staging buffers and pointers **/
   char *staging_buffer = nullptr, *staging_buffer_trg = nullptr;
   char *staging_buffer_pointer = nullptr, *staging_buffer_trg_pointer = nullptr;
@@ -214,6 +185,44 @@ int main(int argc, char *argv[])
     fout_trg.write((char *)&header, 64);
   }
   
+  /** ALCOR init and reset **/
+  //  std::string alcor_init_system = std::string(std::getenv("ALCOR_DIR")) + "/control/alcorInit.sh 666 /tmp > /dev/null 2>&1";
+  //  std::string alcor_reset_system = std::string(std::getenv("ALCOR_DIR")) + "/control/alcorInit.sh 0 /tmp > /dev/null 2>&1";
+  std::string alcor_init_system = std::string(std::getenv("ALCOR_DIR")) +
+    "/measure/alcor_fast_init_readout.sh " + std::to_string(opt.chip) + " " + std::to_string(opt.channel) + " > /dev/null 2>&1";
+  std::string alcor_reset_system = alcor_init_system;
+
+  system(alcor_init_system.c_str());
+  
+  /** read PCR2 and PCR3 register **/
+  alcor::pcr2_union_t pcr2, pcr2_init;
+  alcor::pcr3_union_t pcr3, pcr3_init;
+  int pixel = opt.channel % 4;
+  int column = opt.channel / 4;
+  pcr2.val = pcr2_init.val = alcor.spi.read(PCR(2, pixel, column));
+  pcr3.val = pcr3_init.val = alcor.spi.read(PCR(3, pixel, column));
+
+  /** set threshold values **/
+  if (opt.vm.count("threshold")) pcr2.reg.LE1DAC = opt.threshold;
+  if (opt.vm.count("vth")) pcr2.reg.LEDACVth = opt.vth;
+  if (opt.vm.count("range")) pcr2.reg.LEDACrange = opt.range;
+  if (opt.vm.count("offset1")) pcr3.reg.Offset1 = opt.offset1;
+  if (opt.vm.count("gain1")) pcr3.reg.Gain1 = opt.gain1;
+  pcr3.reg.OpMode = opt.opmode;
+
+  /** increment with delta_threshold **/
+  if (opt.vm.count("delta_threshold")) {
+    if (pcr2.reg.LE1DAC + opt.delta_threshold > 63) {
+      std::cout << " --- LE1DAC value overflow: " << pcr2.reg.LE1DAC + opt.delta_threshold << std::endl;
+      return 1; 
+    }
+    pcr2.reg.LE1DAC += opt.delta_threshold;
+  }
+  
+  /** print PCR2 and PCR3 registers **/
+  std::cout << " --- status of PCR2 and PRC3 registers " << std::endl;
+  pcr2.reg.print();
+  pcr3.reg.print();
   /** run mode on **/
   daq.regfile.mode->write(1);
   hardware.dispatch();
@@ -222,10 +231,14 @@ int main(int argc, char *argv[])
   long long int buffer_counter = 0;
   long long int integrated_resets = 0, integrated_polls = 0, integrated_downloads = 0, integrated_occupancy = 0, integrated_bytes = 0, integrated_timer = 0, integrated_rollover = 0;
   bool need_reset = true, fifo_overflow = false, staging_overflow = false;
-
+  need_reset = false; // R+TRY
+  
   long long int n_polls = 0, n_downloads = 0;
   while (running) {
 
+    if (integrated_timer > opt.integrated * 32000000. ||
+	integrated_resets > opt.max_resets) break;
+    
     /** reset ALCOR if needed **/
     if (need_reset)
       system(alcor_reset_system.c_str());
@@ -244,7 +257,7 @@ int main(int argc, char *argv[])
     staging_buffer_trg_bytes = 0;
 
     /** switch on channel and write PCR2 and PCR3 **/
-    pcr3.reg.OpMode = 0x1;
+    pcr3.reg.OpMode = opt.opmode;
     alcor.spi.write(PCR(2, pixel, column), pcr2.val);
     alcor.spi.write(PCR(3, pixel, column), pcr3.val);
     
@@ -281,7 +294,7 @@ int main(int argc, char *argv[])
       if (fifo_occupancy_value < opt.occupancy &&
 	  fifo_occupancy_trg_value < opt.occupancy) continue;
 
-      std::cout << " fifo_time_value: " << fifo_timer_value << std::endl;
+      //      std::cout << " fifo_time_value: " << fifo_timer_value << std::endl;
       
       /** download data **/
       auto fifo_data = alcor.fifo[lane].data->readBlock(fifo_occupancy_value);
@@ -426,10 +439,10 @@ int main(int argc, char *argv[])
     integrated_timer += fifo_timer_value;
 
     std::cout << " --- timer counter was: " << fifo_timer_value << std::endl;
-    auto trg_data0 = fifo_trg_data.value()[fifo_occupancy_trg_value - 2];
-    printf(" 0x%08x \n", trg_data0);
-    auto trg_data1 = fifo_trg_data.value()[fifo_occupancy_trg_value - 1];
-    printf(" 0x%08x \n", trg_data1);
+    //    auto trg_data0 = fifo_trg_data.value()[fifo_occupancy_trg_value - 2];
+    //    printf(" 0x%08x \n", trg_data0);
+    //    auto trg_data1 = fifo_trg_data.value()[fifo_occupancy_trg_value - 1];
+    //    printf(" 0x%08x \n", trg_data1);
     std::cout << " --- n_polls: " << n_polls << " | n_downloads: " << n_downloads << std::endl;
 
     
@@ -505,10 +518,11 @@ int main(int argc, char *argv[])
     integrated_occupancy += fifo_occupancy_value;
     integrated_bytes += fifo_bytes;
     integrated_timer += fifo_timer_value;
-#endif
 
-    if (integrated_timer > opt.integrated * 32000000.) break;
+    if (integrated_timer > opt.integrated * 32000000. ||
+	integrated_resets > opt.max_resets) break;
     
+#endif
   }
 
   /** set run mode off **/

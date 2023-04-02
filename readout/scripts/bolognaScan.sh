@@ -6,7 +6,7 @@ TAGNAME="hvzero"
 FINAL_SCAN=false
 
 RANGEMIN=0    ### [0]
-RANGEMAX=3    ### [3]
+RANGEMAX=0    ### [3]
 OFFSETMIN=0   ### [0]
 OFFSETMAX=7   ### [7]
 VTHMIN=0      ### [0]

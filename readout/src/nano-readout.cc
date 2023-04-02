@@ -4,6 +4,7 @@
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <signal.h>
+#include <chrono>
 #include "uhal/uhal.hpp"
 
 #define VERSION 20220925
@@ -34,10 +35,12 @@ struct alcor_hit_t {
   }
 };
 
+uint32_t empty_event[4] = {0x70000000, 0xdeadbeef, 0xf0000000, 0xdeadbeef};
+
 struct program_options_t {
   std::string connection_filename, device_id, output_filename;
   int chip, lane, usleep_period, staging_size, min_occupancy, clock;
-  bool trigger;
+  bool trigger, decode;
 } opt;
 
 //int *shared_memory;
@@ -219,6 +222,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("chip"             , po::value<int>(&opt.chip)->required(), "ALCOR chip ID")
       ("lane"             , po::value<int>(&opt.lane)->required(), "ALCOR lane")
       ("trigger"          , po::bool_switch(&opt.trigger), "Trigger fifo")
+      ("decode"           , po::bool_switch(&opt.decode), "Online decode data")
       ("usleep"           , po::value<int>(&opt.usleep_period)->default_value(100), "Microsecond sleep between polling cycles")
       ("staging"          , po::value<int>(&opt.staging_size)->default_value(10 * 1024 * 1024), "Staging buffer size (bytes)")
       ("occupancy"        , po::value<int>(&opt.min_occupancy)->default_value(4096), "FIFO minimum occupancy")
@@ -413,6 +417,8 @@ int main(int argc, char *argv[])
 
       if (fifo_overflow || staging_overflow) {
 	staging_buffer_pointer = staging_buffer; // write empty event	
+	std::memcpy(staging_buffer_pointer, (char *)empty_event, 16);
+	staging_buffer_pointer += 16;
       }
       
       /** write staging buffer **/
@@ -451,8 +457,15 @@ int main(int argc, char *argv[])
       monitor = fifo_overflow = staging_overflow = false;
 
       /** decode **/
-      if (opt.trigger) decode_trigger(staging_buffer, buffer_size);
-      else decode_data(opt.chip, opt.lane, staging_buffer, buffer_size);
+      if (opt.decode) {
+	auto start = std::chrono::high_resolution_clock::now();
+	if (opt.trigger) decode_trigger(staging_buffer, buffer_size);
+	else decode_data(opt.chip, opt.lane, staging_buffer, buffer_size);
+	auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        std::cout << " --- decode executed: " << duration.count() << " ms" << std::endl;
+
+      }
       
       staging_buffer_pointer = staging_buffer;
       alarm(alarm_period);

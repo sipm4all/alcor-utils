@@ -208,16 +208,16 @@ int main(int argc, char *argv[])
   auto mode_node = &hardware.getNode("regfile.mode");
   mode_node->write(0);
   hardware.dispatch();
-  std::cout << " --- setting run mode: " << 0 << std::endl;
+  std::cout << " --- setting run mode: 0x0" << std::endl;
   auto fwrev = fwrev_register.value();
 
   /** reset ALCOR **/
   std::string alcor_reset_system = std::getenv("ALCOR_DIR");
   alcor_reset_system += "/control/alcorInit.sh 0 /tmp";
+#if TESTBEAMFAILURE
   std::cout << " calling system: " << alcor_reset_system << std::endl;
-  //  #if TESTBEAMFAILURE
   system(alcor_reset_system.c_str());
-  //  #endif
+#endif
   
   // set filter mode
   auto filter_command = 0x03300000 | opt.filter_mode;
@@ -292,8 +292,8 @@ int main(int argc, char *argv[])
     std::cout << " --- reset sent " << std::endl;
   }
 
-  //#if TESTBEAMFAILURE
-  if (opt.run_mode == 3) {
+#if TESTBEAMFAILURE
+  if (opt.run_mode & 0x3) {
     /** must restore PCR3 values **/
     for (int chip = 0; chip < 6; ++chip) {
       if (!active_alcor[chip]) continue;
@@ -302,15 +302,15 @@ int main(int argc, char *argv[])
           alcor[chip].spi.write( PCR(3, pix, col) , pcr3_init[chip][col][pix].val );
     }
   }
-  //#endif
+#endif
   
   // go into real run mode
   mode_node->write(1);
   hardware.dispatch();
-  std::cout << " --- setting run mode: " << 1 << std::endl;
+  std::cout << " --- setting run mode: 0x1" << std::endl;
   mode_node->write(opt.run_mode);
   hardware.dispatch();
-  std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
+  std::cout << " --- setting run mode: 0x" << std::hex << opt.run_mode << std::dec << std::endl;
 
   // send pulse
   if (opt.send_pulse) {
@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
       // switch off run mode
       mode_node->write(1);
       hardware.dispatch();
-      std::cout << " --- setting run mode: " << 1 << std::endl;
+      std::cout << " --- setting run mode: 0x1" << std::endl;
       //      mode_node->write(0);
       //      hardware.dispatch();
       //      std::cout << " --- setting run mode: " << 0 << std::endl;
@@ -553,7 +553,7 @@ int main(int argc, char *argv[])
       //      std::cout << " --- setting run mode: " << 1 << std::endl;
       mode_node->write(opt.run_mode);
       hardware.dispatch();
-      std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
+      std::cout << " --- setting run mode: 0x" << std::hex << opt.run_mode << std::dec << std::endl;
 #endif
 
       reset = false;
@@ -635,13 +635,13 @@ int main(int argc, char *argv[])
       if (opt.timeout > 0 && elapsed_start.count() * 1000000. > opt.timeout) running = false;
 
       // if mode == 3, terminate spill and start new one
-      if (opt.run_mode == 3) {
+      if (opt.run_mode & 0x3) {
 	mode_node->write(1);
 	hardware.dispatch();
-	std::cout << " --- setting run mode: " << 1 << std::endl;
+	std::cout << " --- setting run mode: 0x1" << std::endl;
 	mode_node->write(opt.run_mode);
 	hardware.dispatch();
-	std::cout << " --- setting run mode: " << opt.run_mode << std::endl;
+	std::cout << " --- setting run mode: 0x" << std::hex << opt.run_mode << std::dec << std::endl;
       }
 
     }
@@ -667,10 +667,10 @@ int main(int argc, char *argv[])
   // switch off run mode
   mode_node->write(1);
   hardware.dispatch();
-  std::cout << " --- setting run mode: " << 1 << std::endl;
+  std::cout << " --- setting run mode: 0x1" << std::endl;
   mode_node->write(0);
   hardware.dispatch();
-  std::cout << " --- setting run mode: " << 0 << std::endl;
+  std::cout << " --- setting run mode: 0x0" << std::endl;
 
   std::cout << " --- exiting, so long " << std::endl;
 
