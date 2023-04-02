@@ -96,7 +96,9 @@ echo "     INTEGRATED: ${INTEGRATED} "
 echo " --- "
 
 ### switch on HV
-/au/masterlogic/zero $CHIP
+if [ -z "$AU_BIAS_MANUAL" ]; then
+    /au/masterlogic/zero $CHIP
+fi
 /au/tti/hv.on
 sleep 1
 
@@ -107,12 +109,9 @@ for BIAS_VOLTAGE in $BIAS_VOLTAGES; do
     BIAS_DAC=$(/au/masterlogic/hvcalib/hvcalib-malaguti-${CARRIER}.sh $BIAS_VOLTAGE | grep dac | awk '{print $2}')
     if [ -z "$AU_DRYRUN" ]; then
 
-	### R+HACK
-#	/au/masterlogic/set $CHIP $BIAS_DAC
-#	/au/masterlogic/set_dac12 $CHIP $DAC12 0
-#	/au/masterlogic/wait
-	
-	/au/masterlogic/set_dac12 $CHIP $DAC12 $BIAS_DAC
+	if [ -z "$AU_BIAS_MANUAL" ]; then
+	    /au/masterlogic/set_dac12 $CHIP $DAC12 $BIAS_DAC
+	fi
 	/au/masterlogic/wait
 
     fi

@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string>
 #include <boost/program_options.hpp>
+#include "TFile.h"
+#include "TTree.h"
 
 bool verbose = false;
 int integrated_rollover = 0;
@@ -61,29 +63,45 @@ struct alcor_hit_t {
   }
 };
 
+struct data_t {
+  int fifo;
+  int type;
+  int counter;
+  int column;
+  int pixel;
+  int tdc;
+  int rollover;
+  int coarse;
+  int fine;
+} data;
+
 bool in_spill = false;
 
-void write_data_header(std::ofstream &fout)
+void write_data(TTree *tout, int fifo, int type, int counter, int column, int pixel, int tdc, int rollover, int coarse, int fine)
 {
-  fout << "fifo/I:type/I:counter/I:column/I:pixel/I:tdc/I:rollover/I:coarse/I:fine/I" << std::endl;
+  data.fifo = fifo;
+  data.type = type;
+  data.counter = counter;
+  data.column = column;
+  data.pixel = pixel;
+  data.tdc = tdc;
+  data.rollover = rollover;
+  data.coarse = coarse;
+  data.fine = fine;
+  tout->Fill();
 }
 
-void write_data(std::ofstream &fout, int fifo, int type, int counter, int column, int pixel, int tdc, int rollover, int coarse, int fine)
+void write_trigger_data(TTree *tout, int fifo, int type, int counter, int rollover, int coarse)
 {
-  fout << fifo << " " << type << " " << counter << " " << column << " " << pixel << " " << tdc << " " << rollover << " " << coarse << " " << fine << std::endl;
+  write_data(tout, fifo, type, counter, -1, -1, -1, rollover, coarse, -1);
 }
 
-void write_trigger_data(std::ofstream &fout, int fifo, int type, int counter, int rollover, int coarse)
+void write_alcor_data(TTree *tout, int fifo, int column, int pixel, int tdc, int rollover, int coarse, int fine)
 {
-  write_data(fout, fifo, type, counter, -1, -1, -1, rollover, coarse, -1);
-}
-
-void write_alcor_data(std::ofstream &fout, int fifo, int column, int pixel, int tdc, int rollover, int coarse, int fine)
-{
-  write_data(fout, fifo, 1, -1, column, pixel, tdc, rollover, coarse, fine);
+  write_data(tout, fifo, 1, -1, column, pixel, tdc, rollover, coarse, fine);
 }
                 
-void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
+void decode_trigger(char *buffer, int fifo, int size, TTree *tout)
 {
   if (verbose) printf(" --- decode_trigger: fifo%d, size=%d \n", fifo, size); 
 
@@ -104,7 +122,7 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
-      write_trigger_data(fout, fifo, 7, counter, rollover, coarse);
+      write_trigger_data(tout, fifo, 7, counter, rollover, coarse);
       ++word; ++pos;
     }
     
@@ -120,7 +138,7 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
-      write_trigger_data(fout, fifo, 15, counter, rollover, coarse);
+      write_trigger_data(tout, fifo, 15, counter, rollover, coarse);
       ++word; ++pos;
     }
     
@@ -136,7 +154,7 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
-      write_trigger_data(fout, fifo, 9, counter, rollover, coarse);
+      write_trigger_data(tout, fifo, 9, counter, rollover, coarse);
       ++word; ++pos;
     }
 
@@ -150,7 +168,7 @@ void decode_trigger(char *buffer, int fifo, int size, std::ofstream &fout)
 
 }
 
-void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filtered)
+void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
 {
   size /= 4;
   auto word = (uint32_t *)buffer;
@@ -174,22 +192,10 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
         trigger_time |= *word;
         uint32_t coarse = trigger_time & 0x7fff;
         uint32_t rollover = trigger_time >> 15;
-        write_trigger_data(fout, fifo, 7, counter, rollover, coarse);
+        write_trigger_data(tout, fifo, 7, counter, rollover, coarse);
         ++word; ++pos;
         in_spill = true;
 
-	// [R+HACK] check first word in spill, if rollover skip it
-	//	if (*word == 0x5c5c5c5c) {
-	//	  if (verbose) printf(" 0x%08x -- rollover to skip (counter=%d) \n", *word, rollover_counter);
-	//	  ++word; ++pos;
-	//	}
-	
-	// [R+HACK] check first word in spill, if not rollover pretend there was one
-	//	if (*word != 0x5c5c5c5c) {
-	//	  if (verbose) printf(" 0x%08x -- not a rollover (counter=%d) \n", *word, rollover_counter);
-	//	  rollover_counter++;
-	//	}
-	
 	break;
       }
 
@@ -204,7 +210,7 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
       /** killed fifo **/
       if (*word == 0x666caffe) {
         if (verbose) printf(" 0x%08x -- killed fifo \n", *word);
-        write_trigger_data(fout, fifo, 15, -1, -1, -1);
+        write_trigger_data(tout, fifo, 15, -1, -1, -1);
         ++word; ++pos;
         in_spill = false;
 	rollover_counter = 0;
@@ -223,7 +229,7 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
         trigger_time |= *word;
         uint32_t coarse = trigger_time & 0x7fff;
         uint32_t rollover = trigger_time >> 15;
-        write_trigger_data(fout, fifo, 15, counter, rollover, coarse);
+        write_trigger_data(tout, fifo, 15, counter, rollover, coarse);
         ++word; ++pos;
         in_spill = false;
 	rollover_counter = 0;
@@ -242,95 +248,12 @@ void decode(char *buffer, int fifo, int size, std::ofstream &fout, bool is_filte
       /** hit **/
       hit = (alcor_hit_t *)word;
       if (verbose) printf(" 0x%08x -- hit (coarse=%d, fine=%d, column=%d, pixel=%d --> channel=%d)\n", *word, hit->coarse, hit->fine, hit->column, hit->pixel, hit->column * 4 + hit->pixel);
-      write_alcor_data(fout, fifo, hit->column, hit->pixel, hit->tdc, rollover_counter, hit->coarse, hit->fine);
+      write_alcor_data(tout, fifo, hit->column, hit->pixel, hit->tdc, rollover_counter, hit->coarse, hit->fine);
       ++word; ++pos;
       
     }
   }
 
-#if 0
-
-  
-  // find spill trailer
-  while (pos < size) {
-    if (*word & 0xf0000000 == 0x90000000) {
-      ++word; ++pos;
-      continue;
-    }
-    
-  }
-  
-  while (pos < size) {
-
-    // find next rollover
-    while (pos < size) {
-      if (*word != 0x5c5c5c5c) {
-        ++word; ++pos;
-        continue;
-      }
-      if (verbose) printf(" 0x%08x -- rollover \n", *word);
-      break;
-    }
-    ++rollover;
-    ++integrated_rollover;
-    ++word; ++pos;
-      
-    // find frame header
-    while (pos < size && !is_filtered) {
-      if (*word == 0x1c1c1c1c) break;
-      if (verbose) printf(" 0x%08x -- \n", *word);
-      ++word; ++pos;
-    }
-    if (verbose) printf(" 0x%08x -- frame header \n", *word);
-    ++word; ++pos;
-    if (verbose) printf(" 0x%08x -- frame counter \n", *word);
-    auto frame = *word;
-    ++word; ++pos;
-    
-    // find next rollover
-    while (pos < size) {
-      if (*word == 0x5c5c5c5c) break;
-      if (verbose) printf(" 0x%08x -- hit \n", *word);
-      hit = (alcor_hit_t *)word;
-      fout << 1 << " " << -1 << " " << hit->column << " " << hit->pixel << " " << hit->tdc << " " << frame << " " << rollover << " " << hit->coarse << " " << hit->fine << std::endl;
-      //      fout << rollover << " " << hit->coarse << std::endl;
-      ++word; ++pos;
-    }
-    
-  }
-  
-  return;
-
-#if 0
-  
-  word++; pos++;
-
-
-  
-  // skip till the frame header
-  for (; pos < size; pos++) {
-    if (word == 0x1c1c1c1c) break;
-    word++;
-  }
-
-  // this is the frame counter
-  word++; pos++
-
-  // till the end these are hits
-  for (; pos < size; pos++) {
-    if (word == 0x1c1c1c1c) break;
-    word++;
-  }
-
-  for (int i = 0; i < size; ++i) {
-
-    
-    word++;
-  }
-
-#endif
-#endif
-  
 }
 
 int main(int argc, char *argv[])
@@ -377,15 +300,17 @@ int main(int argc, char *argv[])
     printf(" --- [ERROR] caffe header mismatch in main header: 0x%08x \n", main_header.caffe);
     return 1;
   }
-  printf(" --- [main header] caffe header detected: 0x%08x \n", main_header.caffe);
-  printf(" --- [main header] readout version: 0x%08x \n", main_header.readout_version);
-  printf(" --- [main header] firmware release: 0x%08x \n", main_header.firmware_release);
-  printf(" --- [main header] run number: %d \n", main_header.run_number);
-  printf(" --- [main header] timestamp: %d \n", main_header.timestamp);
-  printf(" --- [main header] staging buffer size: %d \n", main_header.staging_size);
-  printf(" --- [main header] run mode: 0x%1x \n", main_header.run_mode);
-  printf(" --- [main header] filter mode: 0x%1x \n", main_header.filter_mode);
-  printf(" --- [main header] timestamp: %d \n", main_header.timestamp);
+  if (verbose) {
+    printf(" --- [main header] caffe header detected: 0x%08x \n", main_header.caffe);
+    printf(" --- [main header] readout version: 0x%08x \n", main_header.readout_version);
+    printf(" --- [main header] firmware release: 0x%08x \n", main_header.firmware_release);
+    printf(" --- [main header] run number: %d \n", main_header.run_number);
+    printf(" --- [main header] timestamp: %d \n", main_header.timestamp);
+    printf(" --- [main header] staging buffer size: %d \n", main_header.staging_size);
+    printf(" --- [main header] run mode: 0x%1x \n", main_header.run_mode);
+    printf(" --- [main header] filter mode: 0x%1x \n", main_header.filter_mode);
+    printf(" --- [main header] timestamp: %d \n", main_header.timestamp);
+  }
 
   // check that we know how to decode it
   bool is_filtered;
@@ -399,15 +324,23 @@ int main(int argc, char *argv[])
   }
   
   // create reading buffer
-  auto staging_size = 1048576;
+  auto staging_size = main_header.staging_size;
   char *buffer = new char[staging_size];
   
   /** open output file **/
   std::cout << " --- opening output file: " << output_filename << std::endl;
-  std::ofstream fout;
-  fout.open(output_filename, std::ofstream::out);
-  write_data_header(fout);
-
+  auto fout = TFile::Open(output_filename.c_str(), "RECREATE");
+  auto tout = new TTree("alcor", "ALCOR");
+  tout->Branch("fifo", &data.fifo, "fifo/I");
+  tout->Branch("type", &data.type, "type/I");
+  tout->Branch("counter", &data.counter, "counter/I");
+  tout->Branch("column", &data.column, "column/I");
+  tout->Branch("pixel", &data.pixel, "pixel/I");
+  tout->Branch("tdc", &data.tdc, "tdc/I");
+  tout->Branch("rollover", &data.rollover, "rollover/I");
+  tout->Branch("coarse", &data.coarse, "coarse/I");
+  tout->Branch("fine", &data.fine, "fine/I");
+  
   /** loop over data **/
   buffer_header_t buffer_header;
   uint32_t word;
@@ -418,28 +351,33 @@ int main(int argc, char *argv[])
       printf(" --- [ERROR] caffe header mismatch in buffer header: %08x \n", buffer_header.caffe);
       break;
     }
-    printf(" --- [buffer header] caffe header detected: 0x%08x \n", buffer_header.caffe);
-    printf(" --- [buffer header] buffer id: %d \n", buffer_header.id);
-    printf(" --- [buffer header] buffer counter: %d \n", buffer_header.counter);
-    printf(" --- [buffer header] buffer size: %d \n", buffer_header.size);
+    if (verbose) {
+      printf(" --- [buffer header] caffe header detected: 0x%08x \n", buffer_header.caffe);
+      printf(" --- [buffer header] buffer id: %d \n", buffer_header.id);
+      printf(" --- [buffer header] buffer counter: %d \n", buffer_header.counter);
+      printf(" --- [buffer header] buffer size: %d \n", buffer_header.size);
+    }
     fin.read(buffer, buffer_header.size);
 
     if (buffer_header.id < 24) {
-      printf(" --- decoding ALCOR FIFO \n");
-      decode(buffer, buffer_header.id, buffer_header.size, fout, is_filtered);
+      if (verbose) printf(" --- decoding ALCOR FIFO \n");
+      decode(buffer, buffer_header.id, buffer_header.size, tout, is_filtered);
     }
     else if (buffer_header.id == 24) {
-      printf(" --- decoding TRIGGER FIFO \n");
-      decode_trigger(buffer, buffer_header.id, buffer_header.size, fout);
+      if (verbose) printf(" --- decoding TRIGGER FIFO \n");
+      decode_trigger(buffer, buffer_header.id, buffer_header.size, tout);
     }
   }
   
   double integrated = (double)integrated_rollover * 0.0001024;
   std::cout << " --- integrated seconds: " << integrated << std::endl;
 
+  /** write tree and close output */
+  tout->Write();
+  fout->Close();
+  
   /** close input file **/
   fin.close();
-  fout.close();
   std::cout << " --- all done, so long " << std::endl;
 
   return 0;

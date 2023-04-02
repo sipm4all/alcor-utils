@@ -6,9 +6,13 @@ datasheet,board=SENSL,name=breakdown_voltage value=24.45
 datasheet,board=SENSL,name=breakdown_voltage_reference_temperature value=21.0
 datasheet,board=SENSL,name=breakdown_voltage_temperature_dependence value=21.5
 datasheet,board=HAMA1,name=resistance value=54.9
-datasheet,board=HAMA1,name=breakdown_voltage value=53.
+datasheet,board=HAMA1,name=breakdown_voltage value=51.
 datasheet,board=HAMA1,name=breakdown_voltage_reference_temperature value=25.0
 datasheet,board=HAMA1,name=breakdown_voltage_temperature_dependence value=54.
+datasheet,board=HAMA1-bis,name=resistance value=54.9
+datasheet,board=HAMA1-bis,name=breakdown_voltage value=51.
+datasheet,board=HAMA1-bis,name=breakdown_voltage_reference_temperature value=25.0
+datasheet,board=HAMA1-bis,name=breakdown_voltage_temperature_dependence value=54.
 datasheet,board=HAMA2,name=resistance value=73.2
 datasheet,board=HAMA2,name=breakdown_voltage value=38.
 datasheet,board=HAMA2,name=breakdown_voltage_reference_temperature value=25.0

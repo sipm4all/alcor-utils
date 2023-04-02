@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
 chips="0 1 2 3"
+chips="0"
 
 rows="A B C D E F G H"
 cols="1 2 3 4"
@@ -16,7 +17,7 @@ while true; do
 
 		channel=$row$col
 		eo_channel=$(/au/readout/python/mapping.py --xy2eo $channel)
-		rate=$(/au/readout/bin/rate --connection /au/etc/connection.ch.8.xml --chip $chip --channel $eo_channel --delta_threshold 5 | awk {'print $15'})
+		rate=$(/au/readout/bin/rate --connection /au/etc/connection2.xml --chip $chip --channel $eo_channel --delta_threshold 5 | awk {'print $15'})
 
 		if [[ $? -ne 0 ]]; then
 		    echo "chip broken"

@@ -24,5 +24,7 @@ for DAC in 0 1 2 3 4 5 6 7; do
 
 done
 
+timeout 2 $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $ML --cmd="Z 1 " &> /dev/null
+
 ### read back
 $HOME/alcor/alcor-utils/masterlogic/masterlogic_dac12.sh $1

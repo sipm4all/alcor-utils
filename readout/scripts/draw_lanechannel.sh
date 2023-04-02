@@ -23,3 +23,7 @@ for CHIP in {0..5}; do
 	/au/readout/scripts/makePCR.sh $dir $CHIP $RANGE
     done
 done
+
+for DELTA in {0..25}; do
+    /au/readout/scripts/doUpdatePCR.sh $dir $DELTA
+done
