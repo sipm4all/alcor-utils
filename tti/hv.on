@@ -2,5 +2,5 @@
 #sleep 0.5
 
 /au/tti/plh250_cmd.py "V1 70.0"
-/au/tti/plh250_cmd.py "I1 0.05"
+/au/tti/plh250_cmd.py "I1 0.010"
 /au/tti/plh250_cmd.py "OP1 1"
