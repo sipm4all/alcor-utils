@@ -26,9 +26,18 @@ if os.path.exists(SOCK):
 
 SOCKTSX = '/tmp/tsx1820p_server.socket'
 SOCKML = ['/tmp/masterlogic_server.ML' + str(x) + '.socket' for x in range(0,1)]
+SOCKARDUINO = '/tmp/arduino_server.socket'
 
 which_temp = 'ml0'
 
+
+def get_dewpoint():
+   with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+        s.connect(SOCKARDUINO)
+        command = 'dew'
+        s.sendall(command.encode())
+        data = s.recv(1024).decode()
+        return float(data)
 
 def get_temperature():
     temp = [0, 0, 0, 0]
@@ -168,13 +177,17 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         print(e)
 
       if current_setpoint > target_setpoint:
-        current_setpoint = current_setpoint - 0.025
+        current_setpoint = current_setpoint - 0.05
         if current_setpoint < target_setpoint:
           current_setpoint = target_setpoint
       elif current_setpoint < target_setpoint:
-        current_setpoint = current_setpoint + 0.025
+        current_setpoint = current_setpoint + 0.05
         if current_setpoint > target_setpoint:
           current_setpoint = target_setpoint
+
+      current_dewpoint = get_dewpoint()
+      print('current dewpoint =', current_dewpoint)
+      current_setpoint = max(current_setpoint, current_dewpoint + 5.)
           
       current_setpoint = round(current_setpoint, 3)
       pid.setpoint = float(current_setpoint)

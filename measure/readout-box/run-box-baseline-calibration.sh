@@ -58,7 +58,8 @@ ln -sf $DIR/readout.maxthreshold.conf /au/conf/readout.conf
 ### bolognaScan
 /au/readout/scripts/bolognaScan.sh $DIR | tee $DIR/bolognaScan.log
 
-### link PCR files 
+### link PCR files
+mkdir -p /au/conf/pcr/dcr-setup
 ln -sf $DIR /au/conf/pcr/dcr-setup/.
 
 ### create baseline readout.conf

@@ -8,6 +8,7 @@ SOCK='/tmp/arduino_server.socket'
 parser = argparse.ArgumentParser()
 parser.add_argument('--temp', default=False, action="store_true", help="get temperature (C)")
 parser.add_argument('--rh', default=False, action="store_true", help="relative humidity (%)")
+parser.add_argument('--dew', default=False, action="store_true", help="dew point (C)")
 args = vars(parser.parse_args())
 
 if not any(args.values()):
