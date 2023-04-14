@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-COMMAND="/home/eic/alcor/alcor-utils/tti/plh250_server.py"
+COMMAND="/au/tti/plh250_server.py"
 PIDLOCK="/tmp/plh250_server.pid"
 
 ### check arduino server is running, otherwise start it
