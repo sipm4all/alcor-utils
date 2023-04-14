@@ -1,0 +1,23 @@
+#
+#  Bias Configuration Register file
+#
+#  This file contains settings of BCR fields for a given chip
+#  All lines starting with # are skipped
+#
+# the configuration can be loaded via:
+#  ./alcorInit.py connection2.xml kc705 -c [chip #] --bcrfile [filename]
+#
+# REG# |         BCR0-4
+#        cal     iTDC     iblatchTDC   dummy
+0         0       15          1        0   0   0
+2         0       15          1        0   0   0
+4         0       15          1        0   0   0
+6         0       15          1        0   0   0
+# REG# |         BCR1-7
+#        ib.2     ib.3   ib.sF    S0   Bit.boost  Bit.cg
+1         3       0        0        1        25        12
+3         3       0        0        1        25        12
+5         3       0        0        1        25        12
+7         3       0        0        1        25        12
+#
+#   --- don't add anything beyond this line
