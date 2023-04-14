@@ -1,0 +1,1 @@
+nohup python3 /au/flask/mini.py >& /dev/null < /dev/null &
