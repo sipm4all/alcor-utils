@@ -30,8 +30,8 @@ DELTA5="25"
 
 
 DATESTR="$(date +%Y%m%d-%H%M%S)"
-DIR=/home/eic/DATA/baselineScan/${DATESTR}
-ln -sfn /home/eic/DATA/baselineScan/${DATESTR} /home/eic/DATA/baselineScan/latest
+DIR=$HOME/DATA/baselineScan/${DATESTR}
+ln -sfn $HOME/DATA/baselineScan/${DATESTR} $HOME/DATA/baselineScan/latest
 mkdir -p $DIR
 
 echo " ---"

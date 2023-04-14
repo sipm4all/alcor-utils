@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-COMMAND="/home/eic/alcor/alcor-utils/tti/ql355p_server.py"
+COMMAND="/au/tti/ql355p_server.py"
 PIDLOCK="/tmp/ql355p_server.pid"
 
 ### check arduino server is running, otherwise start it

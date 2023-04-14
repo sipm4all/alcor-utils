@@ -5,7 +5,7 @@ if [ -x $1 ]; then
     exit
 fi
 
-COMMAND="/home/eic/alcor/alcor-utils/masterlogic/masterlogic_server.py --ml $1"
+COMMAND="/au/masterlogic/masterlogic_server.py --ml $1"
 PIDLOCK="/tmp/masterlogic_server_ml$1.pid"
 
 ### check masterlogic server is running, otherwise start it

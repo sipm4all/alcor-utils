@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-COMMAND="/home/eic/alcor/alcor-utils/tti/tsx1820p_server.py"
+COMMAND="/au/tti/tsx1820p_server.py"
 PIDLOCK="/tmp/tsx1820p_server.pid"
 
 ### check arduino server is running, otherwise start it

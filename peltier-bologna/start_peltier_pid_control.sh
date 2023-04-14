@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
-COMMAND="/home/eic/alcor/alcor-utils/peltier-bologna/peltier_pid_control.py"
-COMMAND="/home/eic/alcor/alcor-utils/peltier-bologna/peltier_pid_control_airbox.py" ### R+TEMP
+COMMAND="/au/peltier-bologna/peltier_pid_control.py"
+COMMAND="/au/peltier-bologna/peltier_pid_control_airbox.py" ### R+TEMP
 PIDLOCK="/tmp/peltier_pid_control.pid"
 
 ### check arduino server is running, otherwise start it

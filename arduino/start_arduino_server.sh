@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-COMMAND="/home/eic/alcor/alcor-utils/arduino/arduino_server.py"
+COMMAND="/au/arduino/arduino_server.py"
 PIDLOCK="/tmp/arduino_server.pid"
 
 ### check arduino server is running, otherwise start it
