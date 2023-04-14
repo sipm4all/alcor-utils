@@ -13,10 +13,10 @@ void draw(const char *dirname, const char *tagname, int chip, int channel, int v
   auto g = (TGraph*)gPad->GetPrimitive("Graph");//ListOfPrimitives()->Last();
   if (!g) return;
 
-  // find when we cross 1 Hz
+  // find when we cross 10 Hz going downwards
   int threshold = 63;
   for (int i = 0; i < g->GetN(); ++i) {
-    if (g->GetY()[i] > 1.) {
+    if (g->GetY()[i] > 10.) {
       threshold = g->GetX()[i];
       break;
     }
@@ -28,7 +28,7 @@ void draw(const char *dirname, const char *tagname, int chip, int channel, int v
 
   //  std::cout << threshold << std::endl;
   
-  if (threshold >= 3. && threshold < 60) thresholds[range].push_back( {threshold , {vth, offset} } );
+  if (threshold >= 10. && threshold < 20.) thresholds[range].push_back( {threshold , {vth, offset} } );
   
   g->SetName("Old");
   g->SetTitle(title);

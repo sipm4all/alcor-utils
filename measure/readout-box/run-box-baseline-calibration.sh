@@ -7,16 +7,17 @@ ENA3="0x0"
 ENA4="0x0"
 ENA5="0x0"
 
-#BCRCONF="standard.310"
-BCRCONF="high-capacitance.310"
+#BCRCONF="standard"
+BCRCONF="standard.300"
+#BCRCONF="high-capacitance.310"
 #BCRCONF="max-capacitance.310"
 #BCRCONF="low-capacitance.310"
 #BCRCONF="minus40c"
 
-RANGE0="0"
-RANGE1="0"
-RANGE2="0"
-RANGE3="0"
+RANGE0="1"
+RANGE1="1"
+RANGE2="1"
+RANGE3="1"
 RANGE4="3"
 RANGE5="3"
 
@@ -87,7 +88,8 @@ EOF
 ln -sf $DIR/readout.run.conf /au/conf/readout.run.conf
 
 ### link main readout.conf
-ln -sf /au/conf/readout.run.conf /au/conf/readout.conf
+#ln -sf /au/conf/readout.run.conf /au/conf/readout.conf
+ln -sf /au/conf/readout.baseline.conf /au/conf/readout.conf
 
 ### bolognaScan
 /au/readout/scripts/bolognaScan.sh $DIR final true | tee $DIR/bolognaScan.final.log

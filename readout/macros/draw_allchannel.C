@@ -71,7 +71,7 @@ draw_onechannel(const char *dirname, int chip, int channel, std::vector<std::str
 }
 
 void
-draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, std::vector<int> colors = {kBlack})
+draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, std::vector<int> colors = {kBlack}, bool eo = false)
 {
   style();
 
@@ -84,6 +84,10 @@ draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, st
   for (int channel = 0; channel < 32; ++channel) {
     auto icol = eo2do[channel] / 4;
     auto irow = 3 - eo2do[channel] % 4;
+    if (eo) {
+      icol = channel / 4 ;
+      irow = 3 - channel % 4;
+    }
     auto icanvas = irow * 8 + icol + 1;
     c->cd(icanvas);
     auto hframe = c->cd(icanvas)->DrawFrame(0., 2.e-1, 63., 5.e7, ";threshold (au);rate (Hz)");
@@ -106,6 +110,9 @@ draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, st
       }
   }
 
-  c->SaveAs(Form("%s/scanthr.chip_%d.png", dirname, chip));
+  if (eo)
+    c->SaveAs(Form("%s/scanthr.chip_%d.eo.png", dirname, chip));
+  else
+    c->SaveAs(Form("%s/scanthr.chip_%d.png", dirname, chip));
 
 }

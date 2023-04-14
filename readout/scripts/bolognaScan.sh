@@ -5,8 +5,8 @@ OUTDIR="${HOME}/DATA/scan/GIULIA/HAMA1_sn2/20220420/minus30c"
 TAGNAME="hvzero"
 FINAL_SCAN=false
 
-RANGEMIN=0    ### [0]
-RANGEMAX=0    ### [3]
+RANGEMIN=1    ### [0]
+RANGEMAX=1    ### [3]
 OFFSETMIN=0   ### [0]
 OFFSETMAX=7   ### [7]
 VTHMIN=0      ### [0]

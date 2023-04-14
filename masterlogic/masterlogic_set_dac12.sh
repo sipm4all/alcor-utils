@@ -19,4 +19,4 @@ while true; do
     fi
     break
 done
-$HOME/alcor/alcor-utils/masterlogic/masterlogic_dac12.sh $1
+#$HOME/alcor/alcor-utils/masterlogic/masterlogic_dac12.sh $1

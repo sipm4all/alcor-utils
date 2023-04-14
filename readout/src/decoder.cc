@@ -3,10 +3,13 @@
 #include <string>
 #include <boost/program_options.hpp>
 #include "TFile.h"
+#include "TH1F.h"
 #include "TTree.h"
 
 bool verbose = false;
 int integrated_rollover = 0;
+int integrated_spill = 0;
+int integrated_hits = 0;
 int rollover_counter = 0;//-1; // we start from -1 becaue the very first word is a rollover
 int frame = 0;
 
@@ -232,6 +235,7 @@ void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
         write_trigger_data(tout, fifo, 15, counter, rollover, coarse);
         ++word; ++pos;
         in_spill = false;
+	integrated_spill++;
 	rollover_counter = 0;
         break;
       }
@@ -249,6 +253,7 @@ void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
       hit = (alcor_hit_t *)word;
       if (verbose) printf(" 0x%08x -- hit (coarse=%d, fine=%d, column=%d, pixel=%d --> channel=%d)\n", *word, hit->coarse, hit->fine, hit->column, hit->pixel, hit->column * 4 + hit->pixel);
       write_alcor_data(tout, fifo, hit->column, hit->pixel, hit->tdc, rollover_counter, hit->coarse, hit->fine);
+      integrated_hits++;
       ++word; ++pos;
       
     }
@@ -340,6 +345,9 @@ int main(int argc, char *argv[])
   tout->Branch("rollover", &data.rollover, "rollover/I");
   tout->Branch("coarse", &data.coarse, "coarse/I");
   tout->Branch("fine", &data.fine, "fine/I");
+
+  /** output histograms **/
+  auto hCounters = new TH1F("hCounters", "", 3, 0, 3);
   
   /** loop over data **/
   buffer_header_t buffer_header;
@@ -374,6 +382,10 @@ int main(int argc, char *argv[])
 
   /** write tree and close output */
   tout->Write();
+  hCounters->SetBinContent(1, integrated_spill);
+  hCounters->SetBinContent(2, integrated_rollover);
+  hCounters->SetBinContent(3, integrated_hits);
+  hCounters->Write();
   fout->Close();
   
   /** close input file **/
