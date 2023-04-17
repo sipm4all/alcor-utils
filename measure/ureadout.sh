@@ -36,5 +36,5 @@ while [[ $# -gt 0 ]]; do
 done
 options="--timer 3200000 --integrated ${integrated} ${threshold_settings}"
 
-/au/readout/bin/ureadout --connection /au/etc/connection2.xml --output ${output} --chip ${chip} --channel ${eo_channel} ${options}
+timeout 600 /au/readout/bin/ureadout --connection /au/etc/connection2.xml --output ${output} --chip ${chip} --channel ${eo_channel} ${options}
 #./process.sh "pulser_on.loop_${LOOP}.vbias=${VBIAS}" ${CHIP} ${EOCHANNEL}

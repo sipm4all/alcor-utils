@@ -3,12 +3,15 @@
 ### standard measurement settings
 export AU_BIAS_VOLTAGES="35 37"  # [V]
 export AU_DELTA_THRESHOLDS="3 5"
-export AU_INTEGRATED="0.1"       # pulser_rate integration
-export AU_REPEAT=25              # pulse_rate repetitions
+export AU_INTEGRATED_MIN="0.001"   # min integration
+export AU_INTEGRATED_MAX="0.1"     # max integration
+export AU_COUNT_MAX="400"          # max counts
+export AU_REPEAT=25                # repetitions
 
 ### scan settings
 export AU_SCAN_BIAS_VOLTAGES=$(seq 30 0.5 38 | tr "\n" " ") # [V]
-export AU_SCAN_THRESHOLDS=$(seq 0 3 63 | tr "\n" " ")
+### R+SPEED export AU_SCAN_THRESHOLDS=$(seq 0 3 63 | tr "\n" " ")
+export AU_SCAN_THRESHOLDS=$(seq 0 1 63 | tr "\n" " ")
 
 ### scans to be performed
 export AU_SCANS="vbias threshold"
@@ -61,11 +64,14 @@ main()
     
     ### make sure firmware is fresh
     /au/firmware/program.sh new 210203A62F62A true
+#    /au/firmware/program.sh dev-200mhz 210203A62F62A true
     sleep 3
     
     ### reset masterlogic, we want it in good shape
-    /au/masterlogic/reset 2
-    /au/masterlogic/reset 3
+#    /au/masterlogic/reset 2
+#    /au/masterlogic/reset 3
+#    sleep 3
+    /au/tti/12v.on
     sleep 3
     /au/masterlogic/zero 2
     /au/masterlogic/zero 3
@@ -73,7 +79,6 @@ main()
     
     ### make sure ALCOR is on and pulser is off
     /au/tti/alcor.on
-    /au/tti/12v.on
     /au/tti/hv.on
     /au/pulser/off
     sleep 3
@@ -97,6 +102,16 @@ run-hama-setup()
     run-hama2-dcr-scan 3    
 }
 
+run-hama-a-setup()
+{
+    run-hama1-dcr-scan 2
+}
+
+run-hama-chip3-setup()
+{
+    run-hama1-dcr-scan 3
+}
+
 run-sensl-setup()
 {
     run-sensl-dcr-scan 2
@@ -104,10 +119,22 @@ run-sensl-setup()
 #    run-bcom-dcr-scan 3
 }
 
+run-hamalight-setup()
+{
+    run-hama1-light-dcr-scan 2
+#    run-bcom-dcr-scan 3
+}
+
+run-hama2light-setup()
+{
+    run-hama2-light-dcr-scan 2
+#    run-bcom-dcr-scan 3
+}
+
 run-fbk-setup()
 {
     run-fbk-dcr-scan 2
-    run-fbk-dcr-scan 3
+#    run-fbk-dcr-scan 3
 }
 
 run-hama1-dcr-scan()
@@ -126,16 +153,15 @@ run-hama1-dcr-scan()
     export AU_SCAN_BIAS_VOLTAGES=$HAMA1_EVEN_SCAN_BIAS_VOLTAGES
     for row in A C E G; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 46 62
     done
 
     export AU_BIAS_VOLTAGES=$HAMA1_ODD_BIAS_VOLTAGES
     export AU_SCAN_BIAS_VOLTAGES=$HAMA1_ODD_SCAN_BIAS_VOLTAGES
     for row in B D F H; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 46 62
     done
-
-    ### DRAW
-    /au/measure/2022-characterisation/draw_dcr_scan.sh $chip 46 62
     
     cd ..
 
@@ -156,17 +182,48 @@ run-hama1-light-dcr-scan()
     export AU_BIAS_VOLTAGES=$HAMA1_EVEN_BIAS_VOLTAGES
     export AU_SCAN_BIAS_VOLTAGES=$HAMA1_EVEN_SCAN_BIAS_VOLTAGES
     for row in A; do
-	scan_chip_row $chip $row
+	scan_chip_half_row $chip $row
     done
 
     export AU_BIAS_VOLTAGES=$HAMA1_ODD_BIAS_VOLTAGES
     export AU_SCAN_BIAS_VOLTAGES=$HAMA1_ODD_SCAN_BIAS_VOLTAGES
     for row in B; do
-	scan_chip_row $chip $row
+	scan_chip_half_row $chip $row
     done
 
     ### DRAW
     /au/measure/2022-characterisation/draw_dcr_scan.sh $chip 46 62
+    
+    cd ..
+
+}
+
+run-hama2-light-dcr-scan()
+{
+    chip=$1
+
+    echo " --- "
+    echo " --- running HAMA2L DCR scan on chip $chip "
+    echo " --- "
+    
+    mkdir -p HAMA2L-chip${chip}
+    cd HAMA2L-chip${chip}
+    export AU_CARRIER="hama2"
+
+    export AU_BIAS_VOLTAGES=$HAMA2_EVEN_BIAS_VOLTAGES
+    export AU_SCAN_BIAS_VOLTAGES=$HAMA2_EVEN_SCAN_BIAS_VOLTAGES
+    for row in A; do
+	scan_chip_half_row $chip $row
+    done
+
+    export AU_BIAS_VOLTAGES=$HAMA2_ODD_BIAS_VOLTAGES
+    export AU_SCAN_BIAS_VOLTAGES=$HAMA2_ODD_SCAN_BIAS_VOLTAGES
+    for row in B; do
+	scan_chip_half_row $chip $row
+    done
+
+    ### DRAW
+    /au/measure/2022-characterisation/draw_dcr_scan.sh $chip 34 47
     
     cd ..
 
@@ -188,17 +245,16 @@ run-hama2-dcr-scan()
     export AU_SCAN_BIAS_VOLTAGES=$HAMA2_EVEN_SCAN_BIAS_VOLTAGES
     for row in A C E G; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 34 47
     done
 
     export AU_BIAS_VOLTAGES=$HAMA2_ODD_BIAS_VOLTAGES
     export AU_SCAN_BIAS_VOLTAGES=$HAMA2_ODD_SCAN_BIAS_VOLTAGES
     for row in B D F H; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 34 47
     done
-    
-    ### DRAW
-    /au/measure/2022-characterisation/draw_dcr_scan.sh $chip 34 47
-    
+        
     cd ..
 
 }
@@ -219,16 +275,15 @@ run-sensl-dcr-scan()
     export AU_SCAN_BIAS_VOLTAGES=$SENSL_EVEN_SCAN_BIAS_VOLTAGES
     for row in A C E G; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 21.5 34.5
     done
 
     export AU_BIAS_VOLTAGES=$SENSL_ODD_BIAS_VOLTAGES
     export AU_SCAN_BIAS_VOLTAGES=$SENSL_ODD_SCAN_BIAS_VOLTAGES
     for row in B D F H; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 21.5 34.5
     done
-    
-    ### DRAW
-    /au/measure/2022-characterisation/draw_dcr_scan.sh $chip 21.5 34.5
     
     cd ..
 
@@ -250,16 +305,15 @@ run-fbk-dcr-scan()
     export AU_SCAN_BIAS_VOLTAGES=$FBK_EVEN_SCAN_BIAS_VOLTAGES
     for row in A C E; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 28 42
     done
 
     export AU_BIAS_VOLTAGES=$FBK_ODD_BIAS_VOLTAGES
     export AU_SCAN_BIAS_VOLTAGES=$FBK_ODD_SCAN_BIAS_VOLTAGES
     for row in B D F; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 28 42
     done
-    
-    ### DRAW
-    /au/measure/2022-characterisation/draw_dcr_scan.sh $chip 28 42
     
     cd ..
 
@@ -281,10 +335,8 @@ run-bcom-dcr-scan()
     export AU_SCAN_BIAS_VOLTAGES=$BCOM_SCAN_BIAS_VOLTAGES
     for row in A B C D E F G H; do
 	scan_chip_row $chip $row
+	/au/measure/2022-characterisation/draw_dcr_scan.sh $chip 23.5 37.5
     done
-    
-    ### DRAW
-    /au/measure/2022-characterisation/draw_dcr_scan.sh $chip 23.5 37.5
     
     cd ..
 
@@ -296,6 +348,17 @@ scan_chip_row()
     chip=$1
     row=$2
     for col in {1..4}; do
+	time -p /au/measure/2022-characterisation/dcr_scan.sh vbias $chip $row$col
+	time -p /au/measure/2022-characterisation/dcr_scan.sh threshold $chip $row$col
+    done
+}
+
+scan_chip_half_row()
+{    
+    ### scan sensors in the target row
+    chip=$1
+    row=$2
+    for col in {1..2}; do
 	time -p /au/measure/2022-characterisation/dcr_scan.sh vbias $chip $row$col
 	time -p /au/measure/2022-characterisation/dcr_scan.sh threshold $chip $row$col
     done

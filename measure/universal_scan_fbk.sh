@@ -12,12 +12,12 @@ EOCHANNEL=$(/au/readout/python/mapping.py --xy2eo $CHANNEL)
 DOCHANNEL=$(/au/readout/python/mapping.py --xy2do $CHANNEL)
 DAC12=$(echo "scale=0; $DOCHANNEL / 4" | bc -l)
 
-### temperature
-if [ -z "$AU_TEMPERATURE" ]; then
-    echo " --- AU_TEMPERATURE undefined "
+### sipm carrier
+if [ -z "$AU_CARRIER" ]; then
+    echo " --- AU_CARRIER undefined "
     exit 1
 fi
-TEMPERATURE=${AU_TEMPERATURE}
+CARRIER=${AU_CARRIER}
 
 ### pulse voltages [mV]
 if [ -z "$AU_PULSE_VOLTAGES" ]; then
@@ -27,11 +27,11 @@ fi
 PULSE_VOLTAGES=${AU_PULSE_VOLTAGES}
 
 ### sipm bias reference voltages [V]
-if [ -z "$AU_BIAS_REF_VOLTAGES" ]; then
-    echo " --- AU_BIAS_REF_VOLTAGES undefiend "
+if [ -z "$AU_BIAS_VOLTAGES" ]; then
+    echo " --- AU_BIAS_VOLTAGES undefiend "
     exit 1
 fi
-BIAS_REF_VOLTAGES=${AU_BIAS_REF_VOLTAGES}
+BIAS_VOLTAGES=${AU_BIAS_VOLTAGES}
 
 ### delta thresholds
 if [ -z "$AU_DELTA_THRESHOLDS" ]; then
@@ -75,49 +75,15 @@ if [ -z "$AU_UINTEGRATED" ]; then
 fi
 UINTEGRATED=${AU_UINTEGRATED}
 
-### check if this is a test scan
-if [[ "${SCAN}" == "test"* ]]; then
-
-    echo " --- this is a TEST "
-    
-    ### pulse voltages [mV]
-    if [ -z "$AU_TEST_PULSE_VOLTAGES" ]; then
-	echo " --- AU_TEST_PULSE_VOLTAGES undefined "
-	exit 1
-    fi
-    PULSE_VOLTAGES=${AU_TEST_PULSE_VOLTAGES}
-    
-    ### sipm bias reference voltages [V]
-    if [ -z "$AU_TEST_BIAS_REF_VOLTAGES" ]; then
-	echo " --- AU_TEST_BIAS_REF_VOLTAGES undefiend "
-	exit 1
-    fi
-    BIAS_REF_VOLTAGES=${AU_TEST_BIAS_REF_VOLTAGES}
-    
-    ### delta thresholds
-    if [ -z "$AU_TEST_DELTA_THRESHOLDS" ]; then
-	echo " --- AU_TEST_DELTA_THRESHOLDS undefined "
-	exit 1
-    fi
-    DELTA_THRESHOLDS=${AU_TEST_DELTA_THRESHOLDS}
-    
-    ### frequencies [kHz]
-    if [ -z "$AU_TEST_PULSE_FREQUENCIES" ]; then
-	echo " --- AU_TEST_PULSE_FREQUENCIES undefined "
-	exit 1
-    fi
-    PULSE_FREQUENCIES=${AU_TEST_PULSE_FREQUENCIES}
-    
-fi
 
 ### change variables depending on scan type
 case $SCAN in
     *vbias)
-	if [ -z "$AU_SCAN_BIAS_REF_VOLTAGES" ]; then
-	    echo " --- AU_SCAN_BIAS_REF_VOLTAGES undefined "
+	if [ -z "$AU_SCAN_BIAS_VOLTAGES" ]; then
+	    echo " --- AU_SCAN_BIAS_VOLTAGES undefined "
 	    exit 1
 	fi
-	BIAS_REF_VOLTAGES=${AU_SCAN_BIAS_REF_VOLTAGES}
+	BIAS_VOLTAGES=${AU_SCAN_BIAS_VOLTAGES}
 	THRESHOLDS=${DELTA_THRESHOLDS}
 	THRESHOLD_SETTINGS="--delta_threshold"
 	;;
@@ -155,7 +121,7 @@ BASE_THRESHOLD=$(/au/measure/get_threshold.sh $CHIP $CHANNEL)
 echo " --- starting loops for ${SCAN} scan " 
 echo "     PULSE_FREQUENCIES: ${PULSE_FREQUENCIES} "
 echo "     PULSE_VOLTAGES: ${PULSE_VOLTAGES} "
-echo "     BIAS_REF_VOLTAGES: ${BIAS_REF_VOLTAGES} "
+echo "     BIAS_VOLTAGES: ${BIAS_VOLTAGES} "
 echo "     THRESHOLDS: ${THRESHOLDS} "
 echo " --- "
 echo "     BASE_THRESHOLD: ${BASE_THRESHOLD} "
@@ -187,11 +153,11 @@ for PULSE_FREQUENCY in $PULSE_FREQUENCIES; do
 	fi
 	
 	### loop over Vbias values
-	for BIAS_REF_VOLTAGE in $BIAS_REF_VOLTAGES; do
+	for BIAS_VOLTAGE in $BIAS_VOLTAGES; do
 	    
 	    ### set Vbias
-	    BIAS_VOLTAGE=$(/au/hvsetup/hv-calib/hvcalib-bo-hama1.sh $TEMPERATURE $BIAS_REF_VOLTAGE | grep vbias | awk '{print $2}')
-	    BIAS_DAC=$(/au/hvsetup/hv-calib/hvcalib-bo-hama1.sh $TEMPERATURE $BIAS_REF_VOLTAGE | grep dac | awk '{print $2}')
+	    BIAS_DAC=$(/au/masterlogic/hvcalib/hvcalib-malaguti-$CARRIER.sh $BIAS_VOLTAGE | grep dac | awk '{print $2}')
+
 	    if [ -z "$AU_DRYRUN" ]; then
 #		/au/masterlogic/set $CHIP $BIAS_DAC
 #		/au/masterlogic/wait

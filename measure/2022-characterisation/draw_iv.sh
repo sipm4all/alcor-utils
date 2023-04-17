@@ -11,8 +11,7 @@ root -b -q -l "/home/eic/alcor/alcor-utils/measure/2022-characterisation/draw_iv
 ### send email
 
 attachments="ivmap.png ivall.png"
-#recipients="roberto.preghenella@bo.infn.it nicola.rubini@bo.infn.it"
-recipients="roberto.preghenella@bo.infn.it"
+recipients="roberto.preghenella@bo.infn.it nicola.rubini@bo.infn.it luigipio.rignanese@bo.infn.it"
 mail -r eicdesk01@bo.infn.it \
      -s "[IV scan] $(basename "`pwd`")" \
      $(for i in $recipients; do echo "$i,"; done) \

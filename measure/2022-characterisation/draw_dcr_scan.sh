@@ -5,8 +5,7 @@ root -b -q -l "/home/eic/alcor/alcor-utils/measure/2022-characterisation/draw_dc
 ### send email
 
 attachments="cmap.png call.png cpro.png"
-#recipients="roberto.preghenella@bo.infn.it nicola.rubini@bo.infn.it"
-recipients="roberto.preghenella@bo.infn.it"
+recipients="roberto.preghenella@bo.infn.it nicola.rubini@bo.infn.it luigipio.rignanese@bo.infn.it chiara.fraticelli2@studio.unibo.it"
 mail -r eicdesk01@bo.infn.it \
      -s "[DCR scan] $(basename "`pwd`")" \
      $(for i in $recipients; do echo "$i,"; done) \

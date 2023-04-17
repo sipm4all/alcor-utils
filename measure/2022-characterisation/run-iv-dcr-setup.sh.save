@@ -1,0 +1,100 @@
+#! /usr/bin/env bash
+
+TYPE=""
+STEP=""
+
+if [ -z $1 ] || [ -z $2 ] || [ -z $3 ] ; then
+    echo "usage: $0 [NEW/IRR/ANN] [STEP] [DATETIME]"
+    exit 1
+fi
+TYPE=$1
+STEP=$2
+DATETIME=$(date +%Y%m%d-%H%M%S)
+
+DIRNAME=/home/eic/DATA/2022-characterisation/actual/$DATETIME/$TYPE/$STEP
+
+WHAT_IV_SETUP=""
+WHAT_DCR_SETUP=""
+case $STEP in
+    "1")
+	WHAT_IV_SETUP="run-hama-setup"
+	WHAT_DCR_SETUP="run-fbk-setup"
+	;;
+    
+    "2")
+	WHAT_IV_SETUP="run-sensl-setup"
+	WHAT_DCR_SETUP="run-hama-setup"
+	;;
+    
+    "3")
+	WHAT_IV_SETUP="run-fbk-setup"	
+	WHAT_DCR_SETUP="run-sensl-setup"	
+	;;
+    
+    *)
+	echo " invalid step: $2 "
+	exit 1
+	;;
+esac
+
+### check token
+if [ -f "/tmp/run-iv-dcr-setup.running" ]; then
+    echo " --- there is already a running IV-DCR setup"
+    exit 1
+fi
+echo "$$ $DIRNAME" > /tmp/run-iv-dcr-setup.running
+
+### make sure RH and temperature are reached
+/au/memmert/memmert_reached_rh.sh 5.0
+/au/memmert/set --temp -30
+/au/memmert/wait --delta 2 --time 1800 --sleep 5
+
+###################################################################
+
+echo " --- "
+echo " --- START "
+echo " --- "
+echo "$(date +%s) | $(date) "
+
+echo " ------------------------------ "
+echo $DIRNAME
+echo " ------------------------------ "
+
+IVDIRNAME=$DIRNAME/iv
+DCRDIRNAME=$DIRNAME/dcr
+
+### run iv setup
+mkdir -p $IVDIRNAME
+cd $IVDIRNAME
+echo " --- starting IV setup: /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP}"
+nohup /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP} &> run-iv-setup.log < /dev/null &
+cd - &> /dev/null
+
+### run dcr setup
+mkdir -p $DCRDIRNAME
+cd $DCRDIRNAME
+echo " --- starting DCR setup: /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP}"
+nohup /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP} &> run-dcr-setup.log < /dev/null &
+cd - &> /dev/null
+
+echo " --- waiting for processes to complete "
+wait
+
+### switch off everything
+/au/tti/alcor.off
+/au/tti/hv.off
+/au/tti/12v.off
+/home/eic/alcor/sipm4eic/characterisation/keithley/checkcomm.py
+sleep 2
+
+### go back to 20 C 
+/au/memmert/set --temp 20
+/au/memmert/wait --delta 2 --time 1800 --sleep 5
+
+### clean token
+rm -rf /tmp/run-iv-dcr-setup.running
+
+echo " --- "
+echo " --- DONE "
+echo " --- "
+echo "$(date +%s) | $(date) "

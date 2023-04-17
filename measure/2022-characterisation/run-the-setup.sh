@@ -21,9 +21,35 @@ case $STEP in
 	WHAT_DCR_SETUP="run-fbk-setup"
 	;;
     
+    "1iv")
+	WHAT_IV_SETUP="run-hama-setup"
+	;;
+    
+    "1a")
+	WHAT_IV_SETUP="run-hama-a-setup"
+	;;
+    
+    "1chip3")
+	WHAT_DCR_SETUP="run-hama-chip3-setup"
+	;;
+    
+    "1s")
+	WHAT_IV_SETUP="run-fbk-setup"
+	WHAT_DCR_SETUP="run-hama-setup"
+	;;
+    
     "2")
 	WHAT_IV_SETUP="run-sensl-setup"
 	WHAT_DCR_SETUP="run-hama-setup"
+	;;
+    
+    "2a")
+	WHAT_DCR_SETUP="run-hama-a-setup"
+	;;
+    
+    "2L")
+	WHAT_IV_SETUP="run-hamalight-setup"
+	WHAT_DCR_SETUP=""
 	;;
     
     "3")
@@ -31,8 +57,23 @@ case $STEP in
 	WHAT_DCR_SETUP="run-sensl-setup"	
 	;;
     
+    "3L")
+	WHAT_IV_SETUP=""	
+	WHAT_DCR_SETUP="run-hamalight-setup"	
+	;;
+    
     "4")
 	WHAT_LED_SETUP="run-hama1-setup"	
+	;;
+    
+    "5")
+#	WHAT_IV_SETUP="run-bcom-setup"	
+	WHAT_DCR_SETUP="run-hamalight-setup"	
+#	WHAT_DCR_SETUP="run-sensl-setup"	
+	;;
+    
+    "6")
+	WHAT_DCR_SETUP="run-hama2light-setup"	
 	;;
     
     *)
@@ -56,7 +97,7 @@ echo " --- "
 
 ### make sure LED is on reference before lowering temperature
 echo " --- move to reference sensor: /au/standa/move_to_reference.sh "
-/au/standa/move_to_reference.sh &> move_to_reference.log
+#/au/standa/move_to_reference.sh &> move_to_reference.log
 
 ### make sure RH and temperature are reached
 echo " --- go to -30 C: /au/memmert/memmert_go_to_minus_30.sh "
@@ -79,7 +120,7 @@ if [ ! -x $WHAT_IV_SETUP ]; then
     mkdir -p $IVDIRNAME
     cd $IVDIRNAME
     echo " --- starting IV setup: /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP}"
-    nohup /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP} &> run-iv-setup.log < /dev/null &
+    nohup time -p /au/measure/2022-characterisation/run-iv-setup.sh ${WHAT_IV_SETUP} &> run-iv-setup.log < /dev/null &
     cd - &> /dev/null
 fi
 
@@ -88,7 +129,7 @@ if [ ! -x $WHAT_DCR_SETUP ]; then
     mkdir -p $DCRDIRNAME
     cd $DCRDIRNAME
     echo " --- starting DCR setup: /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP}"
-    nohup /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP} &> run-dcr-setup.log < /dev/null &
+    nohup time -p /au/measure/2022-characterisation/run-dcr-setup.sh ${WHAT_DCR_SETUP} &> run-dcr-setup.log < /dev/null &
     cd - &> /dev/null
 fi
 
@@ -97,7 +138,7 @@ if [ ! -x $WHAT_LED_SETUP ]; then
     mkdir -p $LEDDIRNAME
     cd $LEDDIRNAME
     echo " --- starting LED setup: /au/measure/2022-characterisation/run-led-scan.sh ${WHAT_LED_SETUP}"
-    nohup /au/measure/2022-characterisation/run-led-scan.sh ${WHAT_DCR_SETUP} &> run-led-scan.log < /dev/null &
+    nohup time -p /au/measure/2022-characterisation/run-led-scan.sh ${WHAT_DCR_SETUP} &> run-led-scan.log < /dev/null &
     cd - &> /dev/null
 fi
 

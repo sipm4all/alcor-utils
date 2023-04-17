@@ -44,13 +44,29 @@ if [ -z "$AU_REPEAT" ]; then
 fi
 REPEAT=${AU_REPEAT}
 
-### pulse_rate integrated
-if [ -z "$AU_INTEGRATED" ]; then
-    echo " --- AU_INTEGRATED undefined "
+### min integrated time
+if [ -z "$AU_INTEGRATED_MIN" ]; then
+    echo " --- AU_INTEGRATED_MIN undefined "
     exit 1
 fi
-INTEGRATED=${AU_INTEGRATED}
-MIN_TIMER=$(bc -l <<< "scale=0; (32000000 * $INTEGRATED) / 1")
+INTEGRATED_MIN=${AU_INTEGRATED_MIN}
+MIN_TIMER=$(bc -l <<< "scale=0; (32000000 * $INTEGRATED_MIN) / 1")
+
+### max integrated time
+if [ -z "$AU_INTEGRATED_MAX" ]; then
+    echo " --- AU_INTEGRATED_MAX undefined "
+    exit 1
+fi
+INTEGRATED_MAX=${AU_INTEGRATED_MAX}
+MAX_TIMER=$(bc -l <<< "scale=0; (32000000 * $INTEGRATED_MAX) / 1")
+
+### max counts
+if [ -z "$AU_COUNT_MAX" ]; then
+    echo " --- AU_COUNT_MAX undefined "
+    exit 1
+fi
+COUNT_MAX=${AU_COUNT_MAX}
+MAX_COUNT=$COUNT_MAX
 
 ### change variables depending on scan type
 case $SCAN in
@@ -92,7 +108,9 @@ echo " --- "
 echo "     BASE_THRESHOLD: ${BASE_THRESHOLD} "
 echo "     THRESHOLD_SETTINGS: ${THRESHOLD_SETTINGS} "
 echo "     REPEAT: ${REPEAT} "
-echo "     INTEGRATED: ${INTEGRATED} "
+echo "     INTEGRATED_MIN: ${INTEGRATED_MIN} "
+echo "     INTEGRATED_MAX: ${INTEGRATED_MAX} "
+echo "     COUNT_MAX: ${COUNT_MAX} "
 echo " --- "
 
 ### switch on HV
@@ -126,7 +144,7 @@ for BIAS_VOLTAGE in $BIAS_VOLTAGES; do
 	
 	if [ -z "$AU_DRYRUN" ]; then
 	    for i in $(seq 1 $REPEAT); do
-		OUTPUT=$(/au/measure/rate.sh $CHIP $CHANNEL $THRESHOLD_SETTINGS $THRESHOLD --min_timer $MIN_TIMER)
+		OUTPUT=$(/au/measure/rate.sh $CHIP $CHANNEL $THRESHOLD_SETTINGS $THRESHOLD --min_timer $MIN_TIMER --max_timer $MAX_TIMER --max_count $MAX_COUNT)
 		[ -z "$OUTPUT" ] && continue
 		echo "bias_voltage = ${BIAS_VOLTAGE} bias_dac = ${BIAS_DAC} base_threshold = ${BASE_THRESHOLD} ${OUTPUT}" | tee -a $FILENAME
 	    done

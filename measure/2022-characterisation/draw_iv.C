@@ -1,6 +1,6 @@
 #include "/home/eic/alcor/sipm4eic/characterisation/macros/makeiv.C"
 
-std::map< std::string, std::pair<float, float> > vrange = { {"HAMA1_sn2_243K", {44., 64.}}, {"HAMA2_sn2_243K", {32., 52.}}, {"BCOM_sn1_243K", {20., 40.}}, {"SENSL_sn1_243K", {20., 40.}}, {"FBK_sn1_243K", {26., 46.}}, {"FBK_sn2_243K", {26., 46.}} };
+std::map< std::string, std::pair<float, float> > vrange = { {"HAMA1_sn2_243K", {44., 64.}}, {"HAMA1_sn4_243K", {44., 64.}}, {"HAMA2_sn2_243K", {32., 52.}}, {"BCOM_sn1_243K", {20., 40.}}, {"SENSL_sn1_243K", {20., 40.}}, {"FBK_sn1_243K", {26., 46.}}, {"FBK_sn2_243K", {26., 46.}}, {"BCOM_sn2_243K", {20., 45.}} };
 
 void
 draw_iv(std::string dirname, std::string tagname, float vmin = -1., float vmax = -1.)

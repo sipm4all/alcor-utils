@@ -36,7 +36,8 @@ done < $listname
 
 wait
 
-for I in `find ureadout/vbias_scan -name ureadout.repeat_1.*.coincidence.root`; do
+#for I in `find ureadout/vbias_scan -name ureadout.repeat_1.*.coincidence.root`; do
+for I in `grep "repeat_1" $listname | awk {'print $3'}`; do
     dir=$(dirname $I)
     hadd -f $dir/coincidence.root $dir/ureadout.repeat_*.*.coincidence.root
 done

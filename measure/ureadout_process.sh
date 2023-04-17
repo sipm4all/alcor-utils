@@ -33,6 +33,8 @@ for fifo in alcor trigger; do
 	rm $what.root
 done
 
-hadd -f ${filename}.miniframe.root ${filename}.*.miniframe.root && rm -rf ${filename}.*.miniframe.root
-root -b -q -l "coincidence.C(\"${filename}.miniframe.root\", ${chip}, ${eo_channel})" && rm -rf ${filename}.miniframe.root
+hadd -f ${filename}.miniframe.root ${filename}.*.miniframe.root && \
+    root -b -q -l "coincidence.C(\"${filename}.miniframe.root\", ${chip}, ${eo_channel})" && \
+    rm -rf ${filename}.miniframe.root && rm -rf ${filename}.*.miniframe.root
 
+exit 0

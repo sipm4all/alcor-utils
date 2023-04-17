@@ -47,6 +47,14 @@ run-hama-setup()
     run_scan HAMA2 2 2 ### board, serial, mux
 }
 
+run-hama-a-setup()
+{
+    ### HAMA1
+    ROWS="A B C D E F G H"
+    COLS="1 2 3 4"
+    run_scan HAMA1 2 1 ### board, serial, mux
+}
+
 run-sensl-setup()
 {
     ### BCOM/SENSL (nein)
@@ -61,13 +69,32 @@ run-sensl-setup()
     run_scan HAMA1 4 2 ### board, serial, mux
 }
 
+run-hamalight-setup()
+{
+    ### BCOM/SENSL (nein)
+    ### BCOM/HAMA1L
+
+    ROWS="A B"
+    COLS="1 2"
+    run_scan HAMA1 4 2 ### board, serial, mux
+}
+
+run-bcom-setup()
+{
+    ROWS="A B C D E F G H"
+    COLS="1 2 3 4"
+    run_scan BCOM 1 1 ### board, serial, mux
+#    run_scan BCOM 2 2 ### board, serial, mux
+}
+
 run-fbk-setup()
 {
     ### FBK
     ROWS="A B C D E F"
     COLS="1 2 3 4"
     run_scan FBK 1 1 ### board, serial, mux
-    run_scan FBK 2 2 ### board, serial, mux
+#    run_scan FBK 2 2 ### board, serial, mux
+
 }
 
 run_scan()

@@ -12,11 +12,13 @@ if [ ! -z "$AU_DRYRUN" ]; then
     exit
 fi
 
+### start ureadout process
+nohup time -p /au/measure/ureadout_process_list.sh ureadout/vbias_scan/process.list &> ureadout_process_list.log < /dev/null &
+
 ### send .root and .png files via email
 
 attachments=$(ls rate/*/*.root rate/*/*.png)
-#recipients="roberto.preghenella@bo.infn.it nicola.rubini@bo.infn.it"
-recipients="roberto.preghenella@bo.infn.it"
+recipients="roberto.preghenella@bo.infn.it nicola.rubini@bo.infn.it luigipio.rignanese@bo.infn.it"
 mail -r eicdesk01@bo.infn.it \
      -s "[Completed] $(basename "`pwd`")" \
      $(for i in $recipients; do echo "$i,"; done) \
