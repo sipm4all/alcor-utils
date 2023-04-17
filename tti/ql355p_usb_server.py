@@ -98,7 +98,10 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         thedata += 'ql355p_server,source=CH1,name=VOUT value=' + V1O + '\n'
         thedata += 'ql355p_server,source=CH1,name=IOUT value=' + I1O
         print(thedata)
-        session.post(url, data=thedata.encode())
+        try:
+          session.post(url, data=thedata.encode())
+        except Exception as e:
+          print(e)
         timedout1 = 0
       timedout1 += 1
         
@@ -119,7 +122,10 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         thedata += 'ql355p_server,source=CH2,name=VOUT value=' + V2O + '\n'
         thedata += 'ql355p_server,source=CH2,name=IOUT value=' + I2O
         print(thedata)
-        session.post(url, data=thedata.encode())
+        try:
+          session.post(url, data=thedata.encode())
+        except Exception as e:
+          print(e)
         timedout2 = 0
       timedout2 +=1
 
@@ -137,7 +143,10 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         thedata += 'ql355p_server,source=AUX,name=VOUT value=' + V3O + '\n'
         thedata += 'ql355p_server,source=AUX,name=IOUT value=' + I3O
         print(thedata)
-        session.post(url, data=thedata.encode())
+        try:
+          session.post(url, data=thedata.encode())
+        except Exception as e:
+          print(e)
         timedout3 = 0
       timedout3 += 1
       

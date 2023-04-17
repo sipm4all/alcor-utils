@@ -90,7 +90,10 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         thedata_rh = 'arduino_server,source=arduino,name=rh value=' + rh
         thedata = thedata_temperature + '\n' + thedata_rh
         print(thedata)
-        session.post(url, data=thedata.encode())
+        try:
+          session.post(url, data=thedata.encode())
+        except Exception as e:
+          print(e)
         timedout = 0
       timedout += 1
 
