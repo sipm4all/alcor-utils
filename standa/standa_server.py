@@ -70,6 +70,13 @@ def gets():
   retval['CRC'] = int_from_bytes(data[52:53])
   return retval
 
+def rest():
+  if locked:
+    return 'locked'
+  ser.write('rest'.encode())
+  data = ser.read(4)
+  return data.decode()
+
 def home():
   if locked:
     return 'locked'
@@ -148,6 +155,7 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
                     command = command.split()
                     if command[0]   == 'lock':   data = lock()
                     elif command[0] == 'unlock': data = unlock()
+                    elif command[0] == 'rest':   data = rest()
                     elif command[0] == 'home':   data = home()
                     elif command[0] == 'zero':   data = zero()
                     elif command[0] == 'stop':   data = stop()
