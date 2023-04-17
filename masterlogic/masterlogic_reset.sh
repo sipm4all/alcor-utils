@@ -2,6 +2,6 @@
 
 DEV=/dev/ML$1
 sudo /au/usb/usbreset $(/au/usb/find_usb_device.sh $DEV | grep path | awk {'print $2'})
-sleep 3
+sleep 30
 
 /au/masterlogic/start_masterlogic_server.sh $1
