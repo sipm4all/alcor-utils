@@ -11,3 +11,4 @@ if [ $(ps -ef | grep memmert_server.py | grep python3 | wc -l ) = "0" ]; then
 fi
 
 ### check communication is healty, otherwise kill, reset and restart
+/home/eic/alcor/alcor-utils/memmert/memmert_keep_alive.sh
