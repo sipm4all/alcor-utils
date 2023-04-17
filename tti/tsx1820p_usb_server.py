@@ -83,7 +83,10 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         thedata += 'tsx1820p_server,source=CH1,name=VOUT value=' + V1O + '\n'
         thedata += 'tsx1820p_server,source=CH1,name=IOUT value=' + I1O
         print(thedata)
-        session.post(url, data=thedata.encode())
+        try:
+          session.post(url, data=thedata.encode())
+        except Exception as e:
+          print(e)
         timedout = 0
       timedout += 1
 

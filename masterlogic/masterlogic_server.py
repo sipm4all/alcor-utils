@@ -84,7 +84,10 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         thedata = 'masterlogic_server,source=ml' + theml + ',name=temperature value=' + temperature
         print(thedata)
         old_temperature = temperature
-        session.post(url, data=thedata.encode())
+        try:
+          session.post(url, data=thedata.encode())
+        except Exception as e:
+          print(e)
         timedout = 0
       timedout += 1
 
@@ -105,8 +108,9 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
           
       thedata = thedata[:-1]
       print(thedata)
-      session.post(url, data=thedata.encode())
-
-        
+      try:
+        session.post(url, data=thedata.encode())
+      except Exception as e:
+        print(e)
         
 ser.close()
