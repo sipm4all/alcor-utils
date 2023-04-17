@@ -2,7 +2,7 @@
 
 ### prepare the data for the tree
 echo "timestamp/D:temp/F:rh/F" > /home/eic/DATA/dht22/dht22_tree.dat
-grep -vh OK /home/eic/DATA/dht22/2022*.dht22_monitor.log | grep -vih err /home/eic/DATA/dht22/2022*.dht22_monitor.log >> /home/eic/DATA/dht22/dht22_tree.dat
+grep -vh OK /home/eic/DATA/dht22/2023*.dht22_monitor.log | grep -vih err /home/eic/DATA/dht22/2023*.dht22_monitor.log >> /home/eic/DATA/dht22/dht22_tree.dat
 
 ### prepare directory for plots
 mkdir -p /home/eic/DATA/dht22/PNG

@@ -27,7 +27,7 @@ draw_dht22(const char *fname, int seconds = kMaxInt, float tmin = 0., float tmax
 
   c->cd(1);
   
-  t.Draw("temp:timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
+  t.Draw("temp:timestamp", Form("abs(temp) < 100 && timestamp > %d", tsf - seconds), "same,l");
   g = (TGraph*)gPad->GetPrimitive("Graph");
   g->SetName("TEMP");
   g->SetTitle("TEMP");
@@ -39,7 +39,7 @@ draw_dht22(const char *fname, int seconds = kMaxInt, float tmin = 0., float tmax
   
   auto gsave = g;
 
-  t.Draw("rh:timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
+  t.Draw("rh:timestamp", Form("abs(rh) < 100 && timestamp > %d", tsf - seconds), "same,l");
   g = (TGraph*)gPad->GetPrimitive("Graph");
   g->SetName("RH");
   g->SetTitle("RH");
@@ -61,7 +61,7 @@ draw_dht22(const char *fname, int seconds = kMaxInt, float tmin = 0., float tmax
     auto dp = c * ga / (b - ga);
   */
 
-  t.Draw("257.14 * ( log(rh / 100.) + 18.678 * temp / (257.14 + temp) ) / (18.678 - ( log(rh / 100.) + 18.678 * temp / (257.14 + temp) )) : timestamp", Form("timestamp > %d", tsf - seconds), "same,l");
+  t.Draw("257.14 * ( log(rh / 100.) + 18.678 * temp / (257.14 + temp) ) / (18.678 - ( log(rh / 100.) + 18.678 * temp / (257.14 + temp) )) : timestamp", Form("abs(temp) < 100 && abs(rh) < 100 && timestamp > %d", tsf - seconds), "same,l");
   g = (TGraph*)gPad->GetPrimitive("Graph");
   g->SetName("DEW");
   g->SetLineWidth(3);
