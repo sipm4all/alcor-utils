@@ -13,7 +13,7 @@
 
 struct program_options_t {
   std::string connection_filename, device_id, tag;
-  int chip, channel, max_timer, min_timer, usleep, udelay, threshold, vth, range, offset1, delta_threshold;
+  int chip, channel, max_timer, min_timer, max_counts, usleep, udelay, threshold, vth, range, offset1, delta_threshold;
   bool skip_user_settings, verbose, dump;
 };
 
@@ -44,7 +44,8 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("chip"             , po::value<int>(&opt.chip)->required(), "ALCOR chip")
       ("channel"          , po::value<int>(&opt.channel)->required(), "ALCOR channel number")
       ("min_timer"        , po::value<int>(&opt.min_timer)->default_value(32000), "Minimum number of timer")
-      ("max_timer"        , po::value<int>(&opt.max_timer)->default_value(32000000), "Maximum number of timer")
+      ("max_counts"       , po::value<int>(&opt.max_counts)->default_value(100), "Maximum number of counts")
+      ("max_timer"        , po::value<int>(&opt.max_timer)->default_value(3200000), "Maximum number of timer")
       ("usleep"           , po::value<int>(&opt.usleep)->default_value(1000), "Microsecond sleep")
       ("udelay"           , po::value<int>(&opt.usleep)->default_value(10000), "Microdelay sleep")
       ("threshold"        , po::value<int>(&opt.threshold)->default_value(-1), "ALCOR threshold value")
@@ -137,11 +138,11 @@ int main(int argc, char *argv[])
   // reset/read loop until minimum counts/timer achieved
   int sum_occupancy = 0, sum_timer = 0, sum_loops = 0;
   bool broken = false;
-  while (sum_timer < opt.min_timer) {
+  while (true) {
     
     // reset
-    //    alcor.fifo[lane].reset->write(0x1);
-    //    hardware.dispatch();
+    alcor.fifo[lane].reset->write(0x1);
+    hardware.dispatch();
     
     // sleep at least a few useconds
     usleep(opt.usleep);
@@ -162,7 +163,7 @@ int main(int argc, char *argv[])
 	//	printf(" %08x ", fifo_data.value()[i]);
 	// check if corrupted
 	if ( (fifo_data.value()[i] & chmask) != chtag ) {
-	  //	  std::cout << " corrupted " << std::endl;
+	  std::cerr << " --- corrupted: " << std::hex << fifo_data.value()[i] << std::dec << std::endl;
 	  return -1;
 	}
 	// check if broken
@@ -173,16 +174,28 @@ int main(int argc, char *argv[])
       }
 
       // check if broken
-      if (broken)
+      if (broken) {
+	std::cerr << " --- broken " << std::endl;
 	break;
+      }
 
     }
     
     // increment counters if not broken
     sum_occupancy += fifo_occupancy_value;
-    //    sum_timer += fifo_timer_value;
-    sum_timer = fifo_timer_value;
+    sum_timer += fifo_timer_value;
+    //    sum_timer = fifo_timer_value;
     sum_loops++;
+
+    if (sum_timer < opt.min_timer) continue;
+    if (sum_occupancy > opt.max_counts) {
+      std::cerr << " --- max_counts " << std::endl;
+      break;
+    }
+    if (sum_timer > opt.max_timer) {
+      std::cerr << " --- max_timer " << std::endl;
+      break;
+    }
     
   }
   
