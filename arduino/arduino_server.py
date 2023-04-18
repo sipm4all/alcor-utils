@@ -4,6 +4,7 @@ import socket
 import sys
 import os
 import serial
+import math
 
 timedout = 0
 old_temperature = 666
@@ -40,6 +41,13 @@ def read_rh():
     if data[0] == 'Humidity=':
       return data[1]
 
+def read_dew():
+  temp = float(read_temp())
+  rh = float(read_rh())
+  gamma = math.log(rh / 100.) + 17.67 * temp / (243.5 + temp)
+  dew = gamma * 243.5 / (17.67 - gamma)
+  return str(dew)
+    
 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
     s.bind(SOCK)
     s.listen()
@@ -60,6 +68,8 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
               data = read_temp()
             elif command == 'rh':
               data = read_rh();
+            elif command == 'dew':
+              data = read_dew();
             elif command == 'both':
               data = read_temp() + " " + read_rh();
             else:
@@ -80,7 +90,10 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         thedata_rh = 'arduino_server,source=arduino,name=rh value=' + rh
         thedata = thedata_temperature + '\n' + thedata_rh
         print(thedata)
-        session.post(url, data=thedata.encode())
+        try:
+          session.post(url, data=thedata.encode())
+        except Exception as e:
+          print(e)
         timedout = 0
       timedout += 1
 
