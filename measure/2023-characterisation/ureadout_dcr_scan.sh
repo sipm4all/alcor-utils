@@ -17,6 +17,13 @@ echo " --- "
 echo " --- running ureadout DCR $SCAN scan: chip $CHIP channel $CHANNEL "
 echo " --- "
 
+### op mode
+if [ -z "$AU_OPMODE" ]; then
+    echo " --- AU_OPMODE undefined "
+    exit 1
+fi
+OPMODE=${AU_OPMODE}
+
 ### sipm carrier
 if [ -z "$AU_CARRIER" ]; then
     echo " --- AU_CARRIER undefined "
@@ -52,6 +59,28 @@ if [ -z "$AU_INTEGRATED" ]; then
 fi
 INTEGRATED=${AU_INTEGRATED}
 
+### delete raw data
+DELETE_RAW_DATA=true
+if [ -z "$AU_DELETE_RAW_DATA" ]; then
+    echo " --- AU_DELETE_RAW_DATA undefined "
+    exit 1
+fi
+DELETE_RAW_DATA=${AU_DELETE_RAW_DATA}
+
+### delete decoded data
+if [ -z "$AU_DELETE_DECODED_DATA" ]; then
+    echo " --- AU_DELETE_DECODED_DATA undefined "
+    exit 1
+fi
+DELETE_DECODED_DATA=${AU_DELETE_DECODED_DATA}
+
+### run analysis
+if [ -z "$AU_RUN_ANALYSIS" ]; then
+    echo " --- AU_RUN_ANALYSIS undefined "
+    exit 1
+fi
+RUN_ANALYSIS=${AU_RUN_ANALYSIS}
+
 ### change variables depending on scan type
 case $SCAN in
     *vbias)
@@ -83,12 +112,14 @@ cd $DIRNAME
 
 echo " --- starting loops for ${SCAN} scan " 
 echo "     BIAS_VOLTAGES: ${BIAS_VOLTAGES} "
-echo "     THRESHOLDS: ${THRESHOLDS} "
+echo "     DELTA_THRESHOLDS: ${DELTA_THRESHOLDS} "
 echo " --- "
 echo "     BASE_THRESHOLD: ${BASE_THRESHOLD} "
 echo "     THRESHOLD_SETTINGS: ${THRESHOLD_SETTINGS} "
 echo "     REPEAT: ${REPEAT} "
 echo "     INTEGRATED: ${INTEGRATED} "
+echo "     OPMODE: ${OPMODE} "
+echo "     DELETE RAW/DECODED DATA: ${DELETE_RAW_DATA}/${DELETE_DECODED_DATA} "
 echo " --- "
 
 ### switch on HV
@@ -140,14 +171,15 @@ for BIAS_VOLTAGE in $BIAS_VOLTAGES; do
 					 --max_resets 10 \
 					 --timer 320000 \
 					 --integrated $INTEGRATED \
-					 --opmode 1 \
+					 --opmode $OPMODE \
 					 --threshold $THRESHOLD >> ureadout.log
 		
 		### decode, analyse and finalise
+		echo " --- decode and analyse: $OUTPUT_TAGNAME "
 		/au/readout/bin/decoder --input $OUTPUT_TAGNAME.alcor.dat --output $OUTPUT_PREFIX.root >> decoder.log && \
-    		    if true; then rm $OUTPUT_TAGNAME.*.dat; fi && \
-		    root -b -q -l "${ALCOR_DIR}/measure/2023-characterisation/ureadout_dcr_analysis.C(\"${OUTPUT_PREFIX}.root\", \"dcr_${OUTPUT_PREFIX}.root\")" >> ureadout_dcr_analysis.log && \
-		    if true; then rm $OUTPUT_PREFIX.root; fi &
+    		    if [ $DELETE_RAW_DATA = true ]; then rm $OUTPUT_TAGNAME.*.dat; fi && \
+		    if [ $RUN_ANALYSIS = true ]; then root -b -q -l "${ALCOR_DIR}/measure/2023-characterisation/ureadout_dcr_analysis.C(\"${OUTPUT_PREFIX}.root\", \"dcr_${OUTPUT_PREFIX}.root\")" >> ureadout_dcr_analysis.log >> decoder.log; fi && \
+		    if [ $DELETE_DECODED_DATA = true ]; then rm $OUTPUT_PREFIX.root; fi &
 		
 		# echo "bias_voltage = ${BIAS_VOLTAGE} bias_dac = ${BIAS_DAC} base_threshold = ${BASE_THRESHOLD} ${OUTPUT}" | tee -a $FILENAME
 
@@ -161,7 +193,9 @@ done
 ### end of loop over Vbias values
 
 wait
+rm -f *.log
 cd ..
+
 
 ### switch off HV
 if [ -z "$AU_BIAS_MANUAL" ]; then
@@ -172,7 +206,9 @@ sleep 1
 
 ### create tree from measurements
 if [ -z "$AU_DRYRUN" ]; then
-    root -b -q -l "${ALCOR_DIR}/measure/2023-characterisation/ureadout_dcr_create_tree.C(\"chip${CHIP}-${CHANNEL}\", \"chip${CHIP}-${CHANNEL}.ureadout_dcr_scan.tree.root\")"
+    if [ $RUN_ANALYSIS = true ]; then
+	root -b -q -l "${ALCOR_DIR}/measure/2023-characterisation/ureadout_dcr_create_tree.C(\"chip${CHIP}-${CHANNEL}\", \"chip${CHIP}-${CHANNEL}.ureadout_dcr_scan.tree.root\")"
+    fi
 fi
 
 exit

@@ -40,8 +40,8 @@ case $SETUP in
 	CHIP=3
 	;;
 
-    "test")
-	WHAT_DCR_SETUP="run-test-setup"
+    "tot")
+	WHAT_DCR_SETUP="run-tot-setup"
 	CHIP=0
 	;;
     

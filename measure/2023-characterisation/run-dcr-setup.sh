@@ -7,6 +7,10 @@ export AU_INTEGRATED="0.5"
 export AU_REPEAT=1
 
 ### scan settings
+export AU_OPMODE=1
+export AU_DELETE_RAW_DATA=true
+export AU_RUN_ANALYSIS=true
+export AU_DELETE_DECODED_DATA=true
 export AU_SCAN_BIAS_STEP="0.5"
 export AU_SCAN_BIAS_VOLTAGES=$(seq 30 $AU_SCAN_BIAS_STEP 38 | tr "\n" " ") # [V]
 export AU_SCAN_DELTA_THRESHOLDS=$(seq 1 2 63 | tr "\n" " ")
@@ -141,10 +145,9 @@ run-hama2-setup()
     run-hama2-dcr-scan 0
 }
 
-run-test-setup()
+run-tot-setup()
 {
-#    run-hama2-dcr-scan 2    
-    run-test-dcr-scan 0
+    run-tot-dcr-scan 0
 }
 
 run-sensl-setup()
@@ -173,18 +176,18 @@ run-hama1-dcr-scan()
     export AU_SCAN_BIAS_VOLTAGES=$HAMA1_EVEN_SCAN_BIAS_VOLTAGES
     for row in A C E G; do
 	scan_chip_row $chip $row
-#	/au/measure/readout-box/draw_dcr_scan.sh $chip 46 62
+	/au/measure/2023-characterisation/draw_dcr_scan.sh $chip 46 62
     done
 
     export AU_BIAS_VOLTAGES=$HAMA1_ODD_BIAS_VOLTAGES
     export AU_SCAN_BIAS_VOLTAGES=$HAMA1_ODD_SCAN_BIAS_VOLTAGES
     for row in B D F H; do
 	scan_chip_row $chip $row
-#	/au/measure/readout-box/draw_dcr_scan.sh $chip 46 62
+	/au/measure/2023-characterisation/draw_dcr_scan.sh $chip 46 62
     done
 
     ### DRAW
-#    /au/measure/readout-box/draw_dcr_scan.sh $chip 46 62
+    /au/measure/2023-characterisation/draw_dcr_scan.sh $chip 46 62
     
     cd ..
 
@@ -221,24 +224,36 @@ run-hama2-dcr-scan()
 
 }
 
-run-test-dcr-scan()
+run-tot-dcr-scan()
 {
     chip=$1
 
     echo " --- "
-    echo " --- running TEST DCR scan on chip $chip "
+    echo " --- running TOT DCR scan on chip $chip "
     echo " --- "
     
-    mkdir -p TEST-chip${chip}
-    cd TEST-chip${chip}
-    export AU_CARRIER="hama2"
+    export AU_CARRIER="hama1"
 
-    export AU_BIAS_VOLTAGES=39
-    export AU_SCAN_BIAS_VOLTAGES=39
+    export AU_OPMODE=4
+    export AU_DELETE_RAW_DATA=true
+    export AU_RUN_ANALYSIS=false
+    export AU_DELETE_DECODED_DATA=false
+
+    ### vbias scan parameters
+    export AU_SCAN_BIAS_VOLTAGES=51
     export AU_DELTA_THRESHOLDS=5
-    export AU_SCAN_DELTA_THRESHOLDS=5
+    ### threshold scan parameters
+    export AU_SCAN_DELTA_THRESHOLDS="3 5 7"
+    export AU_BIAS_VOLTAGES="51 52 53"
+
+    export AU_SCANS="threshold"
     
-    time -p /au/measure/2023-characterisation/ureadout_dcr_scan.sh vbias $chip A1
+    mkdir -p HAMA1-chip${chip}
+    cd HAMA1-chip${chip}
+
+    for scan in $AU_SCANS; do
+	time -p /au/measure/2023-characterisation/ureadout_dcr_scan.sh $scan $chip A1
+    done
     
     cd ..
 
