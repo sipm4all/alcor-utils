@@ -1,18 +1,11 @@
 #! /usr/bin/env bash
 
-ENA0="0xf"
-ENA1="0x0"
-ENA2="0x0"
-ENA3="0x0"
-ENA4="0x0"
-ENA5="0x0"
+BCRCONF="standard"
+ENA=("0xf" "0x0" "0x0" "0x0" "0x0" "0x0")
+RANGE=("1" "1" "1" "1" "3" "3")
+DELTA=("5" "5" "5" "5" "25" "25")
 
-#BCRCONF="standard"
-#BCRCONF="standard.300"
-BCRCONF="high-capacitance.310"
-#BCRCONF="max-capacitance.310"
-#BCRCONF="low-capacitance.310"
-#BCRCONF="minus40c"
+### BCR configuration from external parameter
 if [ -n "$1" ]; then
     BCRCONF=$1
     if [ ! -f "/au/conf/bcr/$BCRCONF.bcr" ]; then
@@ -21,20 +14,16 @@ if [ -n "$1" ]; then
     fi
 fi
 
-RANGE0="1"
-RANGE1="1"
-RANGE2="1"
-RANGE3="1"
-RANGE4="3"
-RANGE5="3"
-
-DELTA0="5"
-DELTA1="5"
-DELTA2="5"
-DELTA3="5"
-DELTA4="25"
-DELTA5="25"
-
+### active chips from external parameter
+if [ -n "$2" ]; then
+    for CHIP in ${ENA[@]}; do
+	ENA[$CHIP]="0x0"
+    done
+    ACTIVE_CHIPS=$2
+    for CHIP in $2; do
+	ENA[$CHIP]="0xf"
+    done
+fi
 
 DATESTR="$(date +%Y%m%d-%H%M%S)"
 DIR=$HOME/DATA/baselineScan/${DATESTR}
@@ -44,21 +33,26 @@ mkdir -p $DIR
 echo " ---"
 echo " --- starting baseline calibration: $DIR "
 echo " --- running with BCR configuration: $BCRCONF "
+echo " --- enable configuration: ${ENA[@]} "
 echo " ---"
 
 ### HV must be ON with all DACs at zero
-for I in {0..3}; do /au/masterlogic/zero $I; done
+for I in {0..3}; do
+    /au/masterlogic/zero $I &> /dev/null &
+done
+wait
+sleep 3
 /au/tti/hv.on
 
 ### prepare to run bolognaScan
 cat <<EOF > $DIR/readout.maxthreshold.conf
 # chip	 laneMask=0/0xF	 eccr		conf/bcr	conf/pcr
-0 	 ${ENA0}	 0xb01b         ${BCRCONF}	maxthreshold
-1	 ${ENA1}	 0xb01b 	${BCRCONF}	maxthreshold
-2  	 ${ENA2}	 0xb01b 	${BCRCONF}	maxthreshold
-3  	 ${ENA3}	 0xb01b 	${BCRCONF}	maxthreshold
-4  	 ${ENA4}	 0xb01b 	${BCRCONF}	maxthreshold
-5  	 ${ENA5}	 0xb01b 	${BCRCONF}	maxthreshold
+0 	 ${ENA[0]}	 0xb01b         ${BCRCONF}	maxthreshold
+1	 ${ENA[1]}	 0xb01b 	${BCRCONF}	maxthreshold
+2  	 ${ENA[2]}	 0xb01b 	${BCRCONF}	maxthreshold
+3  	 ${ENA[3]}	 0xb01b 	${BCRCONF}	maxthreshold
+4  	 ${ENA[4]}	 0xb01b 	${BCRCONF}	maxthreshold
+5  	 ${ENA[5]}	 0xb01b 	${BCRCONF}	maxthreshold
 # don't delete this line
 EOF
 ln -sf $DIR/readout.maxthreshold.conf /au/conf/readout.conf
@@ -72,12 +66,12 @@ ln -sf $DIR /au/conf/pcr/dcr-setup/.
 ### create baseline readout.conf
 cat <<EOF > $DIR/readout.baseline.conf
 # chip	 laneMask=0/0xF	 eccr		conf/bcr	conf/pcr
-0 	 ${ENA0}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip0.range${RANGE0}
-1	 ${ENA1}	 0xb01b         ${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip1.range${RANGE1}
-2  	 ${ENA2}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip2.range${RANGE2}
-3  	 ${ENA3}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip3.range${RANGE3}
-4  	 ${ENA4}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip4.range${RANGE4}
-5  	 ${ENA5}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip5.range${RANGE5}
+0 	 ${ENA[0]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip0.range${RANGE[0]}
+1	 ${ENA[1]}	 0xb01b         ${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip1.range${RANGE[1]}
+2  	 ${ENA[2]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip2.range${RANGE[2]}
+3  	 ${ENA[3]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip3.range${RANGE[3]}
+4  	 ${ENA[4]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip4.range${RANGE[4]}
+5  	 ${ENA[5]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip5.range${RANGE[5]}
 # don't delete this line
 EOF
 ln -sf $DIR/readout.baseline.conf /au/conf/readout.baseline.conf
@@ -85,12 +79,12 @@ ln -sf $DIR/readout.baseline.conf /au/conf/readout.baseline.conf
 ### create run readout.conf
 cat <<EOF > $DIR/readout.run.conf
 # chip	 laneMask=0/0xF	 eccr		conf/bcr	conf/pcr
-0 	 ${ENA0}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip0.range${RANGE0}.delta${DELTA0}
-1	 ${ENA1}	 0xb01b         ${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip1.range${RANGE1}.delta${DELTA1}
-2  	 ${ENA2}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip2.range${RANGE2}.delta${DELTA2}
-3  	 ${ENA3}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip3.range${RANGE3}.delta${DELTA3}
-4  	 ${ENA4}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip4.range${RANGE4}.delta${DELTA4}
-5  	 ${ENA5}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip5.range${RANGE5}.delta${DELTA5}
+0 	 ${ENA[0]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip0.range${RANGE[0]}.delta${DELTA[0]}
+1	 ${ENA[1]}	 0xb01b         ${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip1.range${RANGE[1]}.delta${DELTA[1]}
+2  	 ${ENA[2]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip2.range${RANGE[2]}.delta${DELTA[2]}
+3  	 ${ENA[3]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip3.range${RANGE[3]}.delta${DELTA[3]}
+4  	 ${ENA[4]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip4.range${RANGE[4]}.delta${DELTA[4]}
+5  	 ${ENA[5]}	 0xb01b 	${BCRCONF}	dcr-setup/${DATESTR}/PCR/chip5.range${RANGE[5]}.delta${DELTA[5]}
 # don't delete this line
 EOF
 ln -sf $DIR/readout.run.conf /au/conf/readout.run.conf

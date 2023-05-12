@@ -7,11 +7,6 @@ import serial
 import argparse
 import os
 
-import requests
-url = 'http://localhost:8086/write?db=mydb'
-session = requests.Session()
-#headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--ml', type=int, choices=[0, 1, 2, 3, 4], required=True, help="masterlogic number")
 args = vars(parser.parse_args())
@@ -58,7 +53,6 @@ masterlogic_send('L')
 with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
     s.bind(SOCK)
     s.listen()
-    s.settimeout(1)
     
     while True:
       try:
@@ -77,40 +71,5 @@ with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
       except Exception as e:
         print(e)
         pass
-      
-      temperature = masterlogic_send('L')
-      temperature = temperature.split()[2]
-      if True or abs(float(temperature) - float(old_temperature)) > 0.05 or timedout > 100:
-        thedata = 'masterlogic_server,source=ml' + theml + ',name=temperature value=' + temperature
-        print(thedata)
-        old_temperature = temperature
-        try:
-          session.post(url, data=thedata.encode())
-        except Exception as e:
-          print(e)
-        timedout = 0
-      timedout += 1
-
-      dacs = masterlogic_send('R')
-      dacs_lines = dacs.split('\r\n')
-      print(dacs_lines)
-
-      thedata = ''
-      for line in dacs_lines:
-        line = line.split()
-        dac = line[0]
-        ch = line[1]
-        val = line[3][:-2]
-        if dac == 'DAC12':
-          thedata += 'masterlogic_server,source=ml' + theml + ',name=dac12,channel=' + ch + ' value=' + val + '\n'
-        if dac == 'DAC8':
-          thedata += 'masterlogic_server,source=ml' + theml + ',name=dac8,channel=' + ch + ' value=' + val + '\n'
-          
-      thedata = thedata[:-1]
-      print(thedata)
-      try:
-        session.post(url, data=thedata.encode())
-      except Exception as e:
-        print(e)
         
 ser.close()

@@ -14,6 +14,10 @@ case $board in
       res="54.900"
     ;;
 
+  "hama3")
+      res="54.900"
+    ;;
+
   "hama1-bis")
       res="54.900"
     ;;

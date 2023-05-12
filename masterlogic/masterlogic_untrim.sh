@@ -5,4 +5,4 @@ if [ -x $1 ] || [ -x $2 ]; then
     exit 1
 fi
 
-timeout 1 /au/masterlogic/masterlogic_client.py --ml $1 --cmd "T $2 0"
+timeout 30 /au/masterlogic/masterlogic_client.py --ml $1 --cmd "T $2 0"
