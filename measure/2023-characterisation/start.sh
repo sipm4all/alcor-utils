@@ -1,16 +1,19 @@
 #! /usr/bin/env bash
 
-STARTTIME="22:00"
+known_setups=("memmert-hama3")
+
 if [ -z $1 ]; then
-    echo "usage: $0 [setup] [start-time]"
-    echo " hama1, hama2, sensl, fbk "
+    echo " usage: $0 [setup] "
+    echo " known setups: ${known_setups[@]}"
     exit 1
 fi
 
-if [ ! -z $2 ]; then
-    STARTTIME=$2
+if [[ ! "${known_setups[@]}" =~ "${1}" ]]; then
+    echo " unknown setup: $1 "
+    echo " usage: $0 [setup] "
+    echo " known setups: ${known_setups[@]} "
+    exit 1
 fi
-
 
 ### check token
 if [ -f "/tmp/run-the-setup.running" ]; then
@@ -20,13 +23,13 @@ fi
 
 DATETIME=$(date +%Y%m%d-%H%M%S)
 
-DIRNAME=/home/eic/DATA/2023-characterisation/preparation/$DATETIME
+DIRNAME=/home/eic/DATA/2023-characterisation/actual/$DATETIME
 mkdir -p $DIRNAME
 cd $DIRNAME
 
-echo " --- start the setup: /au/measure/2023-characterisation/run-the-setup.sh $1 $STARTTIME"
+echo " --- start the setup: /au/measure/2023-characterisation/run-the-setup.sh $1 "
 echo "     running from: $DIRNAME "
-nohup /au/measure/2023-characterisation/run-the-setup.sh $1 $STARTTIME &> run-the-setup.log < /dev/null &
+nohup /au/measure/2023-characterisation/run-the-setup.sh $1 &> run-the-setup.log < /dev/null &
 
 echo 
 echo " --- TAKE NOTE OF THE DATE/TIME "

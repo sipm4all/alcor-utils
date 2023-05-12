@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>This is test</title>
+  <style>
+    {
+        box-sizing: border-box;
+    }
+    .column {
+	float: left;
+    }
+    .alcor {
+	width: 20%;
+    }
+    .hv {
+	width: 20%;
+    }
+    .peltier {
+	width: 30%;
+    }
+
+    
+    .row:after {
+	content: "";
+	display: table;
+	clear: both;
+    }
+  </style>
+</head>
+<body style="color:white;margin:0;padding:0">
+  <form method="POST">
+
+    <div class="column alcor">
+      <h3>ALCOR</h3>
+      <table>
+	<tr>
+	  <td style="text-align:right"><label>power</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="alcor" value="off">
+	    <input type="submit" style="min-width:50px" name="alcor" value="on">
+	</tr>
+	<tr>
+	  <td style="text-align:right"><label>operations</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="alcor" value="firmw">
+	    <input type="submit" style="min-width:50px" name="alcor" value="init">
+	    <input type="submit" style="min-width:50px" name="alcor" value="calib">
+	</tr>
+      </table>
+      <div style="position:absolute;bottom:10px"><h5 style="font-style:italic;">> {{message}}</h5></div>
+    </div>
+        
+    <div class="column hv">
+      <h3>High Voltage</h3>
+      <table>
+	<tr>
+	  <td style="text-align:right"><label>power</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="hv" value="off">
+	    <input type="submit" style="min-width:50px" name="hv" value="on">
+	</tr>
+      </table>
+    </div>
+        
+    <div class="column peltier">
+      <h3>Peltier</h3>
+      <table>
+	<tr>
+	  <td style="text-align:right"><label>power</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="peltier_power" value="off">
+	    <input type="submit" style="min-width:50px" name="peltier_power" value="on">
+	</tr>
+	<tr>
+	  <td style="text-align:right"><label>control</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="pid_control" value="off">
+	    <input type="submit" style="min-width:50px" name="pid_control" value="on">
+	</tr>
+	<tr>
+	  <td style="text-align:right"><label>alarm</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="peltier_alarm" value="off">
+	    <input type="submit" style="min-width:50px" name="peltier_alarm" value="on">
+	</tr>
+	<tr>
+	  <td style="text-align:right"><label>temperature</label>
+	  <td>
+	    <input type="submit" style="min-width:50px" name="pid_temperature" value="goto">
+	    <input type="submit" style="min-width:50px" name="pid_temperature" value="set">
+	    <input type="text" style="min-width:50px" size="2" autocomplete="off" name="temperature">
+	</tr>
+	<tr>
+	  <td style="text-align:right"><label>anchor</label>
+	  <td>
+	    <input type="submit" name="pid_anchor" value="average">
+	    <input type="submit" style="min-width:40px" name="pid_anchor" value="temp-0">
+	    <input type="submit" style="min-width:40px" name="pid_anchor" value="temp-1">
+	    <input type="submit" style="min-width:40px" name="pid_anchor" value="temp-2">
+	    <input type="submit" style="min-width:40px" name="pid_anchor" value="temp-3">
+	</tr>
+      </table>
+    </div>
+    
+  </form>
+</body>
+</html>
+

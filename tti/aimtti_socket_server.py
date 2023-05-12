@@ -4,11 +4,6 @@ import socket
 import argparse
 import os
 
-### client-server communication socket
-#SOCK='/tmp/keythley_multiplexer_server.socket'
-#if os.path.exists(SOCK):
-#  os.remove(SOCK)
-
 ### arguments
 parser = argparse.ArgumentParser(description='a server', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--address', type=str, default='10.0.8.21', help='IP address')

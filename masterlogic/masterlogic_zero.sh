@@ -12,7 +12,7 @@ VALUE=0
 for DAC in 0 1 2 3 4 5 6 7; do
 
     while true; do
-	timeout 2 $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $ML --cmd="D $DAC $VALUE " &> /dev/null
+	timeout 30 $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $ML --cmd="D $DAC $VALUE " &> /dev/null
 	if [ $? == "124" ]; then
 	    echo " --- it timeout out, reset device "
 	    /au/masterlogic/reset $1
@@ -24,7 +24,7 @@ for DAC in 0 1 2 3 4 5 6 7; do
 
 done
 
-timeout 2 $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $ML --cmd="Z 1 " &> /dev/null
+#timeout 30 $HOME/alcor/alcor-utils/masterlogic/masterlogic_client.py --ml $ML --cmd="Z 1 " &> /dev/null
 
 ### read back
-$HOME/alcor/alcor-utils/masterlogic/masterlogic_dac12.sh $1
+#$HOME/alcor/alcor-utils/masterlogic/masterlogic_dac12.sh $1

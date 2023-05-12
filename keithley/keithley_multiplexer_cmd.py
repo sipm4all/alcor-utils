@@ -3,7 +3,7 @@
 import socket
 import sys
 
-SOCK='/tmp/keythley_multiplexer_server.socket'
+SOCK='/tmp/keithley_multiplexer_server.socket'
 
 if len(sys.argv) < 2:
     print('usage: ./pulser_cmd.py [command]')

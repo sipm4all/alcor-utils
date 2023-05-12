@@ -7,7 +7,9 @@ HOST = '127.0.0.1'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--mode', default=False, action="store_true", help="mode")
 parser.add_argument('--temp', default=False, action="store_true", help="temperature (C)")
+parser.add_argument('--tset', default=False, action="store_true", help="set point (C)")
 parser.add_argument('--rh', default=False, action="store_true", help="relative humidity (%%)")
 parser.add_argument('--fan', default=False, action="store_true", help="fan speed")
 args = vars(parser.parse_args())
@@ -17,13 +19,26 @@ if not any(args.values()):
 
 try:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(10)
         s.connect((HOST, PORT))
         
+        if args['tset']:
+            command = 'IN_SP_11'
+            s.sendall(command.encode())
+            data = s.recv(1024).decode()
+            print(' --- set point temperature:', data)
+            
         if args['temp']:
             command = 'IN_PV_11'
             s.sendall(command.encode())
             data = s.recv(1024).decode()
             print(' --- temperature:', data)
+            
+        if args['mode']:
+            command = 'IN_MODE_10'
+            s.sendall(command.encode())
+            data = s.recv(1024).decode()
+            print(' --- mode:', data)
             
         if args['rh']:
             command = 'IN_PV_13'

@@ -1,7 +1,6 @@
 #! /usr/bin/env bash
 
-source /tools/Xilinx/Vivado_Lab/2021.2/.settings64-Vivado_Lab.sh
-source /home/eic/alcor/alcor-utils/etc/env.sh
+source $HOME/.bashrc
 
 FW="new"
 FW="dev"

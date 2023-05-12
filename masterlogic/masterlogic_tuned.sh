@@ -25,5 +25,5 @@ while read p; do
     value=$(echo $p | awk {'print $2'})
     value=$(echo "scale=0; ($value * 1000) / 1" | bc)
     echo "/au/masterlogic/masterlogic_client.py --ml $board --cmd \"T $channel $value\""
-    timeout 1 /au/masterlogic/masterlogic_client.py --ml $board --cmd "T $channel $value "
+    timeout 30 /au/masterlogic/masterlogic_client.py --ml $board --cmd "T $channel $value "
 done < $dac8

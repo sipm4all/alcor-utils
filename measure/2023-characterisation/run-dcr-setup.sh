@@ -3,7 +3,7 @@
 ### standard measurement settings
 export AU_BIAS_VOLTAGES="35 37"  # [V]
 export AU_DELTA_THRESHOLDS="5"
-export AU_INTEGRATED="0.5"
+export AU_INTEGRATED="1.0"
 export AU_REPEAT=1
 
 ### scan settings
@@ -59,15 +59,23 @@ HAMA2_EVEN_SCAN_BIAS_VOLTAGES=$(seq 36 $AU_SCAN_BIAS_STEP 43 | tr "\n" " ")
 HAMA2_ODD_BIAS_VOLTAGES="43"
 HAMA2_ODD_SCAN_BIAS_VOLTAGES=$(seq 38 $AU_SCAN_BIAS_STEP 45 | tr "\n" " ")
 
+###
+### HAMA3 scan values
+###
+HAMA3_A_BIAS_VOLTAGES="51"
+HAMA3_B_BIAS_VOLTAGES="50"
+HAMA3_C_BIAS_VOLTAGES="39"
+HAMA3_A_SCAN_BIAS_VOLTAGES=$(seq 48 $AU_SCAN_BIAS_STEP 58 | tr "\n" " ")
+HAMA3_B_SCAN_BIAS_VOLTAGES=$(seq 48 $AU_SCAN_BIAS_STEP 57 | tr "\n" " ")
+HAMA3_C_SCAN_BIAS_VOLTAGES=$(seq 38 $AU_SCAN_BIAS_STEP 45 | tr "\n" " ")
+
+
 
 main()
 {
     
     echo " --- running $1 DCR setup  "
 
-    ### stop rate monitor if running
-#    /au/measure/readout-box/stop_rate_monitor.sh
-    
     ### make sure firmware is fresh
     /au/firmware/program.sh new $KC705_TARGET true
     sleep 3
@@ -75,11 +83,11 @@ main()
     ### reset masterlogic, we want it in good shape
 #    /au/masterlogic/reset 2
 #   /au/masterlogic/reset 3
-#    sleep 3
-    /au/masterlogic/zero 0
-    /au/masterlogic/zero 1
-    /au/masterlogic/zero 2
-    /au/masterlogic/zero 3
+    #    sleep 3
+    for ML in {0..3}; do
+	/au/masterlogic/zero $I &> /dev/null &
+    done
+    wait
     sleep 3
     
     ### make sure ALCOR is on and pulser is off
@@ -90,25 +98,20 @@ main()
 #    sleep 3
  
     ### run baseline calibration
-# R+matilde    echo " --- running baseline calibration: /au/measure/readout-box/run-dcr-baseline-calibration.sh "
-# R+matilde    echo " --- "
-# R+matilde    echo "$(date +%s) | $(date) "
-# R+matilde    echo " --- "
-# R+matilde    /au/measure/readout-box/run-dcr-baseline-calibration.sh &> run-dcr-baseline-calibration.log
-    
-#    echo " --- running baseline calibration: /au/measure/readout-box/run-box-baseline-calibration.sh "
-#    echo " --- "
-#    echo "$(date +%s) | $(date) "
-#    echo " --- "
-#    /au/measure/readout-box/run-box-baseline-calibration.sh &> run-box-baseline-calibration.log
-
-    ### make sure temperature is reached
-# R+matilde    echo " --- waiting 30 minutes"
-# R+matilde    echo " --- "
-# R+matilde    echo "$(date +%s) | $(date) "
-# R+matilde    echo " --- "
-# R+matilde    sleep 1800
-
+    if [[ "$1" == *"memmert"* ]]; then
+	echo " --- running memmert baseline calibration: /au/measure/2023-characterisation/run-baseline-calibration.sh "
+	echo " --- "
+	echo "$(date +%s) | $(date) "
+	echo " --- "
+	/au/measure/2023-characterisation/run-baseline-calibration.sh minus40c.000 "2 3" &> run-baseline-calibration.log
+    else
+	echo " --- running baseline calibration: /au/measure/2023-characterisation/run-baseline-calibration.sh "
+	echo " --- "
+	echo "$(date +%s) | $(date) "
+	echo " --- "
+	/au/measure/2023-characterisation/run-baseline-calibration.sh standard &> run-baseline-calibration.log
+    fi
+	
     ### link baseline readout.conf
     ln -sf /au/conf/readout.baseline.conf /au/conf/readout.conf
     
@@ -127,6 +130,12 @@ main()
 #    /au/tti/12v.off
 #    sleep 3
 
+}
+
+run-memmert-hama3-setup()
+{
+    run-hama3-dcr-scan 2
+    run-hama3-dcr-scan 3
 }
 
 run-hama1-setup()
@@ -220,6 +229,46 @@ run-hama2-dcr-scan()
     ### DRAW
 #    /au/measure/readout-box/draw_dcr_scan.sh $chip 34 47
     
+    cd ..
+
+}
+
+run-hama3-dcr-scan()
+{
+    chip=$1
+
+    echo " --- "
+    echo " --- running HAMA3 DCR scan on chip $chip "
+    echo " --- "
+    
+    mkdir -p HAMA3-chip${chip}
+    cd HAMA3-chip${chip}
+    export AU_CARRIER="hama3"
+
+    ### S13360-3050
+    export AU_BIAS_VOLTAGES=$HAMA3_A_BIAS_VOLTAGES
+    export AU_SCAN_BIAS_VOLTAGES=$HAMA3_A_SCAN_BIAS_VOLTAGES
+    for row in A; do
+	scan_chip_row $chip $row
+	/au/measure/2023-characterisation/draw_dcr_scan.sh $chip 34 62
+    done
+
+    ### S13360-3075
+    export AU_BIAS_VOLTAGES=$HAMA3_B_BIAS_VOLTAGES
+    export AU_SCAN_BIAS_VOLTAGES=$HAMA3_B_SCAN_BIAS_VOLTAGES
+    for row in B; do
+	scan_chip_row $chip $row
+	/au/measure/2023-characterisation/draw_dcr_scan.sh $chip 34 62
+    done
+
+    ### S14160-3050
+    export AU_BIAS_VOLTAGES=$HAMA3_C_BIAS_VOLTAGES
+    export AU_SCAN_BIAS_VOLTAGES=$HAMA3_C_SCAN_BIAS_VOLTAGES
+    for row in C; do
+	scan_chip_row $chip $row
+	/au/measure/2023-characterisation/draw_dcr_scan.sh $chip 34 62
+    done
+
     cd ..
 
 }

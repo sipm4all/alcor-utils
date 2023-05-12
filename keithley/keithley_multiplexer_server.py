@@ -5,7 +5,7 @@ import argparse
 import os
 
 ### client-server communication socket
-SOCK='/tmp/keythley_multiplexer_server.socket'
+SOCK='/tmp/keithley_multiplexer_server.socket'
 if os.path.exists(SOCK):
   os.remove(SOCK)
 
