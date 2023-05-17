@@ -7,7 +7,8 @@ import time
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('10.0.8.13', 5025)
-idn_tag = "KEITHLEY INSTRUMENTS,MODEL 2450,04474830,1.6.7c"
+idn_tag_bo = "KEITHLEY INSTRUMENTS,MODEL 2450,04474830,1.6.7c"
+idn_tag_cs = "KEITHLEY INSTRUMENTS,MODEL 2450,04596335,1.7.12b"
 
 echo = False
 log = True
@@ -139,7 +140,7 @@ def initialize():
     send('SYST:CLE')
     send('*IDN?')
     data = recv()
-    while data != idn_tag:
+    while data != idn_tag_bo and data != idn_tag_cs:
         data = recv()
     print('--- instrument initialised: %s ' % data)
 
