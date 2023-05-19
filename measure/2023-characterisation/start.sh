@@ -23,7 +23,7 @@ fi
 
 DATETIME=$(date +%Y%m%d-%H%M%S)
 
-DIRNAME=/home/eic/DATA/2023-characterisation/actual/$DATETIME
+DIRNAME=$HOME/2023-characterisation/actual/$DATETIME
 mkdir -p $DIRNAME
 cd $DIRNAME
 

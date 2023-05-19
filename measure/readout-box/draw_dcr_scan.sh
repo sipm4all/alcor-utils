@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
-root -b -q -l "/home/eic/alcor/alcor-utils/measure/readout-box/drawing_routines/draw_dcr_scan.C(\".\", $1, $2, $3)"
+
+root -b -q -l "$HOME/alcor/alcor-utils/measure/readout-box/drawing_routines/draw_dcr_scan.C(\".\", $1, $2, $3)"
 
 ### send email
 
