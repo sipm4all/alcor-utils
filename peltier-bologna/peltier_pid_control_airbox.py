@@ -46,7 +46,11 @@ def get_temperature():
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
             s.connect(SOCKML[ml])
             s.sendall(b'L')
-            temp[ml] = float(s.recv(1024).decode().split()[2])
+            temperature = s.recv(1024).decode()
+            temperature = temperature.split()[-1] ### R+HACK
+            if temperature[0] == '+': ### R+HACK
+              temperature = temperature[1:]
+            temp[ml] = float(temperature)
     thetemp['average'] = sum(temp) / 4.
     thetemp['lowest'] = min(temp)
     thetemp['highest'] = max(temp)

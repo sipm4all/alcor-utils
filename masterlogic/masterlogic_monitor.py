@@ -29,7 +29,7 @@ while True:
 
       s.sendall('L'.encode())
       temperature = s.recv(1024).decode()
-      temperature = temperature.split()[2]
+      temperature = temperature.split()[-1] ### R+HACK
       if temperature[0] == '+': ### R+HACK
         temperature = temperature[1:]
       temperature = float(temperature)
