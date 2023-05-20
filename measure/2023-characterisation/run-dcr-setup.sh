@@ -159,6 +159,11 @@ run-tot-setup()
     run-tot-dcr-scan 0
 }
 
+run-cosenza-setup()
+{
+    run-sensl-dcr-scan 0
+}
+
 run-sensl-setup()
 {
     run-sensl-dcr-scan 3

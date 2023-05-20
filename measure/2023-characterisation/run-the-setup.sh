@@ -51,6 +51,11 @@ case $SETUP in
 	WHAT_IV_SETUP="run-memmert-hama3-setup"
 	CHIP=0
 	;;
+
+    "cosenza")
+	WHAT_DCR_SETUP="run-cosenza-setup"
+	CHIP=0
+	;;
     
     *)
 	echo " invalid setup: $1 "

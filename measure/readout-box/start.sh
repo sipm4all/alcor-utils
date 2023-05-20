@@ -3,7 +3,7 @@
 STARTTIME="22:00"
 if [ -z $1 ]; then
     echo "usage: $0 [setup] [start-time]"
-    echo " hama1, hama2, sensl, fbk "
+    echo " hama1, hama2, sensl, fbk, cosenza"
     exit 1
 fi
 
@@ -20,7 +20,7 @@ fi
 
 DATETIME=$(date +%Y%m%d-%H%M%S)
 
-DIRNAME=/home/eic/DATA/2023-airbox/preparation/$DATETIME
+DIRNAME=$HOME/DATA/2023-airbox/preparation/$DATETIME
 #DIRNAME=/home/eic/DATA/2022-testbeam/preparation/$DATETIME
 # R+matilde DIRNAME=/home/eic/DATA/matilde-zucchini/actual/$DATETIME
 mkdir -p $DIRNAME

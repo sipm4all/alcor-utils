@@ -7,7 +7,7 @@ export AU_DELTA_THRESHOLDS="5"
 export AU_INTEGRATED="0.1"       # pulser_rate integration
 export AU_REPEAT=25              # pulse_rate repetitions
 #export AU_REPEAT=5
-#export AU_REPEAT=4
+export AU_REPEAT=4
 #export AU_REPEAT=2
 
 ### scan settings
@@ -25,10 +25,10 @@ export AU_SCANS="vbias threshold"
 ### SENSL scan values
 ###
 # R+matilde SENSL_EVEN_BIAS_VOLTAGES="28.5 30.5"
-SENSL_EVEN_BIAS_VOLTAGES="27 28"
+SENSL_EVEN_BIAS_VOLTAGES="27"
 SENSL_EVEN_SCAN_BIAS_VOLTAGES=$(seq 23.5 0.5 32.5 | tr "\n" " ")
 # R+matilde SENSL_ODD_BIAS_VOLTAGES="26.5 28.5"
-SENSL_ODD_BIAS_VOLTAGES="26 27"
+SENSL_ODD_BIAS_VOLTAGES="26"
 SENSL_ODD_SCAN_BIAS_VOLTAGES=$(seq 23.5 0.5 32.5 | tr "\n" " ")
 
 ###
@@ -161,6 +161,11 @@ run-hama2-setup()
 run-sensl-setup()
 {
     run-sensl-dcr-scan 3
+}
+
+run-cosenza-setup()
+{
+    run-sensl-dcr-scan 0
 }
 
 run-fbk-setup()
