@@ -12,7 +12,7 @@ root -b -q -l "/home/eic/alcor/alcor-utils/measure/2023-characterisation/drawing
 
 attachments="ivmap.png"
 #recipients="roberto.preghenella@bo.infn.it nicola.rubini@bo.infn.it"
-recipients="roberto.preghenella@bo.infn.it luigipio.rignanese@bo.infn.it"
+recipients="roberto.preghenella@bo.infn.it luigipio.rignanese@bo.infn.it nicola.rubini@bo.infn.it"
 mail -r eicdesk01@bo.infn.it \
      -s "[IV scan] $(basename "`pwd`")" \
      $(for i in $recipients; do echo "$i,"; done) \
@@ -22,4 +22,8 @@ Working from $PWD.
 (Do not reply, we won't read it)
 EOF
 
+
+while [[ -f "/tmp/PAUSED" ]]; do
+    sleep 10
+done
 
