@@ -7,7 +7,7 @@
 #include <chrono>
 #include "uhal/uhal.hpp"
 
-#define VERSION 20220925
+#define VERSION 20230917
 
 const int alarm_period = 3;
 
@@ -134,6 +134,8 @@ decode_data(int chip, int lane, char *buffer, int size, bool verbose = false)
 	    << (float)hit_counter / (float)rollover_counter * rollover_frequency << " hits/s"
 	    << std::endl;
 
+  std::string fifo_id = std::to_string(4 * chip + lane);
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=nano-readout,name=rollover_counter,device=" + opt.device_id + ",fifo=" + fifo_id + " value=" + std::to_string(rollover_counter) + " & ").c_str());
   //  return;
 
 #if 0
@@ -141,7 +143,8 @@ decode_data(int chip, int lane, char *buffer, int size, bool verbose = false)
     std::cout << " ---- channel " << ich << ": " << (float)channel_hit_counter[ich] / (float)rollover_counter * 9765.625 << " hits/s"
 	      << std::endl;
 #endif
-  
+
+#if 0
   /** post ALCOR rates **/
   std::string alcor_post_system = std::getenv("ALCOR_DIR");
   alcor_post_system += "/measure/readout-box/post_rates.sh " + std::to_string(chip) + " " + std::to_string(lane);
@@ -150,6 +153,7 @@ decode_data(int chip, int lane, char *buffer, int size, bool verbose = false)
   //  std::cout << " --- calling system: " << alcor_post_system << std::endl;
   system(alcor_post_system.c_str());
   //  std::cout << " --- called: " << alcor_post_system << std::endl;
+#endif
   
 }
 
@@ -255,20 +259,28 @@ int main(int argc, char *argv[])
 {
   std::cout << " --- welcome to ALCOR nano-readout " << std::endl;
   process_program_options(argc, argv, opt);
-
+ 
+  auto device_id_str = opt.device_id;
+  int device_id = 0;
+  if (device_id_str.rfind("kc705-", 0) == 0) {
+    device_id_str = device_id_str.substr(6);
+    device_id = std::atoi(device_id_str.c_str());
+  }
+      
   //  try {
-    using namespace boost::interprocess;
-    /** open already created shared memory object **/
-    shared_memory_object shm (open_only, "MySharedMemory", read_write);
-    /** map the whole shared memory in this process **/
-    mapped_region region(shm, read_write);
-    shared_data = (shared_t *)region.get_address();
-    //    void *shared_address = region.get_address();
-    //    shared_data = new (shared_address) shared_t;
-    //  } catch (std::exception& e) {
-    //    std::cout << " --- could not map shared memory, make sure ctrl-readout is running " << std::endl;
-    //    exit(1);
-    //  }
+  std::string shm_name = "shm_" + opt.device_id;
+  using namespace boost::interprocess;
+  /** open already created shared memory object **/
+  shared_memory_object shm (open_only, shm_name.c_str(), read_write);
+  /** map the whole shared memory in this process **/
+  mapped_region region(shm, read_write);
+  shared_data = (shared_t *)region.get_address();
+  //    void *shared_address = region.get_address();
+  //    shared_data = new (shared_address) shared_t;
+  //  } catch (std::exception& e) {
+  //    std::cout << " --- could not map shared memory, make sure ctrl-readout is running " << std::endl;
+  //    exit(1);
+  //  }
   
   /** initialise and retrieve hardware nodes **/
   uhal::disableLogging();
@@ -289,6 +301,7 @@ int main(int argc, char *argv[])
   else base_node_name = "alcor_readout_id" + std::to_string(opt.chip) + "_lane" + std::to_string(opt.lane);
   auto occupancy_node = &hardware.getNode(base_node_name + ".fifo_occupancy");
   auto data_node = &hardware.getNode(base_node_name + ".fifo_data");
+  auto reset_node = &hardware.getNode(base_node_name + ".fifo_reset");
   
   /** open output file **/
   std::ofstream fout;
@@ -307,7 +320,7 @@ int main(int argc, char *argv[])
   /** write firmware info and other stuff in file header **/
   if (write_output) {
     auto timestamp = std::time(nullptr);
-    uint32_t header[32] = {0x0};
+    uint32_t header[16] = {0x0};
     header[0] = 0x000caffe;
     header[1] = VERSION; // readout version
     header[2] = shared_data->fwrev; // firmware version
@@ -316,6 +329,7 @@ int main(int argc, char *argv[])
     header[5] = opt.staging_size; // staging size 
     header[6] = shared_data->run_mode; // run mode
     header[7] = shared_data->filter_mode; // filter mode
+    header[8] = device_id; // device
     fout.write((char *)&header, 64);
   }
   
@@ -328,9 +342,15 @@ int main(int argc, char *argv[])
   /** register signal handlers **/
   signal(SIGINT, sigint_handler);
   signal(SIGALRM, sigalrm_handler);
-
+  
+  /** reset FIFO **/
+  reset_node->write(0x1);
+  hardware.dispatch();
+  
   /** endless loop till start of run (or interrupted) **/
   std::cout << " --- waiting for start of run " << std::endl;
+  std::string fifo_id = opt.trigger ? "24" : std::to_string(4 * opt.chip + opt.lane);
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=nano-readout,name=status,device=" + opt.device_id + ",fifo=" + fifo_id + " value=1").c_str());
   while (running) {
 
     /** usleep a bit **/
@@ -347,6 +367,9 @@ int main(int argc, char *argv[])
 
   /** endless loop till end of run (or interrupted) **/
   int n_polls = 0, max_occupancy = 0, integrated_words = 0;
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=nano-readout,name=max-occupancy,device=" + opt.device_id + ",fifo=" + fifo_id + " value=" + std::to_string(max_occupancy) + " & ").c_str());
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=nano-readout,name=bytes,device=" + opt.device_id + ",fifo=" + fifo_id + " value=" + std::to_string(4 * integrated_words) + " & ").c_str());
+
   std::cout << " --- serving till end of run " << std::endl;
   while (running) {
 
@@ -373,40 +396,51 @@ int main(int argc, char *argv[])
     }
     
     if (!monitor && (fifo_overflow || staging_overflow || !in_spill)) continue;
-    n_polls++;
+    //    n_polls++;
 
-    /** read fifo occupancy **/
-    auto occupancy_register = occupancy_node->read();
-    hardware.dispatch();
-    auto occupancy_value = (occupancy_register.value() & 0xffff);
-    if (occupancy_value <= opt.min_occupancy && !monitor) continue;
-    if (occupancy_value > max_occupancy) max_occupancy = occupancy_value;
+    /** endless download loop unless in spill or empty fifo **/
+    while (true) {
 
-    /** check if fifo overflow **/
-    if (!fifo_overflow && occupancy_value >= 8191) {
-      std::cout << " --- fifo overflow " << std::endl;
-      if (!opt.trigger) shared_data->reset[opt.chip][opt.lane] = 1;
-      fifo_overflow = true;
-      continue;
-    }
+      /** read fifo occupancy **/
+      auto occupancy_register = occupancy_node->read();
+      hardware.dispatch();
+      auto occupancy_value = (occupancy_register.value() & 0xffff);
+      if (occupancy_value < opt.min_occupancy && !monitor) break;
+      if (occupancy_value > max_occupancy) max_occupancy = occupancy_value;
 
-    /** check space left on buffer **/
-    auto bytes = occupancy_value * 4;
-    if ( (int)(staging_buffer_end - staging_buffer_pointer) < bytes) {
-      std::cout << " --- staging buffer overflow " << std::endl;
-      if (!opt.trigger) shared_data->reset[opt.chip][opt.lane] = 2;
-      staging_overflow = true;
-      continue;
-    }
+      /** break loop if empty fifo **/
+      if (occupancy_value == 0) break;
+      
+      /** check if fifo overflow **/
+      if (!fifo_overflow && occupancy_value >= 8191) {
+	std::cout << " --- fifo overflow " << std::endl;
+	if (!opt.trigger) shared_data->reset[opt.chip][opt.lane] = 1;
+	fifo_overflow = true;
+	break;
+      }
+      
+      /** check space left on buffer **/
+      auto bytes = occupancy_value * 4;
+      if ( (int)(staging_buffer_end - staging_buffer_pointer) < bytes) {
+	std::cout << " --- staging buffer overflow " << std::endl;
+	if (!opt.trigger) shared_data->reset[opt.chip][opt.lane] = 2;
+	staging_overflow = true;
+	break;
+      }
     
-    /** read fifo data **/
-    auto data_register = data_node->readBlock(occupancy_value);
-    hardware.dispatch();
-    integrated_words += occupancy_value;
+      /** read fifo data **/
+      auto data_register = data_node->readBlock(occupancy_value);
+      hardware.dispatch();
+      integrated_words += occupancy_value;
 
-    /** stage data on buffer **/
-    std::memcpy(staging_buffer_pointer, data_register.data(), bytes);
-    staging_buffer_pointer += bytes;
+      /** stage data on buffer **/
+      std::memcpy(staging_buffer_pointer, data_register.data(), bytes);
+      staging_buffer_pointer += bytes;
+
+      /** break loop if in spill **/
+      if (in_spill) break;
+      
+    }
     
     /******* must download all FIFO data before monitor
 	     this is why I had put monitor at the end
@@ -431,8 +465,14 @@ int main(int argc, char *argv[])
 	header[3] = buffer_size;
 	fout.write((char *)&header, 16);
 	fout.write(staging_buffer, buffer_size);
+	//	fout.flush(); // try
       }
 
+      /** reset FIFO **/
+      reset_node->write(0x1);
+      hardware.dispatch();
+  
+#if 0
       /** post statistics **/
       if (!opt.trigger) {
  	/** post ALCOR lane broken **/
@@ -447,12 +487,19 @@ int main(int argc, char *argv[])
 	post_spill_system += std::string(" > /dev/null &");
 	system(post_spill_system.c_str());
       }
+#endif
       
       /** printout monitor **/
       std::cout << " n_polls: " << n_polls
 		<< " max_occupancy: " << max_occupancy
 		<< " integrated_bytes: " << 4 * integrated_words
 		<< std::endl;
+      
+      /** publish influxdb data **/
+      system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=nano-readout,name=max-occupancy,device=" + opt.device_id + ",fifo=" + fifo_id + " value=" + std::to_string(max_occupancy) + " & ").c_str());
+      system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=nano-readout,name=bytes,device=" + opt.device_id + ",fifo=" + fifo_id + " value=" + std::to_string(4 * integrated_words) + " & ").c_str());
+      
+      /** reset monitor **/
       n_polls = max_occupancy = integrated_words = 0;
       monitor = fifo_overflow = staging_overflow = false;
 
@@ -479,6 +526,8 @@ int main(int argc, char *argv[])
     std::cout << " --- output file closed: " << filename << std::endl;
   } 
   
+  std::cout << " --- it has been fun, so long " << std::endl;
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=nano-readout,name=status,device=" + opt.device_id + ",fifo=" + fifo_id + " value=0").c_str());
   return 0;
 }
 

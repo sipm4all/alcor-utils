@@ -26,7 +26,7 @@ struct program_options_t {
   int opmode, threshold, vth, range, offset1, delta_threshold, gain1;
   int max_resets;
   float integrated;
-  bool skip_user_settings, verbose;
+  bool skip_user_settings, verbose, noinit;
 };
 
 void sigint_handler(int signum);
@@ -55,10 +55,10 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("filter"           , po::value<int>(&opt.filter)->default_value(0xf), "Filter mode")
       ("usleep"           , po::value<int>(&opt.usleep)->default_value(10), "Microsecond sleep")
       ("occupancy"        , po::value<int>(&opt.occupancy)->default_value(4096), "FIFO occupancy to download")
-      ("timer"            , po::value<int>(&opt.timer)->default_value(32000000), "Spill length")
+      ("timer"            , po::value<int>(&opt.timer)->default_value(31250000), "Spill length")
       ("max_resets"       , po::value<int>(&opt.max_resets)->default_value(100), "Maximum number of allowed resets")
       ("integrated"       , po::value<float>(&opt.integrated)->default_value(1.), "Quit after integrated seconds")
-      ("staging"          , po::value<int>(&opt.staging)->default_value(1048576), "Staging buffer size (bytes)")      
+      ("staging"          , po::value<int>(&opt.staging)->default_value(4194304), "Staging buffer size (bytes)")      
       ("opmode"           , po::value<int>(&opt.opmode)->default_value(0x1), "ALCOR channel operation mode")
       ("threshold"        , po::value<int>(&opt.threshold), "ALCOR threshold value")
       ("delta_threshold"  , po::value<int>(&opt.delta_threshold), "ALCOR threshold delta")
@@ -66,6 +66,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("range"            , po::value<int>(&opt.range), "ALCOR threshold range")
       ("offset1"          , po::value<int>(&opt.offset1), "ALCOR baseline offset")
       ("gain1"            , po::value<int>(&opt.gain1), "ALCOR TIA gain")
+      ("noinit"           , po::bool_switch(&opt.noinit), "Do not run ALCOR init")
       ;
     
     po::store(po::parse_command_line(argc, argv, desc), opt.vm);
@@ -108,6 +109,13 @@ int main(int argc, char *argv[])
   program_options_t opt;
   process_program_options(argc, argv, opt);
 
+  auto device_id_str = opt.device;
+  int device_id = 0;
+  if (device_id_str.rfind("kc705-", 0) == 0) {
+    device_id_str = device_id_str.substr(6);
+    device_id = std::atoi(device_id_str.c_str());
+  }      
+  
   /** initialise ipbus **/
   uhal::disableLogging();
   uhal::ConnectionManager connection_manager("file://" + opt.connection);
@@ -181,6 +189,7 @@ int main(int argc, char *argv[])
     header[5] = opt.staging; // staging size
     header[6] = 0; // run mode
     header[7] = opt.filter; // filter mode
+    header[8] = device_id; // device id
     fout.write((char *)&header, 64);
     fout_trg.write((char *)&header, 64);
   }
@@ -190,10 +199,20 @@ int main(int argc, char *argv[])
   //  std::string alcor_reset_system = std::string(std::getenv("ALCOR_DIR")) + "/control/alcorInit.sh 0 /tmp > /dev/null 2>&1";
   std::string alcor_init_system = std::string(std::getenv("ALCOR_DIR")) +
     "/measure/alcor_fast_init_readout.sh " + std::to_string(opt.chip) + " " + std::to_string(opt.channel) + " > /dev/null 2>&1";
-  std::string alcor_reset_system = alcor_init_system;
 
-  system(alcor_init_system.c_str());
-  
+  alcor_init_system = "/au/pdu/control/alcor_fast_init_readout.sh " +
+    opt.device + " " +
+    std::to_string(opt.chip) + " " +
+    std::to_string(opt.channel) +
+    " > /dev/null 2>&1";
+
+  /** run ALCOR init unless hinibited **/
+  std::string alcor_reset_system = alcor_init_system;
+  if (!opt.noinit) {
+    std::cout << " --- ALCOR init call: " << alcor_init_system << std::endl;
+    system(alcor_init_system.c_str());
+  }
+
   /** read PCR2 and PCR3 register **/
   alcor::pcr2_union_t pcr2, pcr2_init;
   alcor::pcr3_union_t pcr3, pcr3_init;
@@ -219,24 +238,29 @@ int main(int argc, char *argv[])
     pcr2.reg.LE1DAC += opt.delta_threshold;
   }
   
-  /** print PCR2 and PCR3 registers **/
-  std::cout << " --- status of PCR2 and PRC3 registers " << std::endl;
-  pcr2.reg.print();
-  pcr3.reg.print();
   /** run mode on **/
   daq.regfile.mode->write(1);
   hardware.dispatch();
+  
+  /** switch on channel and write PCR2 and PCR3 **/
+  pcr3.reg.OpMode = opt.opmode;
+  alcor.spi.write(PCR(2, pixel, column), pcr2.val);
+  alcor.spi.write(PCR(3, pixel, column), pcr3.val);
+    
+  /** print PCR2 and PCR3 registers **/
+  std::cout << " --- status of PCR2 and PRC3 registers before running " << std::endl;
+  pcr2.reg.print();
+  pcr3.reg.print();
 
   /** DAQ loop **/
   long long int buffer_counter = 0;
   long long int integrated_resets = 0, integrated_polls = 0, integrated_downloads = 0, integrated_occupancy = 0, integrated_bytes = 0, integrated_timer = 0, integrated_rollover = 0;
-  bool need_reset = true, fifo_overflow = false, staging_overflow = false;
-  need_reset = false; // R+TRY
+  bool need_reset = false, fifo_overflow = false, staging_overflow = false;
   
   long long int n_polls = 0, n_downloads = 0;
   while (running) {
 
-    if (integrated_timer > opt.integrated * 32000000. ||
+    if (integrated_timer > opt.integrated * 31250000. ||
 	integrated_resets > opt.max_resets) break;
     
     /** reset ALCOR if needed **/
@@ -256,17 +280,13 @@ int main(int argc, char *argv[])
     staging_buffer_trg_pointer = staging_buffer_trg;
     staging_buffer_trg_bytes = 0;
 
-    /** switch on channel and write PCR2 and PCR3 **/
-    pcr3.reg.OpMode = opt.opmode;
-    alcor.spi.write(PCR(2, pixel, column), pcr2.val);
-    alcor.spi.write(PCR(3, pixel, column), pcr3.val);
-    
     /** reset fifo **/
     alcor.fifo[lane].reset->write(0x1);
     daq.trigger.reset->write(0x1);
     hardware.dispatch();
 
     /** set run mode running **/
+    std::cout << " >>> start of spill " << std::endl;
     daq.regfile.mode->write(3);
     hardware.dispatch();
     
@@ -340,92 +360,106 @@ int main(int argc, char *argv[])
       staging_buffer_trg_pointer += fifo_trg_bytes;
       staging_buffer_trg_bytes += fifo_trg_bytes;
 
+      /** count rollover **/
+      for (int i = 0; i < fifo_data.value().size(); ++i)
+	if (fifo_data.value()[i] == 0x5c5c5c5c) integrated_rollover++;
+    
       /** check if we integrated sufficient time in this spill **/
       if (fifo_timer_value >= opt.timer) break;
       
+    } /** end of loop till min occupancy / timer reached **/
 
-#if 0	  
-      if (fifo_occupancy_value > opt.occupancy ||
-	  fifo_occupancy_trg_value > opt.occupancy ||
-	  fifo_timer_value > opt.timer || 
-	  (integrated_timer + fifo_timer_value) > opt.integrated) break;
-#endif
-      
-    }
 
     /** set run mode idle **/
+    std::cout << " >>> end of spill " << std::endl;
     daq.regfile.mode->write(1);
     hardware.dispatch();
     
-    /** switch off channel **/
-    pcr3.reg.OpMode = 0x0;
-    alcor.spi.write(PCR(3, pixel, column), pcr3.val);
-
     /** stop here if data is corrupted already **/
     if (need_reset || fifo_overflow || staging_overflow) continue;
-    
-    /** read occupancy and timer **/
-    auto fifo_occupancy = alcor.fifo[lane].occupancy->read();
-    auto fifo_occupancy_trg = daq.trigger.occupancy->read();
+
+    /** read timer **/
     auto fifo_timer = alcor.fifo[lane].timer->read();
     hardware.dispatch();
-    auto fifo_occupancy_value = fifo_occupancy.value() & 0xffff;
-    auto fifo_occupancy_trg_value = fifo_occupancy_trg.value() & 0xffff;
     auto fifo_timer_value = fifo_timer.value();
     integrated_polls++;
     n_polls++;
     
-    /** download data **/
-    auto fifo_data = alcor.fifo[lane].data->readBlock(fifo_occupancy_value);
-    auto fifo_bytes = fifo_occupancy_value * 4;
-    auto fifo_trg_data = daq.trigger.data->readBlock(fifo_occupancy_trg_value);
-    auto fifo_trg_bytes = fifo_occupancy_trg_value * 4;
-    hardware.dispatch();
-    integrated_downloads++;
-    n_downloads++;
+    /** download all leftover data **/
+    std::cout << " --- downloading leftover data " << std::endl;
+    while (true) {
     
-    /** check that we got the spill trailer **/
-    if (fifo_occupancy_value > 2) {
-      auto data = fifo_data.value()[fifo_occupancy_value - 2]; // last two is spill trailer, must go back
-      if ( !(data & 0xf0000000) ) {
-	std::cout << ERROR << " --- there is no spill trailer in the buffer " << RESET << std::endl;
+      /** read occupancy **/
+      auto fifo_occupancy = alcor.fifo[lane].occupancy->read();
+      auto fifo_occupancy_trg = daq.trigger.occupancy->read();
+      auto fifo_timer = alcor.fifo[lane].timer->read();
+      hardware.dispatch();
+      auto fifo_occupancy_value = fifo_occupancy.value() & 0xffff;
+      auto fifo_occupancy_trg_value = fifo_occupancy_trg.value() & 0xffff;
+      auto fifo_timer_value = fifo_timer.value();
+      std::cout << " --- fifo occupancy: " << fifo_occupancy_value << std::endl;
+      
+      if (fifo_occupancy_value == 0) break;
+    
+      /** download data **/
+      auto fifo_data = alcor.fifo[lane].data->readBlock(fifo_occupancy_value);
+      auto fifo_bytes = fifo_occupancy_value * 4;
+      auto fifo_trg_data = daq.trigger.data->readBlock(fifo_occupancy_trg_value);
+      auto fifo_trg_bytes = fifo_occupancy_trg_value * 4;
+      hardware.dispatch();
+      integrated_downloads++;
+      n_downloads++;
+
+#if 0 // R+FIXME
+      /** check that we got the spill trailer **/
+      if (fifo_occupancy_value > 2) {
+	auto data = fifo_data.value()[fifo_occupancy_value - 2]; // last two is spill trailer, must go back
+	if ( !(data & 0xf0000000) ) {
+	  std::cout << ERROR << " --- there is no spill trailer in the buffer " << RESET << std::endl;
+	  continue;
+	}
+      }
+#endif // R+FIXME
+    
+      /** check if chip is broken **/
+      if (fifo_occupancy_value > 2) {
+	auto last_data = fifo_data.value()[fifo_occupancy_value - 3]; // last two is spill trailer, must go back
+	if ((last_data & 0x000000ff) == 0) {
+	  std::cout << ERROR << " --- chip is broken, need reset: " << std::hex << "0x" << last_data << std::dec << RESET << std::endl;
+	  integrated_resets++;
+	  need_reset = true;
+	  continue;
+	}
+      }
+      
+      /** check if FIFO overflow **/
+      if (fifo_occupancy_value >= 8191 ||
+	  fifo_occupancy_trg_value >= 8191 ) {
+	std::cout << ERROR << " --- fifo buffer overflow " << RESET << std::endl;
 	continue;
       }
-    }
-    
-    /** check if chip is broken **/
-    if (fifo_occupancy_value > 2) {
-      auto last_data = fifo_data.value()[fifo_occupancy_value - 3]; // last two is spill trailer, must go back
-      if ((last_data & 0x000000ff) == 0) {
-	std::cout << ERROR << " --- chip is broken, need reset: " << std::hex << "0x" << last_data << std::dec << RESET << std::endl;
-	integrated_resets++;
-	need_reset = true;
+      
+      /** check if staging buffer overflow **/
+      if (staging_buffer_bytes + fifo_bytes > opt.staging ||
+	  staging_buffer_trg_bytes + fifo_trg_bytes > opt.staging) {
+	std::cout << ERROR << " --- staging buffer overflow " << RESET << std::endl;
 	continue;
       }
-    }
+      
+      /** copy data into staging buffer **/
+      std::memcpy((char *)staging_buffer_pointer, (char *)fifo_data.data(), fifo_bytes);
+      staging_buffer_pointer += fifo_bytes;
+      staging_buffer_bytes += fifo_bytes;
+      std::memcpy((char *)staging_buffer_trg_pointer, (char *)fifo_trg_data.data(), fifo_trg_bytes);
+      staging_buffer_trg_pointer += fifo_trg_bytes;
+      staging_buffer_trg_bytes += fifo_trg_bytes;
+
+      /** count rollover **/
+      for (int i = 0; i < fifo_data.value().size(); ++i)
+	if (fifo_data.value()[i] == 0x5c5c5c5c) integrated_rollover++;
     
-    /** check if FIFO overflow **/
-    if (fifo_occupancy_value >= 8191 ||
-	fifo_occupancy_trg_value >= 8191 ) {
-      std::cout << ERROR << " --- fifo buffer overflow " << RESET << std::endl;
-      continue;
-    }
-    
-    /** check if staging buffer overflow **/
-    if (staging_buffer_bytes + fifo_bytes > opt.staging ||
-	staging_buffer_trg_bytes + fifo_trg_bytes > opt.staging) {
-      std::cout << ERROR << " --- staging buffer overflow " << RESET << std::endl;
-      continue;
-    }
-    
-    /** copy data into staging buffer **/
-    std::memcpy((char *)staging_buffer_pointer, (char *)fifo_data.data(), fifo_bytes);
-    staging_buffer_pointer += fifo_bytes;
-    staging_buffer_bytes += fifo_bytes;
-    std::memcpy((char *)staging_buffer_trg_pointer, (char *)fifo_trg_data.data(), fifo_trg_bytes);
-    staging_buffer_trg_pointer += fifo_trg_bytes;
-    staging_buffer_trg_bytes += fifo_trg_bytes;
-    
+    } /** end of download all leftover data **/
+
     /** flush staging buffer **/
     std::cout << " --- flushing staging buffer: " << staging_buffer_bytes << std::endl;
     write_buffer_to_file(fout, fifo_id, buffer_counter, staging_buffer, staging_buffer_bytes);
@@ -445,86 +479,12 @@ int main(int argc, char *argv[])
     //    printf(" 0x%08x \n", trg_data1);
     std::cout << " --- n_polls: " << n_polls << " | n_downloads: " << n_downloads << std::endl;
 
-    
-#if 0
-    /** read occupancy and timer **/
-    auto fifo_occupancy = alcor.fifo[lane].occupancy->read();
-    auto fifo_occupancy_trg = daq.trigger.occupancy->read();
-    auto fifo_timer = alcor.fifo[lane].timer->read();
-    hardware.dispatch();
-    auto fifo_occupancy_value = fifo_occupancy.value() & 0xffff;
-    auto fifo_occupancy_trg_value = fifo_occupancy_trg.value() & 0xffff;
-    auto fifo_timer_value = fifo_timer.value();
-
-    /** download data **/
-    auto fifo_data = alcor.fifo[lane].data->readBlock(fifo_occupancy_value);
-    auto fifo_bytes = fifo_occupancy_value * 4;
-    auto fifo_trg_data = daq.trigger.data->readBlock(fifo_occupancy_trg_value);
-    auto fifo_trg_bytes = fifo_occupancy_trg_value * 4;
-    hardware.dispatch();
-    integrated_downloads++;
-    
-    /** check if need reset **/
-    if (fifo_occupancy_value > 2) {
-      auto last_data = fifo_data.value()[fifo_occupancy_value - 3]; // last two is spill trailer, must go back
-      if ((last_data & 0x000000ff) == 0) {
-	std::cout << " --- chip is broken, need reset: " << std::hex << "0x" << last_data << std::dec << std::endl;
-	integrated_resets++;
-	need_reset = true;
-      }
-    }
-
-    /** do not store data if chip is broken **/
-    if (need_reset) continue;
-
-    /** do not store data if buffer overflow **/
-    if (fifo_occupancy_value >= 8191) {
-      std::cout << " --- fifo buffer overflow " << std::endl;
-      continue;
-    }
-    if (fifo_occupancy_trg_value >= 8191) {
-      std::cout << " --- trg buffer overflow " << std::endl;
-      continue;
-    }
-    
-    /** count rollover **/
-    for (int i = 0; i < fifo_data.value().size(); ++i)
-      if (fifo_data.value()[i] == 0x5c5c5c5c) integrated_rollover++;
-    
-    if (write_output) {
-      /** flush staging buffer if needed **/
-      if (staging_buffer_bytes + fifo_bytes > opt.staging ||
-	  staging_buffer_trg_bytes + fifo_trg_bytes > opt.staging) {
-	std::cout << " --- flushing staging buffer: " << staging_buffer_bytes << std::endl;
-	write_buffer_to_file(fout, fifo_id, buffer_counter, staging_buffer, staging_buffer_bytes);
-	staging_buffer_pointer = staging_buffer;
-	staging_buffer_bytes = 0;
-	std::cout << " --- flushing staging buffer TRG: " << staging_buffer_trg_bytes << std::endl;
-	write_buffer_to_file(fout_trg, 24, buffer_counter, staging_buffer_trg, staging_buffer_trg_bytes);
-	staging_buffer_trg_pointer = staging_buffer_trg;
-	staging_buffer_trg_bytes = 0;
-	buffer_counter++;
-      }
-      /** copy data into staging buffer **/
-      std::memcpy((char *)staging_buffer_pointer, (char *)fifo_data.data(), fifo_bytes);
-      staging_buffer_pointer += fifo_bytes;
-      staging_buffer_bytes += fifo_bytes;
-      std::memcpy((char *)staging_buffer_trg_pointer, (char *)fifo_trg_data.data(), fifo_trg_bytes);
-      staging_buffer_trg_pointer += fifo_trg_bytes;
-      staging_buffer_trg_bytes += fifo_trg_bytes;
-    }
-      
-    /** increment counters **/
-    integrated_occupancy += fifo_occupancy_value;
-    integrated_bytes += fifo_bytes;
-    integrated_timer += fifo_timer_value;
-
-    if (integrated_timer > opt.integrated * 32000000. ||
-	integrated_resets > opt.max_resets) break;
-    
-#endif
   }
 
+  /** switch off channel **/
+  pcr3.reg.OpMode = 0x0;
+  alcor.spi.write(PCR(3, pixel, column), pcr3.val);
+  
   /** set run mode off **/
   hardware.getNode("regfile.mode").write(0);
   hardware.dispatch();
@@ -534,7 +494,7 @@ int main(int argc, char *argv[])
   alcor.spi.write(PCR(3, pixel, column), pcr3_init.val);
     
   /** monitor **/
-  auto integrated_seconds = (float)integrated_timer / 32000000.;
+  auto integrated_seconds = (float)integrated_timer / 31250000.;
   std::cout << std::endl;
   std::cout << " integrated: " << integrated_polls << " polls " << std::endl
 	    << "             " << integrated_downloads << " downloads " << std::endl
