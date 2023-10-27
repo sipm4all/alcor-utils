@@ -19,9 +19,21 @@ add_executable(ureadout ureadout.cc)
 target_link_libraries(ureadout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
 install(TARGETS ureadout RUNTIME DESTINATION bin)
 
+add_executable(simple-readout simple-readout.cc)
+target_link_libraries(simple-readout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
+install(TARGETS simple-readout RUNTIME DESTINATION bin)
+
+add_executable(deep-reset deep-reset.cc)
+target_link_libraries(deep-reset ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
+install(TARGETS deep-reset RUNTIME DESTINATION bin)
+
 add_executable(register register.cc)
 target_link_libraries(register ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
 install(TARGETS register RUNTIME DESTINATION bin)
+
+add_executable(block block.cc)
+target_link_libraries(block ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
+install(TARGETS block RUNTIME DESTINATION bin)
 
 add_executable(alcor_register alcor_register.cc)
 target_link_libraries(alcor_register ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})

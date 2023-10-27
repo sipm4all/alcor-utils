@@ -13,7 +13,7 @@
 
 struct program_options_t {
   std::string connection_filename, device_id, write_value;
-  int bcr, pcr, pixel, column;
+  int eccr, bcr, pcr, pixel, column;
   int chip;
 };
 
@@ -31,6 +31,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("connection"       , po::value<std::string>(&opt.connection_filename)->required(), "IPbus XML connection file")
       ("device"           , po::value<std::string>(&opt.device_id)->default_value("kc705"), "Device ID")
       ("chip"             , po::value<int>(&opt.chip)->required(), "ALCOR chip number")
+      ("eccr"             , po::value<int>(&opt.eccr)->default_value(-1), "ALCOR ECCR register")
       ("bcr"              , po::value<int>(&opt.bcr)->default_value(-1), "ALCOR BCR register")
       ("pcr"              , po::value<int>(&opt.pcr)->default_value(-1), "ALCOR PCR register")
       ("pixel"            , po::value<int>(&opt.pixel)->default_value(0), "ALCOR PCR pixel register")
@@ -72,9 +73,11 @@ int main(int argc, char *argv[])
     std::stringstream ss;
     ss << std::hex << opt.write_value;
     ss >> value;
+    if (opt.eccr != -1) alcor.spi.write(ECCR(opt.eccr), value);
     if (opt.bcr != -1) alcor.spi.write(BCR(opt.bcr), value);
     if (opt.pcr != -1) alcor.spi.write(PCR(opt.pcr, opt.pixel, opt.column), value);
   }
+  if (opt.eccr != -1) printf("ECCR(%d) = 0x%04x \n", opt.eccr, alcor.spi.read(ECCR(opt.eccr)));
   if (opt.bcr != -1) printf("BCR(%d) = 0x%04x \n", opt.bcr, alcor.spi.read(BCR(opt.bcr)));
   if (opt.pcr != -1) printf("PCR(%d,%d,%d) = 0x%04x \n", opt.pcr, opt.pixel, opt.column, alcor.spi.read(PCR(opt.pcr, opt.pixel, opt.column)));
 

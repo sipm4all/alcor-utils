@@ -155,14 +155,16 @@ int main(int argc, char *argv[])
   }
 
   using namespace boost::interprocess;
+  std::string shm_name = "shm_" + opt.device_id;
   /** remove shared memory on construction and destruction **/
   struct shm_remove {
-    shm_remove() { shared_memory_object::remove("MySharedMemory"); }
-    ~shm_remove(){ shared_memory_object::remove("MySharedMemory"); }
-  } remover;
+    shm_remove(std::string name) : _name(name) { shared_memory_object::remove(_name.c_str()); }
+    ~shm_remove(){ shared_memory_object::remove(_name.c_str()); }
+    std::string _name;
+  } remover(shm_name);
   
   /** create a shared memory object **/
-  shared_memory_object shm (create_only, "MySharedMemory", read_write);
+  shared_memory_object shm (create_only, shm_name.c_str(), read_write);
   /** set size **/
   shm.truncate(sizeof(shared_t));
   /** map the whole shared memory in this process **/
@@ -201,8 +203,16 @@ int main(int argc, char *argv[])
   signal(SIGINT, sigint_handler);
   signal(SIGALRM, sigalrm_handler);
 
+  /** set filter mode **/
+  auto filter_command = 0x03300000 | opt.filter_mode;
+  std::cout << " --- setting ALCOR filter mode: 0x" << std::hex << opt.filter_mode << std::dec << std::endl;
+  for (int ichip = 0; ichip < n_active_alcors; ++ichip)
+    hardware.getNode("alcor_controller_id" + std::to_string(ichip)).write(filter_command);
+  hardware.dispatch();
+
   /** endless loop till start of run (or interrupted) **/
   std::cout << " --- waiting for start of run " << std::endl;
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=ctrl-readout,name=status,device=" + opt.device_id + " value=1").c_str());
   while (running) {
 
     /** usleep a bit **/
@@ -229,11 +239,13 @@ int main(int argc, char *argv[])
   } /** end of endless loop till start of run (or interrupted) **/
 
   /** reset ALCOR **/
-  ALCOR_reset(hardware, true);
+  //  ALCOR_reset(hardware, true);
   
   /** endless loop till end of run (or interrupted) **/
   std::cout << " --- serving till end of run " << std::endl;
   int nspills = 0;
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=ctrl-readout,name=nspills,device=" + opt.device_id + " value=" + std::to_string(nspills)).c_str());
+
   while (running) {
 
     /** usleep a bit **/
@@ -270,6 +282,7 @@ int main(int argc, char *argv[])
       else {
 	std::cout << " --- end of spill detected " << std::endl;
 	nspills++;
+	system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=ctrl-readout,name=nspills,device=" + opt.device_id + " value=" + std::to_string(nspills)).c_str());
 	if (opt.reset) {
 	  std::cout << " --- force reset at end of spill " << std::endl;
 	  do_reset = true;
@@ -277,7 +290,8 @@ int main(int argc, char *argv[])
 	usleep(1000); // sleep 1 ms to allow nano-readout processes to communicate reset requests 
       }
     }
-    
+
+#if 0
     /** check ALCOR reset requests **/
     if (!shared_data->in_spill) {
       for (int chip = 0; chip < 6; ++chip) {
@@ -298,16 +312,19 @@ int main(int argc, char *argv[])
 	do_reset = false;
       }
     }
+#endif
 
     /** force end of run after exceeding max number of spills **/
     if (nspills >= opt.max_spills) {
       std::cout << " --- max number of spills exceeded: forcing end of run " << std::endl;	  
       shared_data->mode = 0;
+      usleep(1000); // sleep 1 ms to allow nano-readout processes to realise
     }
 
   } /** end of endless loop till end of run (or interrupted) **/
 
   std::cout << " --- it has been fun, so long " << std::endl;
+  system(std::string("/home/eic/bin/influx_write.sh readout-processes,process=ctrl-readout,name=status,device=" + opt.device_id + " value=0").c_str());
   return 0;
 }
 

@@ -161,15 +161,17 @@ int main(int argc, char *argv[])
       hardware.dispatch();
 
       for (int i = 0; i < fifo_occupancy_value; ++i) {
-	//	printf(" %08x \n", fifo_data.value()[i]);
+	//	printf(" %08x \n", fifo_data.value()[i]); // to be commented
 	// check if corrupted
 	if ( (fifo_data.value()[i] & chmask) != chtag ) {
-	  //	  std::cout << " corrupted " << std::endl;
+	  //	  std::cout << " corrupted " << std::endl; // to be commented
+	  //	  printf(" %08x != %08x \n", fifo_data.value()[i] & chmask, chtag); // to be commented
 	  corrupted = true;
 	  break;
 	}
 	// check if broken
 	if ( (fifo_data.value()[i] & 0x000000ff) == 0 ) {
+	  //	  std::cout << " broken " << std::endl; // to be commented
 	  broken = true;
 	  break;
 	}
@@ -203,7 +205,7 @@ int main(int argc, char *argv[])
   
   // print results
   auto counts = sum_occupancy;
-  auto period = (float)sum_timer / 32.e6;
+  auto period = (float)sum_timer / 31.25e6;
   auto rate = (float)counts / period;
   auto ratee = (float)std::sqrt(counts) / period;
   auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();

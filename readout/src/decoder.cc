@@ -4,6 +4,7 @@
 #include <boost/program_options.hpp>
 #include "TFile.h"
 #include "TH1F.h"
+#include "TGraph.h"
 #include "TTree.h"
 
 bool verbose = false;
@@ -12,6 +13,8 @@ int integrated_spill = 0;
 int integrated_hits = 0;
 int rollover_counter = 0;//-1; // we start from -1 becaue the very first word is a rollover
 int frame = 0;
+
+TGraph *gRollover = nullptr;
 
 struct main_header_t {
   uint32_t caffe;
@@ -22,7 +25,7 @@ struct main_header_t {
   uint32_t staging_size;
   uint32_t run_mode;
   uint32_t filter_mode;
-  uint32_t reserved0;
+  uint32_t device;
   uint32_t reserved1;
   uint32_t reserved2;
   uint32_t reserved3;
@@ -67,6 +70,7 @@ struct alcor_hit_t {
 };
 
 struct data_t {
+  int device;
   int fifo;
   int type;
   int counter;
@@ -80,8 +84,9 @@ struct data_t {
 
 bool in_spill = false;
 
-void write_data(TTree *tout, int fifo, int type, int counter, int column, int pixel, int tdc, int rollover, int coarse, int fine)
+void write_data(TTree *tout, int device, int fifo, int type, int counter, int column, int pixel, int tdc, int rollover, int coarse, int fine)
 {
+  data.device = device;
   data.fifo = fifo;
   data.type = type;
   data.counter = counter;
@@ -94,19 +99,19 @@ void write_data(TTree *tout, int fifo, int type, int counter, int column, int pi
   tout->Fill();
 }
 
-void write_trigger_data(TTree *tout, int fifo, int type, int counter, int rollover, int coarse)
+void write_trigger_data(TTree *tout, int device, int fifo, int type, int counter, int rollover, int coarse)
 {
-  write_data(tout, fifo, type, counter, -1, -1, -1, rollover, coarse, -1);
+  write_data(tout, device, fifo, type, counter, -1, -1, -1, rollover, coarse, -1);
 }
 
-void write_alcor_data(TTree *tout, int fifo, int column, int pixel, int tdc, int rollover, int coarse, int fine)
+void write_alcor_data(TTree *tout, int device, int fifo, int column, int pixel, int tdc, int rollover, int coarse, int fine)
 {
-  write_data(tout, fifo, 1, -1, column, pixel, tdc, rollover, coarse, fine);
+  write_data(tout, device, fifo, 1, -1, column, pixel, tdc, rollover, coarse, fine);
 }
                 
-void decode_trigger(char *buffer, int fifo, int size, TTree *tout)
+void decode_trigger(char *buffer, int device, int fifo, int size, TTree *tout)
 {
-  if (verbose) printf(" --- decode_trigger: fifo%d, size=%d \n", fifo, size); 
+  if (verbose) printf(" --- decode_trigger: device-%d fifo-%d, size=%d \n", device, fifo, size); 
 
   size /= 4;
   auto word = (uint32_t *)buffer;
@@ -125,7 +130,7 @@ void decode_trigger(char *buffer, int fifo, int size, TTree *tout)
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
-      write_trigger_data(tout, fifo, 7, counter, rollover, coarse);
+      write_trigger_data(tout, device, fifo, 7, counter, rollover, coarse);
       ++word; ++pos;
     }
     
@@ -141,7 +146,7 @@ void decode_trigger(char *buffer, int fifo, int size, TTree *tout)
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
-      write_trigger_data(tout, fifo, 15, counter, rollover, coarse);
+      write_trigger_data(tout, device, fifo, 15, counter, rollover, coarse);
       ++word; ++pos;
     }
     
@@ -157,7 +162,7 @@ void decode_trigger(char *buffer, int fifo, int size, TTree *tout)
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
-      write_trigger_data(tout, fifo, 9, counter, rollover, coarse);
+      write_trigger_data(tout, device, fifo, 9, counter, rollover, coarse);
       ++word; ++pos;
     }
 
@@ -171,7 +176,7 @@ void decode_trigger(char *buffer, int fifo, int size, TTree *tout)
 
 }
 
-void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
+void decode(char *buffer, int device, int fifo, int size, TTree *tout, bool is_filtered)
 {
   size /= 4;
   auto word = (uint32_t *)buffer;
@@ -195,7 +200,7 @@ void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
         trigger_time |= *word;
         uint32_t coarse = trigger_time & 0x7fff;
         uint32_t rollover = trigger_time >> 15;
-        write_trigger_data(tout, fifo, 7, counter, rollover, coarse);
+        write_trigger_data(tout, device, fifo, 7, counter, rollover, coarse);
         ++word; ++pos;
         in_spill = true;
 
@@ -203,7 +208,12 @@ void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
       }
 
       /** something else **/
-      if (verbose) printf(" 0x%08x -- \n", *word);
+      if (verbose) {
+	//	if (!in_spill)
+	//	  printf(" 0x%08x -- filler (pos=%d)\n", *word, pos % 16);
+	//	else 
+	  printf(" 0x%08x -- \n", *word);
+      }
       ++word; ++pos;
     }
     
@@ -213,7 +223,7 @@ void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
       /** killed fifo **/
       if (*word == 0x666caffe) {
         if (verbose) printf(" 0x%08x -- killed fifo \n", *word);
-        write_trigger_data(tout, fifo, 15, -1, -1, -1);
+        write_trigger_data(tout, device, fifo, 15, -1, -1, -1);
         ++word; ++pos;
         in_spill = false;
 	rollover_counter = 0;
@@ -232,12 +242,13 @@ void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
         trigger_time |= *word;
         uint32_t coarse = trigger_time & 0x7fff;
         uint32_t rollover = trigger_time >> 15;
-        write_trigger_data(tout, fifo, 15, counter, rollover, coarse);
+        write_trigger_data(tout, device, fifo, 15, counter, rollover, coarse);
         ++word; ++pos;
         in_spill = false;
+	gRollover->AddPoint(integrated_spill, rollover_counter);
 	integrated_spill++;
 	rollover_counter = 0;
-        break;
+	break;
       }
 
       /** rollover **/
@@ -252,7 +263,7 @@ void decode(char *buffer, int fifo, int size, TTree *tout, bool is_filtered)
       /** hit **/
       hit = (alcor_hit_t *)word;
       if (verbose) printf(" 0x%08x -- hit (coarse=%d, fine=%d, column=%d, pixel=%d --> channel=%d)\n", *word, hit->coarse, hit->fine, hit->column, hit->pixel, hit->column * 4 + hit->pixel);
-      write_alcor_data(tout, fifo, hit->column, hit->pixel, hit->tdc, rollover_counter, hit->coarse, hit->fine);
+      write_alcor_data(tout, device, fifo, hit->column, hit->pixel, hit->tdc, rollover_counter, hit->coarse, hit->fine);
       integrated_hits++;
       ++word; ++pos;
       
@@ -273,8 +284,8 @@ int main(int argc, char *argv[])
   try {
     desc.add_options()
       ("help"    , "Print help messages")
-      ("input"   , po::value<std::string>(&input_filename), "Input data file")
-      ("output"  , po::value<std::string>(&output_filename), "Output data file")
+      ("input"   , po::value<std::string>(&input_filename)->required(), "Input data file")
+      ("output"  , po::value<std::string>(&output_filename)->required(), "Output data file")
       ("verbose" , po::bool_switch(&verbose)->default_value(false), "Verbose mode flag")
       ;
     
@@ -314,6 +325,7 @@ int main(int argc, char *argv[])
     printf(" --- [main header] staging buffer size: %d \n", main_header.staging_size);
     printf(" --- [main header] run mode: 0x%1x \n", main_header.run_mode);
     printf(" --- [main header] filter mode: 0x%1x \n", main_header.filter_mode);
+    printf(" --- [main header] device: %d \n", main_header.device);
     printf(" --- [main header] timestamp: %d \n", main_header.timestamp);
   }
 
@@ -336,6 +348,7 @@ int main(int argc, char *argv[])
   std::cout << " --- opening output file: " << output_filename << std::endl;
   auto fout = TFile::Open(output_filename.c_str(), "RECREATE");
   auto tout = new TTree("alcor", "ALCOR");
+  tout->Branch("device", &data.device, "device/I");
   tout->Branch("fifo", &data.fifo, "fifo/I");
   tout->Branch("type", &data.type, "type/I");
   tout->Branch("counter", &data.counter, "counter/I");
@@ -348,6 +361,7 @@ int main(int argc, char *argv[])
 
   /** output histograms **/
   auto hCounters = new TH1F("hCounters", "", 3, 0, 3);
+  gRollover = new TGraph;
   
   /** loop over data **/
   buffer_header_t buffer_header;
@@ -369,11 +383,11 @@ int main(int argc, char *argv[])
 
     if (buffer_header.id < 24) {
       if (verbose) printf(" --- decoding ALCOR FIFO \n");
-      decode(buffer, buffer_header.id, buffer_header.size, tout, is_filtered);
+      decode(buffer, main_header.device, buffer_header.id, buffer_header.size, tout, is_filtered);
     }
     else if (buffer_header.id == 24) {
       if (verbose) printf(" --- decoding TRIGGER FIFO \n");
-      decode_trigger(buffer, buffer_header.id, buffer_header.size, tout);
+      decode_trigger(buffer, main_header.device, buffer_header.id, buffer_header.size, tout);
     }
   }
   
@@ -382,10 +396,12 @@ int main(int argc, char *argv[])
 
   /** write tree and close output */
   tout->Write();
+  std::cout << " --- integrated spill: " << integrated_spill << std::endl;
   hCounters->SetBinContent(1, integrated_spill);
   hCounters->SetBinContent(2, integrated_rollover);
   hCounters->SetBinContent(3, integrated_hits);
   hCounters->Write();
+  gRollover->Write("gRollover");
   fout->Close();
   
   /** close input file **/
