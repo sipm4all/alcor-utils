@@ -1,0 +1,10 @@
+<connections>
+  <connection id="kc705-192" uri="chtcp-2.0://localhost:10203?target=10.0.8.192:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+  <connection id="kc705-193" uri="chtcp-2.0://localhost:10203?target=10.0.8.193:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+  <connection id="kc705-194" uri="chtcp-2.0://localhost:10203?target=10.0.8.194:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+  <connection id="kc705-195" uri="chtcp-2.0://localhost:10203?target=10.0.8.195:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+  <connection id="kc705-196" uri="chtcp-2.0://localhost:10203?target=10.0.8.196:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+  <connection id="kc705-197" uri="chtcp-2.0://localhost:10203?target=10.0.8.197:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+  <connection id="kc705-198" uri="chtcp-2.0://localhost:10203?target=10.0.8.198:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+  <connection id="kc705-207" uri="chtcp-2.0://localhost:10203?target=10.0.8.207:50001" address_table="file:///etc/drich/drich_ipbus_addresstable.xml"/>
+</connections>
