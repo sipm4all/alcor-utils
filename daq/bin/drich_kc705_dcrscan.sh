@@ -1,0 +1,1 @@
+/au/pdu/measure/start-dcr-scan.sh
