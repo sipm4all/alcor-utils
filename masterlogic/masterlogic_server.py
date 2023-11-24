@@ -26,6 +26,7 @@ if not os.path.exists(DEV):
   
 READY=bytearray(b':>')
 CRAP=bytearray(b'\xf8')
+CRAP2=bytearray(b'\xfc')
 
 ser = serial.Serial(DEV, 115200, timeout=1)
 print(' --- serial connection opened:', DEV)
@@ -36,7 +37,7 @@ def masterlogic_send(command):
   data = bytearray()
   while True:
     datum = ser.read()
-    if datum == CRAP:
+    if datum == CRAP or datum == CRAP2:
       continue
     data += datum
     if data[-2:] == READY:
