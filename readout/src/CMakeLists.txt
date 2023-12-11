@@ -2,6 +2,8 @@
 ### @email: preghenella@bo.infn.it
 
 include_directories(${uHAL_INCLUDE_DIR} ${ROOT_INCLUDE_DIR})
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 add_executable(readout readout.cc)
 target_link_libraries(readout ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
@@ -38,6 +40,14 @@ install(TARGETS block RUNTIME DESTINATION bin)
 add_executable(alcor_register alcor_register.cc)
 target_link_libraries(alcor_register ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
 install(TARGETS alcor_register RUNTIME DESTINATION bin)
+
+add_executable(alcor_block_register alcor_block_register.cc)
+target_link_libraries(alcor_block_register ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
+install(TARGETS alcor_block_register RUNTIME DESTINATION bin)
+
+add_executable(tifpa tifpa.cc)
+target_link_libraries(tifpa ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES} Threads::Threads)
+install(TARGETS tifpa RUNTIME DESTINATION bin)
 
 add_executable(scan_thr scan_thr.cc)
 target_link_libraries(scan_thr ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
