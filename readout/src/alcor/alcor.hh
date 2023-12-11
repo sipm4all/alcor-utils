@@ -23,6 +23,7 @@
 #define CMD(x) ( x << COMMAND )
 #define bS(x)  ( 1 << x )
 
+#define AINC               0x8000
 #define BCR(reg)         ( 0x1000 | reg )
 #define ECCR(reg)        ( 0x2000 | reg )
 #define PCR(reg,pix,col) ( 0x4000 | reg | (pix << 2) | (col << 5) )
@@ -262,6 +263,20 @@ namespace alcor {
     int write(int address, int data) {
       cmd(WPTR, address);
       cmd(WDAT, data);
+      return 0; //cmd(RDAT, 0);
+    };
+    
+    int read_block(int address, int n, int *data) {
+      cmd(WPTR, address | AINC);
+      for (int i = 0; i < n; ++i)
+	data[i] = cmd(RDAT, 0);
+      return 0;
+    };
+    
+    int write_block(int address, int n, int *data) {
+      cmd(WPTR, address | AINC);
+      for (int i = 0; i < n; ++i)
+	cmd(WDAT, data[i]);
       return 0; //cmd(RDAT, 0);
     };
     
