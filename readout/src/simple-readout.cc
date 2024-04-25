@@ -22,7 +22,7 @@ bool running = true;
 struct program_options_t {
   po::variables_map vm;
   std::string connection, device, output;
-  int chip, lane, filter, usleep, staging;
+  int mode, chip, lane, filter, usleep, staging;
   int opmode, threshold, vth, range, offset1, delta_threshold, gain1;
   float integrated;
   bool skip_user_settings, verbose;
@@ -49,6 +49,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("connection"       , po::value<std::string>(&opt.connection)->required(), "IPbus XML connection file")
       ("device"           , po::value<std::string>(&opt.device)->default_value("kc705"), "Device ID")
       ("output"           , po::value<std::string>(&opt.output), "Output data filename prefix")
+      ("mode"             , po::value<int>(&opt.mode)->default_value(3), "Run mode")
       ("chip"             , po::value<int>(&opt.chip)->required(), "ALCOR chip")
       ("lane"             , po::value<int>(&opt.lane)->required(), "ALCOR lane number")
       ("filter"           , po::value<int>(&opt.filter)->default_value(0xf), "Filter mode")
@@ -209,7 +210,7 @@ int main(int argc, char *argv[])
   hardware.dispatch();
    
   /** set run mode running **/
-  daq.regfile.mode->write(3);
+  daq.regfile.mode->write(opt.mode);
   hardware.dispatch();
 
   /** sleep until we reach integrated time **/
