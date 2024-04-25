@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-basedir="$HOME/DATA/2023-testbeam/actual/dcr-scan"
+basedir="$HOME/DATA/2024-testbeam/actual/dcr-scan"
 index="$basedir/index.html"
 echo $index
 

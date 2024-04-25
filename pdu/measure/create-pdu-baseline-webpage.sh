@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-basedir="$HOME/DATA/2023-testbeam/actual/baseline-scan"
+basedir="$HOME/DATA/2024-testbeam/actual/baseline-scan"
 index="$basedir/index-pdu.html"
 echo $index
 

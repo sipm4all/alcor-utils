@@ -39,7 +39,7 @@ if [ ! -f "/au/pdu/conf/bcr/$BCRCONF.bcr" ]; then
     exit 1
 fi
 
-BASEDIR=$HOME/DATA/2023-testbeam/actual/baseline-scan/${DEVICE}
+BASEDIR=$HOME/DATA/2024-testbeam/actual/baseline-scan/${DEVICE}
 DIR=$BASEDIR/${runname}
 
 echo " ---"

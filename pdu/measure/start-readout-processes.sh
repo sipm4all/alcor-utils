@@ -10,12 +10,12 @@ nspill=$3
 
 export DRICH_READOUT_NSPILL=$nspill
 
-outputdir=/home/eic/DATA/2023-testbeam/actual/physics/$runname
+outputdir=/home/eic/DATA/2024-testbeam/actual/physics/$runname
 mkdir -p $outputdir/conf
 cp /etc/drich/drich_kc705.conf $outputdir/conf/.
 cp /etc/drich/drich_readout.conf $outputdir/conf/.
 cp /etc/drich/drich_trigger.conf $outputdir/conf/.
-ln -nsf $outputdir /home/eic/DATA/2023-testbeam/actual/physics/latest
+ln -nsf $outputdir /home/eic/DATA/2024-testbeam/actual/physics/latest
 
 readout_devices=$(awk '$1 !~ /^#/' /etc/drich/drich_readout.conf | awk {'print $4'} | sort | uniq | tr '\n' ' ')
 trigger_devices=$(awk '$1 !~ /^#/' /etc/drich/drich_trigger.conf | awk {'print $2'} | sort | uniq | tr '\n' ' ')

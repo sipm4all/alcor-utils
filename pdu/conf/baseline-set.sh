@@ -49,7 +49,7 @@ while read -r device ip target firmware monitor enabled; do
 # don't delete this line
 EOF
     
-    ln -sf /home/eic/DATA/2023-testbeam/actual/baseline-scan/${device}/${baseline}/readout.${device}.baseline.conf /au/pdu/conf/readout.${device}.baseline.conf 
+    ln -sf /home/eic/DATA/2024-testbeam/actual/baseline-scan/${device}/${baseline}/readout.${device}.baseline.conf /au/pdu/conf/readout.${device}.baseline.conf 
     ln -sf /au/pdu/conf/readout.${device}.current.conf /au/pdu/conf/readout.${device}.conf
 
     echo " --- configuration for device ${device} updated "
