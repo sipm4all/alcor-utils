@@ -54,7 +54,7 @@ main()
 {
 
     ### prepare directory
-    BASEDIR=$HOME/DATA/2023-testbeam/actual/dcr-scan/${DEVICE}
+    BASEDIR=$HOME/DATA/2024-testbeam/actual/dcr-scan/${DEVICE}
     DIR=$BASEDIR/${runname}
     mkdir -p $DIR
     ln -sfn $DIR $BASEDIR/latest

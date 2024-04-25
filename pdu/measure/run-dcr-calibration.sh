@@ -11,7 +11,7 @@ DEVICE=$2
 ### check we are not running already
 [ -f /tmp/run-baseline-calibration.$DEVICE.running ] && exit 1
 
-BASEDIR=$HOME/DATA/2023-testbeam/actual/baseline-scan/${DEVICE}
+BASEDIR=$HOME/DATA/2024-testbeam/actual/baseline-scan/${DEVICE}
 DIR=$BASEDIR/${runname}
 
 echo " ---"

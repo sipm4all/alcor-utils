@@ -51,8 +51,8 @@ filter=$(( 0xf ))
 #filter=$(( 0x1 )) # R+TEST
 
 ### prepare output
-outputdir=/home/eic/DATA/2023-testbeam/actual/physics/$runname/$device
-ln -sfn $outputdir /home/eic/DATA/2023-airbox/physics/latest
+outputdir=/home/eic/DATA/2024-testbeam/actual/physics/$runname/$device
+ln -sfn $outputdir /home/eic/DATA/2024-testbeam/actual/physics/latest
 mkdir -p $outputdir
 mkdir -p $outputdir/cfg
 mkdir -p $outputdir/log

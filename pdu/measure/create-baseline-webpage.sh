@@ -6,7 +6,7 @@ if [ "$#" -ne 1 ]; then
 fi
 run=$1
 
-basedir="$HOME/DATA/2023-testbeam/actual/baseline-scan"
+basedir="$HOME/DATA/2024-testbeam/actual/baseline-scan"
 index="$basedir/index.html"
 echo $index
 
