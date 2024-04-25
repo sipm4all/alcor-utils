@@ -16,7 +16,8 @@ while read -r chip lane eccr bcr pcr; do
     [[ $_chip != "all" ]] && [[ $_chip != $chip ]] && continue
     ldec=$(printf "%d" $lane)
     [ $ldec -eq 0 ] && continue
-    /home/eic/bin/alcor-chip-init.sh $device $chip $lane $eccr $bcr $pcr &
+#    /home/eic/bin/alcor-chip-init.sh $device $chip $lane $eccr $bcr $pcr &
+    /home/eic/bin/alcor-chip-init.sh $device $chip $lane $eccr $bcr $pcr ### slower, do it in series
 done < $RDOUT_CONF
 wait
 sleep 0.1
