@@ -71,7 +71,7 @@ draw_onechannel(const char *dirname, int chip, int channel, std::vector<std::str
 }
 
 void
-draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, std::vector<int> colors = {kBlack}, bool eo = false)
+draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, std::vector<int> colors = {kBlack}, bool eo = true)
 {
   style();
 
@@ -85,8 +85,8 @@ draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, st
     auto icol = eo2do[channel] / 4;
     auto irow = 3 - eo2do[channel] % 4;
     if (eo) {
-      icol = channel / 4 ;
-      irow = 3 - channel % 4;
+      icol = channel % 8 ;
+      irow = 3 - channel / 8;
     }
     auto icanvas = irow * 8 + icol + 1;
     c->cd(icanvas);
@@ -104,7 +104,8 @@ draw_allchannel(const char *dirname, int chip, std::vector<std::string> tags, st
         // loop over vth values
 	//        for (int vth = 0; vth < 4; ++vth) {
 	int icolor = tag % colors.size();
-	draw(dirname, tags[tag].c_str(), chip, channel, -1, -1, -1, colors[icolor], 3, kSolid, "", "l,same");
+	auto g = draw(dirname, tags[tag].c_str(), chip, channel, -1, -1, -1, colors[icolor], 3, kSolid, "", "l,same");
+
 	//        }
         
       }
