@@ -3,6 +3,7 @@
 ### default arguments
 BCRCONF="current"
 ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
+#RANGE=("0" "0" "0" "0" "0" "0")
 RANGE=("1" "1" "1" "1" "1" "1")
 RANGE=("2" "2" "2" "2" "2" "2")
 DELTA=("5" "5" "5" "5" "5" "5")
@@ -122,7 +123,7 @@ echo " --- baseline calibration completed "
 echo " ---"
 
 ### update webpage
-/au/pdu/measure/create-baseline-webpage.sh
+/au/pdu/measure/create-baseline-webpage.sh latest
 
 ### notify database 
 influx_write.sh "kc705,device=${DEVICE},name=baseline-calibration value=0"

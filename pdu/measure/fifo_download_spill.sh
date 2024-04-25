@@ -20,15 +20,12 @@ main()
     filter on     # filter
     mode 0x1       # run ON
     reset          # reset FIFO
-    mode 0x3       # spill ON
+    mode 0x5       # spill ON
     echo " --- sleep $sleep seconds "
     sleep $sleep   # sleep
     mode 0x1       # spill OFF
     mode 0x0       # run OFF
 
-    ### read ALCOR ECCR
-    echo " --- $(/au/readout/bin/alcor_register --connection /etc/drich/drich_ipbus_connections.xml --device $device --chip $chip --eccr $lane) "
-    
     ### read FIFO time
     timer=$(${reg} --node alcor_readout_id${chip}_lane${lane}.fifo_timer | awk {'print $3'})
     hex=${timer:2}

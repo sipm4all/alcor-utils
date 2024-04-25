@@ -1,4 +1,4 @@
-xc#! /usr/bin/env bash
+#! /usr/bin/env bash
 
 if [ "$#" -ne 3 ]; then
     echo "usage: $0 [run-name] [name] [nspills]"
@@ -15,6 +15,7 @@ mkdir -p $outputdir/conf
 cp /etc/drich/drich_kc705.conf $outputdir/conf/.
 cp /etc/drich/drich_readout.conf $outputdir/conf/.
 cp /etc/drich/drich_trigger.conf $outputdir/conf/.
+ln -nsf $outputdir /home/eic/DATA/2023-testbeam/actual/physics/latest
 
 readout_devices=$(awk '$1 !~ /^#/' /etc/drich/drich_readout.conf | awk {'print $4'} | sort | uniq | tr '\n' ' ')
 trigger_devices=$(awk '$1 !~ /^#/' /etc/drich/drich_trigger.conf | awk {'print $2'} | sort | uniq | tr '\n' ' ')
