@@ -28,7 +28,7 @@ for line in lines:
     CH, LE2DAC, Vth, Range, Threshold, Offset1, OpMode, Offset2, Gain1, Gain2, Polarity = line.split(' \t')
 
     ### update OpMode if requested
-    if args['opmode'] is not None:
+    if args['opmode'] is not None and int(OpMode) != 0:
         OpMode = args['opmode']
         
     ### modify threshold
@@ -36,7 +36,7 @@ for line in lines:
         Threshold = args['threshold']
     if args['delta_threshold'] is not None:
         Threshold = int(Threshold) + args['delta_threshold']
-    if Threshold > 63:
+    if Threshold is not None and int(Threshold) > 63:
         Threshold = 63
 
     ### modify offset
