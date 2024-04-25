@@ -2,6 +2,11 @@
 
 ### default arguments
 BCRCONF="standard"
+PCRCONF="maxthreshold"
+
+### ALCOR test arguments
+#BCRCONF="off"
+#PCRCONF="off"
 
 ### external parameters
 if [ "$#" -ne 1 ]; then
@@ -31,12 +36,12 @@ while read -r device ip target firmware monitor enabled; do
 
     cat <<EOF > /au/pdu/conf/readout.${device}.init.conf
 # chip  mask	eccr	bcr		pcr
-0 	${ENA[0]}	0xb01b	${BCRCONF}	maxthreshold
-1 	${ENA[1]}	0xb01b	${BCRCONF}	maxthreshold
-2 	${ENA[2]}	0xb01b	${BCRCONF}	maxthreshold
-3 	${ENA[3]}	0xb01b	${BCRCONF}	maxthreshold
-4 	${ENA[4]}	0xb01b	${BCRCONF}	maxthreshold
-5 	${ENA[5]}	0xb01b	${BCRCONF}	maxthreshold
+0 	${ENA[0]}	0xb01b	${BCRCONF}	${PCRCONF}
+1 	${ENA[1]}	0xb01b	${BCRCONF}	${PCRCONF}
+2 	${ENA[2]}	0xb01b	${BCRCONF}	${PCRCONF}
+3 	${ENA[3]}	0xb01b	${BCRCONF}	${PCRCONF}
+4 	${ENA[4]}	0xb01b	${BCRCONF}	${PCRCONF}
+5 	${ENA[5]}	0xb01b	${BCRCONF}	${PCRCONF}
 # don't delete this line
 EOF
     
