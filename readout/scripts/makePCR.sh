@@ -50,4 +50,4 @@ EOF
 
 mkdir -p $DIR/PCR
 run $DIR > $DIR/PCR/chip$CHIP.range$RANGE.pcr
-
+cp $DIR/PCR/chip$CHIP.range$RANGE.pcr $DIR/PCR/chip$CHIP.range$RANGE.current.pcr

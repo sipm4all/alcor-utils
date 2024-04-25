@@ -1,0 +1,3 @@
+[submodule "pdu/measure/sipm4eic-testbeam2023-analysis"]
+	path = pdu/measure/sipm4eic-testbeam2023-analysis
+	url = https://github.com/sipm4all/sipm4eic-testbeam2023-analysis

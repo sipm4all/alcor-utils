@@ -14,6 +14,8 @@ tag=$2
 
 for chip in {0..5}; do
     root -b -q -l "${ALCOR_DIR}/readout/macros/draw_allchannel.C(\"$dir\", $chip, {\"$tag\"})" &
+    telegram_picture.sh $dir/scanthr.chip_${chip}.eo.png "$PWD"
 done
 mkdir -p $dir/PNG
-mv $dir/*.png $dir/PNG/.
+cp $dir/*.png $dir/PNG/.
+
