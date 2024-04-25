@@ -1,5 +1,5 @@
-export PATH=$PATH:/opt/cactus/bin/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/cactus/lib/
+#export PATH=$PATH:/opt/cactus/bin/
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/cactus/lib/
 
 ## environments for ALCOR DAQ
 export DRICH_OUT=${HOME}/DATA
