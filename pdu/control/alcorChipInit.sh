@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-if [ -z $1 ]; then
+if [ $# -ne 2 ]; then
     echo " usage: $0 [device] [chip]"
     exit 1
 fi
