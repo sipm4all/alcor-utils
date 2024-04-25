@@ -92,7 +92,8 @@ make_dcr_threshold_scan(std::string filename, int bias_dac, float *vbias = nullp
 {
   TGraphErrors *g = nullptr;
   if (make_dcr_ureadout)
-    g = ureadout_dcr_get(filename, "delta_threshold", "dead_rate");
+    //    g = ureadout_dcr_get(filename, "delta_threshold", "dead_rate");
+    g = ureadout_dcr_get(filename, "delta_threshold", "raw_rate");
   else
     g = make_threshold_scan(filename, 0, 0, bias_dac, 3, vbias);
   make_csv(g, filename + ".csv");

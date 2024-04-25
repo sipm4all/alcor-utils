@@ -9,6 +9,8 @@ namespace defs = definitions;
 
 namespace drawing_routines {
 
+  bool simplify = true;
+  
 std::string rows[8] = { "A", "B", "C", "D", "E", "F", "G", "H" };
 std::string cols[4] = { "1", "2", "3", "4" };
 
@@ -399,6 +401,9 @@ dcr_vbias_scan_map_8x4(std::string dirname, std::string chip, int delta_threshol
       auto ipad = get_pad_map_8x4(irow, icol);
       c->cd(1 + ipad)->cd();
       std::string chname = rows[irow] + cols[icol];
+      if (simplify) {
+	chname = std::to_string(irow + icol * 8);
+      }
       auto g = get_dcr_vbias_scan(dirname, chip, chname, delta_threshold, marker == 0 ? dmarker[irow % 2] : marker, color == 0 ? dcolor[irow % 2] : color);
       if (!g) continue;
       graphutils::x_shift(g, vbreak);
@@ -1187,6 +1192,7 @@ dcr_threshold_scan_selected(std::string dirname, std::string chip, std::vector<s
       graphs.push_back(g);
       if (!draw_average) g->Draw("samelp");
       line.DrawLine(5., dcr_min, 5., dcr_max);
+      line.DrawLine(15., dcr_min, 15., dcr_max);
     }
   }
   if (draw_average) {
@@ -1214,11 +1220,15 @@ dcr_threshold_scan_map_8x4(std::string dirname, std::string chip, int bias_dac =
       auto ipad = get_pad_map_8x4(irow, icol);
       c->cd(1 + ipad)->cd();
       std::string chname = rows[irow] + cols[icol];
+      if (simplify) {
+	chname = std::to_string(irow + icol * 8);
+      }
       auto g = get_dcr_threshold_scan(dirname, chip, chname, bias_dac, marker == 0 ? dmarker[irow % 2] : marker, color == 0 ? dcolor[irow % 2] : color, &vbias);
       if (!g) continue;
-      g->Draw("samecp");
+      g->Draw("samelp");
       line.DrawLine(5., dcr_min, 5., dcr_max);
-      latex.DrawLatex(10, 5.e6, Form("V_{bias} = %.1f V", vbias));
+      //      latex.DrawLatex(10, 5.e6, Form("V_{bias} = %.1f V", vbias));
+      latex.DrawLatex(10, 5.e6, Form("channel %s", chname.c_str()));
     }
   }  
   return c;
