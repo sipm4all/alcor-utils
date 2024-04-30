@@ -118,6 +118,10 @@ if __name__ == '__main__':
     else:
         print("No custom PCR setup (channel ON/OFF driven by mask: ",hex(args.mask),")")
         alc.setChannelMask(hw,chip,args.mask)
+
+
+    alc.sendTestPulse(hw,chip)
+
     print("------ End of configuration ")
 ### TMP
 ## protezione per HAMA1 cosi' carichiamo maschera a mano

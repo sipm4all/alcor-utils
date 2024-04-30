@@ -74,9 +74,8 @@ ECCR_810b_enable  = 0x1000
 ECCR_SER_enable   = 0x2000
 ECCR_SER_align    = 0x4000
 ECCR_STAT_enable  = 0x8000 
-ECCR_default = 0x303F
-
-ECCR_default = 0x301b ## R+: from F.Chiosso settings
+#ECCR_default = 0x303F
+ECCR_default = 0x301b ## R+: from F.Cossio settings
 #ECCR_default = ECCR_default | ECCR_RAWMODE
 ECCR_default = ECCR_default | ECCR_STAT_enable
 
@@ -182,6 +181,38 @@ def setMode(hw,data):
     ipstat=ipbus.write(hw,"regfile.mode",data)
     return ipstat
 
+def sendTestPulse(hw,chip):
+    pcr3stored=list()
+    for col in range(PCR_COLUMN):
+        for pxl in range(PCR_PIXEL):
+            d  = 0
+            ch = pxl + col*4
+            ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
+            data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
+            print("Reading PC3 of channel ",ch," found value ",hex(data))
+            pcr3stored.append(data) 
+            print("Setting PC3 of channel ",ch," to TP mode")
+            setPCR3(hw,chip,ch,PCR3opmode,PIX_LET_TP_TDC)
+            data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
+            print("Reading PC3 of channel ",ch," after changing TP ",hex(data))
+
+    r='pulser.' + pulserRegList[chip];
+    data=1;
+    print("  ------- sending pulse ---- ",r)
+    ipstat=ipbus.write(hw,r,data);
+
+    for col in range(PCR_COLUMN):
+        for pxl in range(PCR_PIXEL):
+            ch = pxl + col*4
+            ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
+            d=pcr3stored[ch]
+            print("Setting PC3 of channel ",ch," back to ",hex(d))
+            data=programPtrReg(hw,chip,PCR,ad,d,SETREG)
+    
+
+    
+    return ipstat;
+
 def ctrl(hw,chip,data):
     """Write on ALCOR Controller register, return value set"""
     r=ctrlRegList[chip]
@@ -262,6 +293,9 @@ def init2(hw,chip,delay,lmask,phase):
         print("[AlcorLib] Loading conf from ",adir)
     print(" ------------- Setup chip # ",chip," -----------------")
     ctrl(hw,chip,HardRESET)
+    # TORINO: qui si potrebbe settare tutti i PCR in TP mode e mandare un TP
+    # TORINO: e dopo i PCR come li vogliamo
+    # TORINO: e qui si puo' mettere BCR
     globalCommands(hw,chip,delay,phase)
     enabledLanes=0
     for ad in range(lanes):
@@ -300,7 +334,7 @@ def init2(hw,chip,delay,lmask,phase):
            d=programPtrReg(hw,chip,ECCR,ad,ECCR_default,SETREG)
 
     print("Enabled lanes for readout",hex(enabledLanes))
-    stat=sendCtrl(hw,chip,cmdSetTxDataEnable,enabledLanes) #R+HACK write 0xf in case
+    stat=sendCtrl(hw,chip,cmdSetTxDataEnable,enabledLanes)
     stat=sendCtrl(hw,chip,cmdResetCounters,0)
     for ad in range(lanes):
            adA=ad*2
@@ -313,6 +347,7 @@ def init2(hw,chip,delay,lmask,phase):
            
     setupECCR(hw,chip,ECCR_default)   
     resetFifo(hw,chip)
+
     return status
 
     
@@ -432,13 +467,17 @@ def setPCR3(hw,chip,ch,field,value):
     d  = 0
     ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
     data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
+    print("SET PCR3: reading PCR3 before changing it ",hex(data))
     if (field == PCR3offset1):
         d= (data & 0x1FFF) | ((value & 0x7) << 13)
     elif (field == PCR3opmode):
         d= (data & 0xE1FF) | ((value&0xF)<< 9)
+        print("set PCR3 opmode: PCR3 will change to  ",hex(d))
     elif (field == PCR3polarity):
         d= (data & 0xFFFD) | ((value&0x1)<< 1)
     data=programPtrReg(hw,chip,PCR,ad,d,SETREG)
+    data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
+    print("PCR3 at the end of settings ",hex(data))
 
 
 def setPCR3Offset(hw,chip,ch,offset):
