@@ -189,16 +189,14 @@ def sendTestPulse(hw,chip):
             ch = pxl + col*4
             ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
             data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
-            print("Reading PC3 of channel ",ch," found value ",hex(data))
             pcr3stored.append(data) 
-            print("Setting PC3 of channel ",ch," to TP mode")
             setPCR3(hw,chip,ch,PCR3opmode,PIX_LET_TP_TDC)
             data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
-            print("Reading PC3 of channel ",ch," after changing TP ",hex(data))
+
 
     r='pulser.' + pulserRegList[chip];
     data=1;
-    print("  ------- sending pulse ---- ",r)
+    print("Sending test pulse to reset pixel logic")
     ipstat=ipbus.write(hw,r,data);
 
     for col in range(PCR_COLUMN):
@@ -206,7 +204,6 @@ def sendTestPulse(hw,chip):
             ch = pxl + col*4
             ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
             d=pcr3stored[ch]
-            print("Setting PC3 of channel ",ch," back to ",hex(d))
             data=programPtrReg(hw,chip,PCR,ad,d,SETREG)
     
 
@@ -467,17 +464,14 @@ def setPCR3(hw,chip,ch,field,value):
     d  = 0
     ad = ((ch&0x3C)<<3) | ((ch&0x3)<<2)|3
     data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
-    print("SET PCR3: reading PCR3 before changing it ",hex(data))
     if (field == PCR3offset1):
         d= (data & 0x1FFF) | ((value & 0x7) << 13)
     elif (field == PCR3opmode):
         d= (data & 0xE1FF) | ((value&0xF)<< 9)
-        print("set PCR3 opmode: PCR3 will change to  ",hex(d))
     elif (field == PCR3polarity):
         d= (data & 0xFFFD) | ((value&0x1)<< 1)
     data=programPtrReg(hw,chip,PCR,ad,d,SETREG)
     data=programPtrReg(hw,chip,PCR,ad,d,RDREG)
-    print("PCR3 at the end of settings ",hex(data))
 
 
 def setPCR3Offset(hw,chip,ch,offset):
