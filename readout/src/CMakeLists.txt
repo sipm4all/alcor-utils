@@ -45,9 +45,9 @@ add_executable(alcor_block_register alcor_block_register.cc)
 target_link_libraries(alcor_block_register ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
 install(TARGETS alcor_block_register RUNTIME DESTINATION bin)
 
-add_executable(tifpa tifpa.cc)
-target_link_libraries(tifpa ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES} Threads::Threads)
-install(TARGETS tifpa RUNTIME DESTINATION bin)
+#add_executable(tifpa tifpa.cc)
+#target_link_libraries(tifpa ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES} Threads::Threads)
+#install(TARGETS tifpa RUNTIME DESTINATION bin)
 
 add_executable(scan_thr scan_thr.cc)
 target_link_libraries(scan_thr ${Boost_LIBRARIES} ${uHAL_LIBRARIES} ${uHAL_LOG_LIBRARIES})
