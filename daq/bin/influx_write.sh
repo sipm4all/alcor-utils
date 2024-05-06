@@ -9,7 +9,7 @@ TOKEN="FNDVnu7yKPbw6zEZ744Unkm3___bEhEnrEC95OsDckhtKZVdb6MjivjZxIU-hTlTEox6PPXMU
 DATA="$@"
 
 curl --request POST \
-     "http://eicdesk04.cern.ch:8086/api/v2/write?org=dRICH&bucket=drich&precision=ns" \
+     "http://eicdesk04.bo.infn.it:8086/api/v2/write?org=dRICH&bucket=drich&precision=ns" \
      --header "Authorization: Token ${TOKEN}" \
      --header "Content-Type: text/plain; charset=utf-8" \
      --header "Accept: application/json" \
