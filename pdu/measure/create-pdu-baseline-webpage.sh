@@ -1,5 +1,11 @@
 #! /usr/bin/env bash
 
+if [ $# -ne 1 ]; then
+    echo " usage: $0 [run] "
+    exit 1
+fi
+run=$1
+
 basedir="$HOME/DATA/2024-testbeam/actual/baseline-scan"
 index="$basedir/index-pdu.html"
 echo $index
@@ -45,7 +51,7 @@ for pdu in $pdus; do
     matrices=$(awk -v pdu="$pdu" '$1 !~ /^#/ && $1 == pdu' /etc/drich/drich_readout.conf | awk {'print $3'} | tr '\n' ' ')
     
     echo "<div>" >> $index
-    echo "<h1>PDU $pdu</h1>" >> $index
+    echo "<h1>PDU $pdu (run $run)</h1>" >> $index
     echo "<div class=\"gallery\">" >> $index
 
     for matrix in $matrices; do
@@ -53,7 +59,7 @@ for pdu in $pdus; do
 	masterlogic=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' /etc/drich/drich_readout.conf | awk {'print $7'})
 	chips=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' /etc/drich/drich_readout.conf | awk {'print $5, $6'})
 	for chip in $chips; do
-	    image=$(readlink -f "$basedir/$device/latest/scanthr.chip_$chip.eo.png")
+	    image=$(readlink -f "$basedir/$device/$run/scanthr.chip_$chip.eo.png")
 	    [ -z $image ] && continue
 	    relpath=${image#"$basedir/"}
 	    [ ! -f $image ] && continue
