@@ -1209,7 +1209,8 @@ dcr_threshold_scan_map_8x4(std::string dirname, std::string chip, int bias_dac =
 {
   style();
   int dmarker[2] = {20, 20};
-  int dcolor[2] = {kRed+1, kAzure-3};
+  //  int dcolor[2] = {kRed+1, kAzure-3};
+  int dcolor[2] = {kAzure-3, kAzure-3};
   float vbias;
   TLine line;
   line.SetLineStyle(kDashed);

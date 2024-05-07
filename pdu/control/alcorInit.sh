@@ -28,9 +28,9 @@ do
        echo Programming $chip
 #       /au/pdu/measure/the_sequence.sh $device $chip
        if [ "$THRSCAN" = true ]; then
-	   /au/control/alcorInit.py $CONN $device -c $chip -l $lane $SWITCH --eccr 0x381b --bcrfile /au/pdu/conf/bcr/$bcr.bcr --pcrfile /au/pdu/conf/pcr/$pcr.pcr | tee >(grep "End of configuration" &> /dev/null && echo " >>> INIT CHIP $chip OK" || echo " >>> FAILED TO INIT CHIP $chip ") & 
+	   /au/control/alcorInit.py $CONN $device -c $chip -l $lane $SWITCH --eccr 0x381b --bcrfile /au/pdu/conf/bcr/$bcr.bcr --pcrfile /au/pdu/conf/pcr/$pcr.pcr | tee >(grep "End of configuration" &> /dev/null && echo " >>> INIT CHIP $chip OK" || echo " >>> FAILED TO INIT CHIP $chip ")  
        else
-	   /au/control/alcorInit.py $CONN $device -c $chip -l $lane $SWITCH --eccr $eccr  --bcrfile /au/pdu/conf/bcr/$bcr.bcr --pcrfile /au/pdu/conf/pcr/$pcr.pcr | tee >(grep "End of configuration" &> /dev/null && echo " >>> INIT CHIP $chip OK " || echo " >>> FAILED TO INIT CHIP $chip ") &
+	   /au/control/alcorInit.py $CONN $device -c $chip -l $lane $SWITCH --eccr $eccr  --bcrfile /au/pdu/conf/bcr/$bcr.bcr --pcrfile /au/pdu/conf/pcr/$pcr.pcr | tee >(grep "End of configuration" &> /dev/null && echo " >>> INIT CHIP $chip OK " || echo " >>> FAILED TO INIT CHIP $chip ") 
        fi
    fi
  fi

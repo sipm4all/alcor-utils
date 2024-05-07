@@ -420,7 +420,8 @@ int main(int argc, char *argv[])
 	}
       }
 #endif // R+FIXME
-    
+
+#if 0 // R+FIXME
       /** check if chip is broken **/
       if (fifo_occupancy_value > 2) {
 	auto last_data = fifo_data.value()[fifo_occupancy_value - 3]; // last two is spill trailer, must go back
@@ -431,6 +432,7 @@ int main(int argc, char *argv[])
 	  continue;
 	}
       }
+#endif // R+FIXME
       
       /** check if FIFO overflow **/
       if (fifo_occupancy_value >= 8191 ||
