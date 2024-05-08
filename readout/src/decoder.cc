@@ -15,6 +15,7 @@ int rollover_counter = 0;//-1; // we start from -1 becaue the very first word is
 int frame = 0;
 
 TGraph *gRollover = nullptr;
+TGraph *gSpill = nullptr;
 
 struct main_header_t {
   uint32_t caffe;
@@ -146,6 +147,8 @@ void decode_trigger(char *buffer, int device, int fifo, int size, TTree *tout)
       trigger_time |= *word;
       uint32_t coarse = trigger_time & 0x7fff;
       uint32_t rollover = trigger_time >> 15;
+      gSpill->AddPoint(integrated_spill, trigger_time);
+      integrated_spill++;
       write_trigger_data(tout, device, fifo, 15, counter, rollover, coarse);
       ++word; ++pos;
     }
@@ -362,6 +365,7 @@ int main(int argc, char *argv[])
   /** output histograms **/
   auto hCounters = new TH1F("hCounters", "", 3, 0, 3);
   gRollover = new TGraph;
+  gSpill = new TGraph;
   
   /** loop over data **/
   buffer_header_t buffer_header;
@@ -402,6 +406,7 @@ int main(int argc, char *argv[])
   hCounters->SetBinContent(3, integrated_hits);
   hCounters->Write();
   gRollover->Write("gRollover");
+  gSpill->Write("gSpill");
   fout->Close();
   
   /** close input file **/
