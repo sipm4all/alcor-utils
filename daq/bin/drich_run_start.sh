@@ -1,7 +1,5 @@
 #! /usr/bin/env bash
 
-sleep 10h
-
 if [ "$#" -ne 2 ]; then
     echo "usage: $0 [device] [nspills]"
     exit 1
