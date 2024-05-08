@@ -8,7 +8,8 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 device=$1
-modes=$2
+#modes=$2
+mode=$2
 
 ### detect spill down transition
 prevspill=0
@@ -19,9 +20,9 @@ while true; do
     sleep 0.001
 done
 
-for mode in $modes; do
-    /au/pdu/measure/interprocess.py $device $mode
-    sleep 0.1
-done
+#for mode in $modes; do
+#    /au/pdu/measure/interprocess.py $device $mode
+#    sleep 0.1
+#done
 
-echo " --- end of spill "
+/au/pdu/measure/interprocess.py $device $mode
