@@ -52,7 +52,6 @@ filter=$(( 0xf ))
 
 ### prepare output
 outputdir=/home/eic/DATA/2024-testbeam/actual/physics/$runname/$device
-ln -sfn $outputdir /home/eic/DATA/2024-testbeam/actual/physics/latest
 mkdir -p $outputdir
 mkdir -p $outputdir/cfg
 mkdir -p $outputdir/log
