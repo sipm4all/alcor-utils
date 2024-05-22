@@ -13,7 +13,7 @@
 
 struct program_options_t {
   std::string connection_filename, device_id, tag;
-  int chip, channel, max_timer, min_timer, usleep, udelay, threshold, vth, range, offset1, delta_threshold, mode;
+  int chip, channel, max_timer, min_timer, min_counts, usleep, udelay, threshold, vth, range, offset1, delta_threshold, mode;
   bool skip_user_settings, verbose, dump;
 };
 
@@ -44,6 +44,7 @@ process_program_options(int argc, char *argv[], program_options_t &opt)
       ("chip"             , po::value<int>(&opt.chip)->required(), "ALCOR chip")
       ("channel"          , po::value<int>(&opt.channel)->required(), "ALCOR channel number")
       ("min_timer"        , po::value<int>(&opt.min_timer)->default_value(3200000), "Minimum number of timer")
+      ("min_counts"       , po::value<int>(&opt.min_counts)->default_value(0), "Minimum number of counts")
       ("max_timer"        , po::value<int>(&opt.max_timer)->default_value(32000000), "Maximum number of timer")
       ("usleep"           , po::value<int>(&opt.usleep)->default_value(1000), "Microsecond sleep")
       ("udelay"           , po::value<int>(&opt.usleep)->default_value(10000), "Microdelay sleep")
@@ -139,8 +140,7 @@ int main(int argc, char *argv[])
   // reset/read loop until minimum counts/timer achieved
   int sum_occupancy = 0, sum_timer = 0, sum_loops = 0;
   bool broken = false, corrupted = false;
-  while (sum_timer < opt.min_timer) {
-    
+  while (sum_timer < opt.max_timer) {
     // reset
     //    alcor.fifo[lane].reset->write(0x1);
     //    hardware.dispatch();
@@ -188,7 +188,12 @@ int main(int argc, char *argv[])
     //    sum_timer += fifo_timer_value;
     sum_timer = fifo_timer_value;
     sum_loops++;
+
+    //    std::cout << sum_timer << " " << sum_occupancy << std::endl;
+    if (sum_occupancy >= opt.min_counts && sum_timer >= opt.min_timer) break;
+    //    if (sum_timer >= opt.max_timer) break;
     
+
   }
   
   // set run mode
