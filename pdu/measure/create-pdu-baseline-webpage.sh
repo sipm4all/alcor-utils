@@ -6,7 +6,6 @@ if [ $# -ne 1 ]; then
 fi
 run=$1
 
->>>>>>> fabio-debug
 basedir="$HOME/DATA/2024-testbeam/actual/baseline-scan"
 index="$basedir/index-pdu.html"
 echo $index
