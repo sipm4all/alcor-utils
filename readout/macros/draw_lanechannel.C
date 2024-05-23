@@ -13,10 +13,10 @@ void draw(const char *dirname, const char *tagname, int chip, int channel, int v
   auto g = (TGraph*)gPad->GetPrimitive("Graph");//ListOfPrimitives()->Last();
   if (!g) return;
 
-  // find when we cross 1 kHz going downwards
+  // find when we cross 1 MHz going downwards
   int threshold = 63;
   for (int i = 0; i < g->GetN(); ++i) {
-    if (g->GetY()[i] > 1000.) { 
+    if (g->GetY()[i] > 1.e6) { 
       threshold = g->GetX()[i];
       break;
     }
