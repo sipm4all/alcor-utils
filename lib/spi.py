@@ -45,7 +45,8 @@ def execCmd(hw,chip,command,tdata):
     """Execute SPI command writing tdata via SPI interface"""
 
     r=alc.spiRegList[chip]
-    ipstat=ipbus.post(hw,r+".divider",0xF)
+#    ipstat=ipbus.post(hw,r+".divider",0xF)
+    ipstat=ipbus.post(hw,r+".divider",0x1F) ### good for 4m cables
     ipstat=ipbus.post(hw,r+".ss",0x1)
 
     data=bS(CTRL_ASS)|bS(CTRL_RX_NEGEDGE)|0x18
