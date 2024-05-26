@@ -36,6 +36,8 @@ ureadout_dcr_analysis(std::string finname, std::string foutname = "dcr.root")
   /** histograms **/
   auto hDeltat = new TH1F("hDeltat", ";#Deltat (clock cycle);", 100, 0., 100.);
   auto hDeltat_log = new TH1F("hDeltat_log", ";#Deltat (clock cycle);", 200, 0., 10.);
+  auto hDeltat_long = new TH1F("hDeltat_long", ";#Deltat (clock cycle);", 1.e6, 0., 1.e6);
+  auto hDeltat_first = new TH1F("hDeltat_first", ";#Deltat (clock cycle);", 1.e6, 0., 1.e6);
   HistoUtils_BinLogX(hDeltat_log);
   auto hDead = new TH1F("hDead", "", 2, 0, 1);
   
@@ -82,6 +84,7 @@ ureadout_dcr_analysis(std::string finname, std::string foutname = "dcr.root")
     
     /** increment spill id and reset **/
     if (data.type == analysis_utils::kEndSpill) {
+      int ftime = -1;
       int ptime = -1;
       int qtime = -1;
       for (int iframe = 0; iframe < 5000; ++iframe) {
@@ -106,19 +109,26 @@ ureadout_dcr_analysis(std::string finname, std::string foutname = "dcr.root")
           if (ptime != -1) {
             int dtime = itime - ptime;
             hDeltat->Fill(dtime);
+            hDeltat_long->Fill(dtime);
             hDeltat_log->Fill(dtime);
+	    hDeltat_first->Fill(itime - ftime);
             if (dtime < min_deltat) ptime = -1;
             else ptime = itime;
-          } else ptime = itime;
+          } else {
+	    ptime = itime;
+	    ftime = itime;
+	  }
 
 #if 0
           if (ptime < 0) { // the very first hit in the spill
+	    ftime = itime;
 	    ptime = itime;
             number_of_visible_hits++;
 	    continue;
 	  }
 	  int dtime = itime - ptime;
 	  hDeltat->Fill(dtime);
+	  hDeltat_long->Fill(dtime);
 	  hDeltat_log->Fill(dtime);
           if (dtime < min_deltat) { /** dead time
                                         potential afterpulse
@@ -146,7 +156,9 @@ ureadout_dcr_analysis(std::string finname, std::string foutname = "dcr.root")
   hCounters->Write();
   hDead->Write();
   hDeltat->Write();
+  hDeltat_long->Write();
   hDeltat_log->Write();
+  hDeltat_first->Write();
 
   fout->Close();
   fin->Close();

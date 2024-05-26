@@ -7,6 +7,7 @@ BCRCONF=standard
 if [ "$#" -ne 3 ]; then
     echo " usage: $0 [run-name] [device] [setup] "
     echo " available setups: "
+    echo "    pdu-scan-setup "
     echo "    pdu-test-setup "
     echo "    system-noise-scan "
     exit 1
@@ -122,10 +123,24 @@ pdu-test-setup()
     export AU_BIAS_MANUAL="true"
     export AU_INTEGRATED="0.01"
     export AU_SCANS="threshold"
+    export AU_CHANNELS=$(seq 0 8 31)
+    export AU_SCAN_DELTA_THRESHOLDS=$(seq 1 $AU_SCAN_THRESHOLD_STEP 35 | tr "\n" " ")
+   
+    export S13_BIAS_VOLTAGES="54"
+    export S13_SCAN_BIAS_VOLTAGES=$(seq 52 $AU_SCAN_BIAS_STEP 58 | tr "\n" " ")
+    export S14_BIAS_VOLTAGES="42"
+    export S14_SCAN_BIAS_VOLTAGES=$(seq 39 $AU_SCAN_BIAS_STEP 43 | tr "\n" " ")
+
+    run-dcr-setup $1
+}
+
+pdu-scan-setup()
+{
+    export AU_BIAS_MANUAL="true"
+    export AU_INTEGRATED="0.01"
+    export AU_SCANS="threshold"
     export AU_CHANNELS=$(seq 0 31)
-#    export AU_CHANNELS=$(seq 0 8 31)
-#    export AU_CHANNELS="0"
-#    export AU_INTEGRATED="10"
+    export AU_CHANNELS=$(seq 0 8 31)
     export AU_SCAN_DELTA_THRESHOLDS=$(seq 1 $AU_SCAN_THRESHOLD_STEP 35 | tr "\n" " ")
    
     export S13_BIAS_VOLTAGES="54"
