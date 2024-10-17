@@ -5,7 +5,6 @@ monitor_loop() {
 	while read -r name ip target firmware monitor; do	    
 	    [[ $name =~ ^#.* ]] && continue
 	    [[ $monitor == 0 ]] && continue
-	    
 	    if ping -W 0.1 -c 1 $ip &> /dev/null; then
 		need_ping_update 1 $name && update_ping 1 $name
 #		./kc705_module_monitor.sh $module $ip $output $name $channel
@@ -14,7 +13,7 @@ monitor_loop() {
 	    fi
       
 	done < /etc/drich/drich_kc705.conf
-	sleep 1
+	sleep 60
     done
 }
 
