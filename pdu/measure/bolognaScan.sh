@@ -13,7 +13,7 @@ FINAL_SCAN=false
 
 RANGEMIN=2    ### [0]
 RANGEMAX=2    ### [3]
-OFFSETMIN=0   ### [0]
+OFFSETMIN=6   ### [6]
 OFFSETMAX=7   ### [7]
 VTHMIN=0      ### [0]
 VTHMAX=3      ### [3]
@@ -47,7 +47,8 @@ done < $RDOUT_CONF
 ### settings for baseline scan
 LANECHANNELS=$(seq 0 7)
 RANGES=$(seq $RANGEMIN $RANGEMAX)
-OFFSETS=$(seq $OFFSETMIN $OFFSETMAX)
+#OFFSETS=$(seq $OFFSETMIN $OFFSETMAX)
+OFFSETS="5 7"
 VTHS=$(seq $VTHMIN $VTHMAX)
 MINTIMER=312500 ## 1 ms
 MAXTIMER=312500 ## 1 ms
