@@ -11,7 +11,7 @@ device=$2
 staging=$(( 32 * 1024 * 1024 ))
 occupancy=1024
 occupancy=256
-occupancy=8
+#occupancy=8
 [[ -v DRICH_READOUT_OCCUPANCY ]] && occupancy=$DRICH_READOUT_OCCUPANCY
 
 ### stop after number of spills (big number here)
