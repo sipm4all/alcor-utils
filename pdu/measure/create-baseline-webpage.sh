@@ -59,7 +59,7 @@ for device in $devices; do
 	image="$device/$run/scanthr.chip_$chip.eo.png"
 	[ ! -f $basedir/$image ] && continue
 	echo "<div>" >> $index
-	echo "<h3 style=\"display: inline\">chip-$chip</h3> ($(date -r $basedir/$image))" >> $index
+	echo "<h3 style=\"display: inline\">$device chip-$chip</h3> ($(date -r $basedir/$image))" >> $index
        	echo "<img src=\"$image\" alt=\"$device chip-$chip\">" >> $index
 	echo "</div>" >> $index
     done

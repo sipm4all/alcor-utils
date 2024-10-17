@@ -64,7 +64,7 @@ for pdu in $pdus; do
 	    relpath=${image#"$basedir/"}
 	    [ ! -f $image ] && continue
 	    echo "<div>" >> $index
-	    echo "<h2 style=\"display: inline\">U$matrix</h2> $device chip-$chip masterlogic-$masterlogic</h3> ($(date -r $image))" >> $index
+	    echo "<h2 style=\"display: inline\">PDU $pdu U$matrix</h2> $device chip-$chip masterlogic-$masterlogic</h3> ($(date -r $image))" >> $index
        	    echo "<img src=\"$relpath\" alt=\"$device chip-$chip\">" >> $index
 	    echo "</div>" >> $index
 	done
