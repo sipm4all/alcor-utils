@@ -27,7 +27,7 @@ while read -r device ip target firmware monitor enabled; do
     fi
 
     ### obtain enabled chips from configuration
-    chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' /etc/drich/drich_readout.conf | awk {'print $5, $6'} | tr '\n' ' ')
+    chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
     ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
     for chip in $chips; do
 	[[ ! $chip =~ ^[0-5]$ ]] && continue
@@ -50,4 +50,4 @@ EOF
     echo " --- configuration for device ${device} initialised "
     cat /au/pdu/conf/readout.${device}.conf
 
-done < /etc/drich/drich_kc705.conf
+done < ${AU_KC705_CONFIG}

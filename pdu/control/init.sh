@@ -6,7 +6,7 @@ if [ "$#" -ne 1 ]; then
 fi
 name=$1
 
-devices=$(awk '$1 !~ /^#/' /etc/drich/drich_readout.conf | awk {'print $4'} | sort | uniq | tr '\n' ' ')
+devices=$(awk '$1 !~ /^#/' ${AU_READOUT_CONFIG} | awk {'print $4'} | sort | uniq | tr '\n' ' ')
 for device in $devices; do
     [[ $name != "all" ]] && [[ $name != $device ]] && continue
     echo " --- alcorInit on $device "
@@ -18,7 +18,7 @@ exit
 
 while read -r name ip target firmware monitor enabled; do
     [[ $name =~ ^#.* ]] && continue
-done < /etc/drich/drich_kc705.conf
+done < ${AU_KC705_CONFIG}
 
 echo " --- wait for init to be completed "
 wait
