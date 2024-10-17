@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
   auto data = node.readBlock(opt.size);
   hardware.dispatch();
   for (int i = 0; i < data.value().size(); ++i)
-    std::cout << std::hex << data.value()[i] << std::endl;
+    std::cout << std::setfill('0') << std::setw(8) << std::right << std::hex << data.value()[i] << std::endl;
   
   return 0;
 }
