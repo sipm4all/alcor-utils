@@ -484,7 +484,7 @@ def setPCR3Offset(hw,chip,ch,offset):
 
 
 def loadPCRSetup(hw,chip,PCRfile,mask):
-    print("Loading PCR file ",PCRfile,"for chip # ",chip,"....")
+    print("Loading PCR file ",PCRfile,"for chip # ",chip," Mask",mask,"....")
     loadCh=0
     with open(PCRfile) as f:
         for line in f:
