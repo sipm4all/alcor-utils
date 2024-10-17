@@ -18,7 +18,7 @@ OPMODE=1
 OUTPUT_PREFIX="/home/eic/DATA/tmp/ureadout.test"
 OUTPUT_TAGNAME="${OUTPUT_PREFIX}.chip_${CHIP}.channel_${CHANNEL}"
 
-echo " --- running ureadout: device ${DEVICE} chip-${DEVICE} channel ${CHANNEL} "
+echo " --- running ureadout: device ${DEVICE} chip-${CHIP} channel ${CHANNEL} "
 echo "     spill timer: ${TIMER} clock cycles "
 echo "     integrated time: ${INTEGRATED} seconds "
 
