@@ -11,8 +11,11 @@ vth=$4
 offset=$5
 timer=$6
 
-for threshold in {0..63}; do
-    /au/pdu/measure/rate.sh $device $chip $channel --min_timer 31250 --min_counts 1000 --max_timer $timer --range 2 --vth $vth --offset $offset --threshold $threshold | awk {'print $3, $15'} 
+RANGE=2
+
+#for threshold in {0..63}; do
+for threshold in {63..0}; do
+    /au/pdu/measure/rate.sh $device $chip $channel --min_timer 31250 --min_counts 1000 --max_timer $timer --range $RANGE --vth $vth --offset $offset --threshold $threshold | awk {'print $3, $15'} 
 done | tee /tmp/thrscan.dat
 
 /au/pdu/measure/thrscan.py "${device} chip-${chip} chan-${channel} (vth=${vth}, off=${offset})"
