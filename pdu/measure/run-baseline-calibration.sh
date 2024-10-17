@@ -17,9 +17,9 @@ fi
 runname=$1
 DEVICE=$2
 
-### prevent running on kc205-207 timing
-if [[ $DEVICE == "kc705-207" ]]; then
-    echo " --- kc705-207 baseline calibration is inhibited, good day "
+### prevent running on kc205-200 timing
+if [[ $DEVICE == "kc705-200" ]]; then
+    echo " --- kc705-200 baseline calibration is inhibited, good day "
     exit 0
 fi
 
