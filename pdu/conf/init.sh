@@ -21,8 +21,8 @@ while read -r device ip target firmware monitor enabled; do
 
     echo
     
-    if [[ $device == "kc705-207" ]]; then
-	echo " kc705-207 config init is inhibited, good day "
+    if [[ $device == "kc705-200" ]]; then
+	echo " kc705-200 config init is inhibited, good day "
 	continue
     fi
 
