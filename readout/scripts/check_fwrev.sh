@@ -6,4 +6,4 @@ if [ "$#" -ne 1 ]; then
 fi
 device=$1
 
-/au/readout/bin/register --connection /etc/drich/drich_ipbus_connections.xml --device $device --node regfile.fwrev
+/au/readout/bin/register --connection ${AU_IPBUS_CONNECTIONS} --device $device --node regfile.fwrev

@@ -7,4 +7,4 @@ fi
 device=$1
 mode=$2
 
-/au/readout/bin/register --connection /etc/drich/drich_ipbus_connections.xml --device $device --node regfile.mode --write $mode
+/au/readout/bin/register --connection ${AU_IPBUS_CONNECTIONS} --device $device --node regfile.mode --write $mode

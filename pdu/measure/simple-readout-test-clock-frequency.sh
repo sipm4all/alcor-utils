@@ -12,10 +12,10 @@ sleep=$4
 filter=15
 
 ### reset
-#/au/readout/bin/deep-reset --connection /etc/drich/drich_ipbus_connections.xml --device $device --chip $chip
+#/au/readout/bin/deep-reset --connection ${AU_IPBUS_CONNECTIONS} --device $device --chip $chip
 
 ### collect data
-/au/readout/bin/simple-readout --connection /etc/drich/drich_ipbus_connections.xml --filter $filter --device $device --chip $chip --lane $lane --integrated $sleep --usleep 100 --output /tmp/simple-readout.$device > /tmp/simple-readout.$device.$chip.$lane.log
+/au/readout/bin/simple-readout --connection ${AU_IPBUS_CONNECTIONS} --filter $filter --device $device --chip $chip --lane $lane --integrated $sleep --usleep 100 --output /tmp/simple-readout.$device > /tmp/simple-readout.$device.$chip.$lane.log
 
 ### read integrated time from log
 seconds=$(grep seconds /tmp/simple-readout.$device.$chip.$lane.log | awk {'print $1'})

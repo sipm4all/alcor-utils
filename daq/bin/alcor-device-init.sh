@@ -8,7 +8,7 @@ device=$1
 _chip=$2
 
 RDOUT_CONF="/au/pdu/conf/readout.${device}.conf"
-CONN="/etc/drich/drich_ipbus_connections.xml"
+CONN="${AU_IPBUS_CONNECTIONS}"
 SWITCH="-s -i -m 0xffffffff -p 1"
 
 while read -r chip lane eccr bcr pcr; do

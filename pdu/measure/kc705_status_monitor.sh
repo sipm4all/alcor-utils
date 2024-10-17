@@ -7,6 +7,6 @@ fi
 device=$1
 
 while true; do
-    line=$(/au/readout/bin/register --connection /etc/drich/drich_ipbus_connections.xml --device ${device} --node regfile.status)
+    line=$(/au/readout/bin/register --connection ${AU_IPBUS_CONNECTIONS} --device ${device} --node regfile.status)
     echo -ne "$line"\\r
 done

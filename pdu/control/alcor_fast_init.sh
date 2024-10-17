@@ -9,7 +9,7 @@ theChip=$2
 theChannel=$3
 
 RDOUT_CONF=/au/pdu/conf/readout.${device}.conf
-CONN=/etc/drich/drich_ipbus_connections.xml
+CONN=${AU_IPBUS_CONNECTIONS}
 #SWITCH="-s -i -m 0x0 -p 1 --oneChannel $theChannel"
 SWITCH="-s -m 0x0 -p 1 --oneChannel $theChannel"
 

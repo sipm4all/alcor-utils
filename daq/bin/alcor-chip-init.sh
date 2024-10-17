@@ -11,7 +11,7 @@ eccr=$4
 bcr=$5
 pcr=$6
 
-CONN="/etc/drich/drich_ipbus_connections.xml"
+CONN="${AU_IPBUS_CONNECTIONS}"
 SWITCH="-s -i -m 0xffffffff -p 1"
 
 LOG=/tmp/alcor-init.${device}.${chip}.log

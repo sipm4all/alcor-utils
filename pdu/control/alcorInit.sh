@@ -12,7 +12,7 @@ if [ "$4" = "true" ]; then
 fi
 
 RDOUT_CONF="/au/pdu/conf/readout.${device}.conf"
-CONN="/etc/drich/drich_ipbus_connections.xml"
+CONN="${AU_IPBUS_CONNECTIONS}"
 SWITCH="-s -i -m 0xffffffff -p 1"
 
 if [ $runNr -eq 0 ]; then

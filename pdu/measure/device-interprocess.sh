@@ -14,7 +14,7 @@ mode=$2
 ### detect spill down transition
 prevspill=0
 while true; do
-    spill=$(/au/readout/bin/register --connection /etc/drich/drich_ipbus_connections.xml --device $device --node regfile.status | awk {'print $3'})
+    spill=$(/au/readout/bin/register --connection ${AU_IPBUS_CONNECTIONS} --device $device --node regfile.status | awk {'print $3'})
     [[ $prevspill -eq 1 ]] && [[ $spill -eq 0 ]] && break
     prevspill=$((spill))
     sleep 0.001

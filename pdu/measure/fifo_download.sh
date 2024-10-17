@@ -9,8 +9,8 @@ chip=$2
 lane=$3
 sleep=$4
 
-reg="/au/readout/bin/register --connection /etc/drich/drich_ipbus_connections.xml --device ${device}"
-blo="/au/readout/bin/block --connection /etc/drich/drich_ipbus_connections.xml --device ${device}"
+reg="/au/readout/bin/register --connection ${AU_IPBUS_CONNECTIONS} --device ${device}"
+blo="/au/readout/bin/block --connection ${AU_IPBUS_CONNECTIONS} --device ${device}"
 
 main()
 {
@@ -27,7 +27,7 @@ main()
     mode 0x0       # run OFF
 
     ### read ALCOR ECCR
-    echo " --- $(/au/readout/bin/alcor_register --connection /etc/drich/drich_ipbus_connections.xml --device $device --chip $chip --eccr $lane) "
+    echo " --- $(/au/readout/bin/alcor_register --connection ${AU_IPBUS_CONNECTIONS} --device $device --chip $chip --eccr $lane) "
     
     ### read FIFO time
     timer=$(${reg} --node alcor_readout_id${chip}_lane${lane}.fifo_timer | awk {'print $3'})

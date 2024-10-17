@@ -82,7 +82,7 @@ done
 #for I in {0..0}; do /au/masterlogic/temp  $I &> $outputdir/cfg/masterlogic.$I.temp  & done; wait
 
 ### readout options
-connection="/etc/drich/drich_ipbus_connections.xml"
+connection="${AU_IPBUS_CONNECTIONS}"
 ctrl_readout_options="--connection $connection --device $device --usleep 100 --filter $filter --nspill $nspill"
 #nano_readout_options="--connection $connection --device $device --usleep 1000 --staging $staging --occupancy $occupancy --clock $clock --decode"
 #nano_readout_options="--connection $connection --device $device --usleep 1000 --staging $staging --occupancy $occupancy --clock $clock --decode --output $outputdir/raw/alcdaq"

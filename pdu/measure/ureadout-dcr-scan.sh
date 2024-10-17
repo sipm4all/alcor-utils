@@ -161,7 +161,7 @@ for BIAS_VOLTAGE in $BIAS_VOLTAGES; do
 		### collect data
 		echo " --- ureadout: $OUTPUT_TAGNAME "
 		UREADOUT_TIMER=312500   # 10 ms
-		/au/readout/bin/ureadout --connection /etc/drich/drich_ipbus_connections.xml \
+		/au/readout/bin/ureadout --connection ${AU_IPBUS_CONNECTIONS} \
 					 --device ${DEVICE} \
 					 --output $OUTPUT_PREFIX \
 					 --chip $CHIP \

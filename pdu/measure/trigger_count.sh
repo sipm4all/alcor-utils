@@ -7,8 +7,8 @@ fi
 device=$1
 sleep=$2
 
-reg="/au/readout/bin/register --connection /etc/drich/drich_ipbus_connections.xml --device ${device}"
-blo="/au/readout/bin/block --connection /etc/drich/drich_ipbus_connections.xml --device ${device}"
+reg="/au/readout/bin/register --connection ${AU_IPBUS_CONNECTIONS} --device ${device}"
+blo="/au/readout/bin/block --connection ${AU_IPBUS_CONNECTIONS} --device ${device}"
 
 $reg --node regfile.mode --write 0x0 > /dev/null
 $reg --node regfile.mode --write 0x1 > /dev/null

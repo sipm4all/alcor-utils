@@ -6,7 +6,7 @@ if [ -z $1 ] || [ -z $2 ]; then
 fi
 DEVICE=$1
 
-CONN=/etc/drich/drich_ipbus_connections.xml
+CONN=${AU_IPBUS_CONNECTIONS}
 OUTDIR="${HOME}/DATA/scan/GIULIA/HAMA1_sn2/20220420/minus30c"
 TAGNAME="hvzero"
 FINAL_SCAN=false

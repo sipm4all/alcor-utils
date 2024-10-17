@@ -9,7 +9,7 @@ chip=$2
 sleep=$3
 
 ### collect data
-/au/readout/bin/ureadout --connection /etc/drich/drich_ipbus_connections.xml --usleep 10000000 --occupancy 1024 --device $device --chip $chip --channel 0 --integrated $sleep --output /tmp/test > /tmp/test.log
+/au/readout/bin/ureadout --connection ${AU_IPBUS_CONNECTIONS} --usleep 10000000 --occupancy 1024 --device $device --chip $chip --channel 0 --integrated $sleep --output /tmp/test > /tmp/test.log
 
 ### read integrated time from log
 seconds=$(grep seconds /tmp/test.log | awk {'print $1'})
