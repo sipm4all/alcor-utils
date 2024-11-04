@@ -45,19 +45,19 @@ cat <<EOF > $index
 EOF
 
 
-pdus=$(awk '$1 !~ /^#/' /etc/drich/drich_readout.conf | awk {'print $1'} | sort | uniq | tr '\n' ' ')
+pdus=$(awk '$1 !~ /^#/' ${AU_READOUT_CONFIG} | awk {'print $1'} | sort | uniq | tr '\n' ' ')
 
 for pdu in $pdus; do
-    matrices=$(awk -v pdu="$pdu" '$1 !~ /^#/ && $1 == pdu' /etc/drich/drich_readout.conf | awk {'print $3'} | tr '\n' ' ')
+    matrices=$(awk -v pdu="$pdu" '$1 !~ /^#/ && $1 == pdu' ${AU_READOUT_CONFIG} | awk {'print $3'} | tr '\n' ' ')
     
     echo "<div>" >> $index
     echo "<h1>PDU $pdu (run $run)</h1>" >> $index
     echo "<div class=\"gallery\">" >> $index
 
     for matrix in $matrices; do
-	device=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' /etc/drich/drich_readout.conf | awk {'print $4'})
-	masterlogic=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' /etc/drich/drich_readout.conf | awk {'print $7'})
-	chips=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' /etc/drich/drich_readout.conf | awk {'print $5, $6'})
+	device=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' ${AU_READOUT_CONFIG} | awk {'print $4'})
+	masterlogic=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' ${AU_READOUT_CONFIG} | awk {'print $7'})
+	chips=$(awk -v pdu="$pdu" -v matrix="$matrix" '$1 !~ /^#/ && $1 == pdu && $3 == matrix' ${AU_READOUT_CONFIG} | awk {'print $5, $6'})
 	for chip in $chips; do
 	    image=$(readlink -f "$basedir/$device/$run/s13-chip$chip/cthr.png")
 	    [ -z $image ] && continue

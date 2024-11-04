@@ -27,7 +27,7 @@ fi
 [ -f /tmp/run-baseline-calibration.$DEVICE.running ] && exit 1
 
 ### obtain enabled chips from configuration
-chips=$(awk -v device="$DEVICE" '$1 !~ /^#/ && $4 == device' /etc/drich/drich_readout.conf | awk {'print $5, $6'} | tr '\n' ' ')
+chips=$(awk -v device="$DEVICE" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
 for chip in $chips; do
     [[ ! $chip =~ ^[0-5]$ ]] && continue
     ENA[$chip]="0xf"
@@ -58,7 +58,7 @@ mkdir -p $DIR
 ln -sfn $DIR $BASEDIR/latest
 
 ### obtain masterlogic boards from configuration and set to zero
-#masterlogics=$(awk -v device="$DEVICE" '$1 !~ /^#/ && $4 == device' /etc/drich/drich_readout.conf | awk {'print $7'} | tr '\n' ' ')
+#masterlogics=$(awk -v device="$DEVICE" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $7'} | tr '\n' ' ')
 #for masterlogic in $masterlogics; do
 #    /au/pdu/masterlogic/zero $masterlogic
 #done

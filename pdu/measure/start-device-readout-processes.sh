@@ -20,7 +20,7 @@ nspill=1
 
 ### obtain enabled chips from configuration
 ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
-chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' /etc/drich/drich_readout.conf | awk {'print $5, $6'} | tr '\n' ' ')
+chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
 for chip in $chips; do
     [[ ! $chip =~ ^[0-5]$ ]] && continue
     ENA[$chip]="0xf"

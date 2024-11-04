@@ -174,11 +174,11 @@ system-noise-scan()
 run-dcr-setup()
 {
     device=$1
-    chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' /etc/drich/drich_readout.conf | awk {'print $5, $6'} | tr '\n' ' ')
+    chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
     for chip in $chips; do
 	[[ ! $chip =~ ^[0-5]$ ]] && continue
-	type=$(awk -v device="$device" -v chip=$chip '$1 !~ /^#/ && $4 == device && ($5 == chip || $6 == chip)' /etc/drich/drich_readout.conf | awk {'print $2'} | tr '\n' ' ')
-	masterlogic=$(awk -v device="$device" -v chip=$chip '$1 !~ /^#/ && $4 == device && ($5 == chip || $6 == chip)' /etc/drich/drich_readout.conf | awk {'print $7'} | tr '\n' ' ')
+	type=$(awk -v device="$device" -v chip=$chip '$1 !~ /^#/ && $4 == device && ($5 == chip || $6 == chip)' ${AU_READOUT_CONFIG} | awk {'print $2'} | tr '\n' ' ')
+	masterlogic=$(awk -v device="$device" -v chip=$chip '$1 !~ /^#/ && $4 == device && ($5 == chip || $6 == chip)' ${AU_READOUT_CONFIG} | awk {'print $7'} | tr '\n' ' ')
 	run-dcr-scan $device $chip $masterlogic $type
     done
 }

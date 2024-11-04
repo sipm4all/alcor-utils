@@ -6,7 +6,7 @@ if [ "$#" -ne 1 ]; then
 fi
 name=$1
 
-devices=$(awk '$1 !~ /^#/' /etc/drich/drich_readout.conf | awk {'print $4'} | sort | uniq | tr '\n' ' ')
+devices=$(awk '$1 !~ /^#/' ${AU_READOUT_CONFIG} | awk {'print $4'} | sort | uniq | tr '\n' ' ')
 for device in $devices; do
     [[ $name != "all" ]] && [[ $name != $device ]] && continue
     echo " --- alcorInit on $device "

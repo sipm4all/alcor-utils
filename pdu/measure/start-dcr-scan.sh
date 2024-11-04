@@ -8,7 +8,7 @@ name=$1
 setup=$2
 
 runname=$(date +%Y%m%d-%H%M%S)
-devices=$(awk '$1 !~ /^#/' /etc/drich/drich_readout.conf | awk {'print $4'} | sort | uniq | tr '\n' ' ')
+devices=$(awk '$1 !~ /^#/' ${AU_READOUT_CONFIG} | awk {'print $4'} | sort | uniq | tr '\n' ' ')
 
 telegram_message.sh "requested DCR scan: ${runname} ${name}"
 
