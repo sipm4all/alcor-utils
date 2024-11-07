@@ -1,5 +1,10 @@
 #! /usr/bin/bash
 
+if [ "$#" -ne 4 ]; then
+    echo "  usage: $0 [masterlogic] [board type] [voltage] [channel]"
+    echo "example: $0 0 fbk 41 ch-0"
+    exit 1
+fi
 number=$1
 name=$2
 volts=$3
