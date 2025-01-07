@@ -88,8 +88,8 @@ int rc = 0, eu = 0, pu = 0, bu =0;
 long long int start_of_run = 0, uptime = 0;
 fstream LogFile;
 std::mutex bus;
-atomic_bool stop_monitor_seu = false;
-atomic_bool stop_logger = false;
+atomic_bool stop_monitor_seu = false ;
+atomic_bool stop_logger = false ;
 
 int lsw[LANES]={4*0};
 
@@ -183,7 +183,7 @@ void logSession(program_options_t opt) {
   log("Session started");
   while (!stop_logger ) {
     sleep(20);
-    logCounters();
+    //    logCounters();
   }
   log("logger exiting");
 }
