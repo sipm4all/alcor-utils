@@ -27,14 +27,14 @@ while read -r device ip target firmware monitor enabled; do
     
     ### obtain enabled chips from configuration
     chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
-    ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
+    ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
     for chip in $chips; do
-	[[ ! $chip =~ ^[0-5]$ ]] && continue
+	[[ ! $chip =~ ^[0-7]$ ]] && continue
 	ENA[$chip]="0xf"
     done
 
     ### create current from delta10
-    for chip in {0..5}; do
+    for chip in {0..7}; do
 	cp /au/pdu/conf/pcr/baseline-calibration/${device}/${baseline}/PCR/chip${chip}.range2.delta10.pcr /au/pdu/conf/pcr/baseline-calibration/${device}/${baseline}/PCR/chip${chip}.range2.current.pcr
     done
     
@@ -46,6 +46,8 @@ while read -r device ip target firmware monitor enabled; do
 3 	${ENA[3]}	0xb01b	current	baseline-calibration/${device}/${baseline}/PCR/chip3.range2.current
 4 	${ENA[4]}	0xb01b	current	baseline-calibration/${device}/${baseline}/PCR/chip4.range2.current
 5 	${ENA[5]}	0xb01b	current	baseline-calibration/${device}/${baseline}/PCR/chip5.range2.current
+6 	${ENA[6]}	0xb01b	current	baseline-calibration/${device}/${baseline}/PCR/chip6.range2.current
+7 	${ENA[7]}	0xb01b	current	baseline-calibration/${device}/${baseline}/PCR/chip6.range2.current
 # don't delete this line
 EOF
     

@@ -2,12 +2,12 @@
 
 ### default arguments
 BCRCONF="current"
-ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
+ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
 #RANGE=("0" "0" "0" "0" "0" "0")
-RANGE=("1" "1" "1" "1" "1" "1")
-RANGE=("2" "2" "2" "2" "2" "2")
-DELTA=("5" "5" "5" "5" "5" "5")
-DELTA=("15" "15" "15" "15" "15" "15")
+RANGE=("1" "1" "1" "1" "1" "1" "1" "1")
+RANGE=("2" "2" "2" "2" "2" "2" "2" "2")
+DELTA=("5" "5" "5" "5" "5" "5" "5" "5")
+DELTA=("15" "15" "15" "15" "15" "15" "15")
 
 ### external parameters
 if [ "$#" -ne 2 ]; then
@@ -29,7 +29,7 @@ fi
 ### obtain enabled chips from configuration
 chips=$(awk -v device="$DEVICE" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
 for chip in $chips; do
-    [[ ! $chip =~ ^[0-5]$ ]] && continue
+    [[ ! $chip =~ ^[0-7]$ ]] && continue
     ENA[$chip]="0xf"
 done
 
@@ -73,6 +73,8 @@ cat <<EOF > $DIR/readout.${DEVICE}.maxthreshold.conf
 3  	 ${ENA[3]}	 0xb01b 	${BCRCONF}	maxthreshold
 4  	 ${ENA[4]}	 0xb01b 	${BCRCONF}	maxthreshold
 5  	 ${ENA[5]}	 0xb01b 	${BCRCONF}	maxthreshold
+6  	 ${ENA[6]}	 0xb01b 	${BCRCONF}	maxthreshold
+7  	 ${ENA[7]}	 0xb01b 	${BCRCONF}	maxthreshold
 # don't delete this line
 EOF
 ln -sf $DIR/readout.${DEVICE}.maxthreshold.conf /au/pdu/conf/readout.${DEVICE}.conf
@@ -94,6 +96,8 @@ cat <<EOF > $DIR/readout.${DEVICE}.baseline.conf
 3  	 ${ENA[3]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip3.range${RANGE[3]}
 4  	 ${ENA[4]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip4.range${RANGE[4]}
 5  	 ${ENA[5]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip5.range${RANGE[5]}
+6  	 ${ENA[6]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip6.range${RANGE[6]}
+7  	 ${ENA[7]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip7.range${RANGE[7]}
 # don't delete this line
 EOF
 ln -sf $DIR/readout.${DEVICE}.baseline.conf /au/pdu/conf/readout.${DEVICE}.baseline.conf
@@ -107,6 +111,8 @@ cat <<EOF > $DIR/readout.${DEVICE}.current.conf
 3  	 ${ENA[3]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip3.range${RANGE[3]}.current
 4  	 ${ENA[4]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip4.range${RANGE[4]}.current
 5  	 ${ENA[5]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip5.range${RANGE[5]}.current
+6  	 ${ENA[6]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip6.range${RANGE[6]}.current
+7  	 ${ENA[7]}	 0xb01b 	${BCRCONF}	${PCRDIR}/chip7.range${RANGE[7]}.current
 # don't delete this line
 EOF
 ln -sf $DIR/readout.${DEVICE}.current.conf /au/pdu/conf/readout.${DEVICE}.current.conf

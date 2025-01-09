@@ -19,10 +19,10 @@ nspill=1
 [[ -v DRICH_READOUT_NSPILL ]] && nspill=$DRICH_READOUT_NSPILL
 
 ### obtain enabled chips from configuration
-ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
+ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
 chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
 for chip in $chips; do
-    [[ ! $chip =~ ^[0-5]$ ]] && continue
+    [[ ! $chip =~ ^[0-7]$ ]] && continue
     ENA[$chip]="0xf"
 done
 
@@ -69,7 +69,7 @@ echo " --- running from: $outputdir " | tee -a $outputdir/log/start-readout-proc
 ### copy relevant configuration files
 cp -L $0 $outputdir/cfg/$(basename "$0")
 cp -L /au/pdu/conf/readout.$device.conf $outputdir/cfg/readout.conf
-for chip in {0..5}; do
+for chip in {0..7}; do
     bcrfile=$(grep "^$chip" /au/pdu/conf/readout.$device.conf | awk {'print $4'})
     cp /au/pdu/conf/bcr/$bcrfile.bcr $outputdir/cfg/chip$chip.bcr
     pcrfile=$(grep "^$chip" /au/pdu/conf/readout.$device.conf | awk {'print $5'})
@@ -99,7 +99,7 @@ echo " --- started ctrl-readout process " | tee -a $outputdir/log/start-readout-
 sleep 1
 
 ### start ALCOR nano-readout processes
-for chip in {0..5}; do
+for chip in {0..7}; do
     enabled=${ENA[$chip]}
     for lane in {0..3}; do
 	[[ $(( enabled & (1 << lane) )) = 0 ]] && continue
@@ -130,7 +130,7 @@ echo " --- waiting for readout processes to complete " | tee -a $outputdir/log/s
 wait
 
 ### start ALCOR decoder processes
-for chip in {0..5}; do
+for chip in {0..7}; do
     enabled=${ENA[$chip]}
     for lane in {0..3}; do
 	[[ $(( enabled & (1 << lane) )) = 0 ]] && continue

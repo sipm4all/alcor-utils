@@ -48,7 +48,7 @@ for device in $devices; do
     echo "<h1>$device</h1>" >> $index
     echo "<div class=\"gallery\">" >> $index
 
-    for chip in {0..5}; do
+    for chip in {0..7}; do
 	image=$(readlink -f "$basedir/$device/latest/s13-chip$chip/cthr.png")
 	[ -z $image ] && continue
 	relpath=${image#"$basedir/"}

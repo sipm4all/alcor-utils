@@ -55,7 +55,7 @@ for device in $devices; do
     echo "<h1>$device (run $run)</h1>" >> $index
     echo "<div class=\"gallery\">" >> $index
 
-    for chip in {0..5}; do
+    for chip in {0..7}; do
 	for channel in {0..31}; do
 	    image="$device/$run/PNG/scanthr.chip_$chip.channel_$channel.png"
 	    [ ! -f $basedir/$image ] && continue
