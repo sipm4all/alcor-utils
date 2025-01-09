@@ -145,10 +145,10 @@ cmdOptList = ["Reset Delay Ctrl","Reset SerDes","Set Delay Taps","Set Sync Reset
 
 
 ### Register naming / chip dependent   *** must match address_table ***
-ctrlRegList={0:"alcor_controller_id0",1:"alcor_controller_id1",2:"alcor_controller_id2",3:"alcor_controller_id3",4:"alcor_controller_id4",5:"alcor_controller_id5"}
-fifoRegList={0:"alcor_readout_id0",1:"alcor_readout_id1",2:"alcor_readout_id2",3:"alcor_readout_id3",4:"alcor_readout_id4",5:"alcor_readout_id5"}
-spiRegList={0:"spi_id0",1:"spi_id1",2:"spi_id2",3:"spi_id3",4:"spi_id4",5:"spi_id5"}
-pulserRegList={0:"testpulse_id0",1:"testpulse_id1",2:"testpulse_id2",3:"testpulse_id3",4:"testpulse_id4",5:"testpulse_id5"}
+ctrlRegList={0:"alcor_controller_id0",1:"alcor_controller_id1",2:"alcor_controller_id2",3:"alcor_controller_id3",4:"alcor_controller_id4",5:"alcor_controller_id5",6:"alcor_controller_id6",7:"alcor_controller_id7"}
+fifoRegList={0:"alcor_readout_id0",1:"alcor_readout_id1",2:"alcor_readout_id2",3:"alcor_readout_id3",4:"alcor_readout_id4",5:"alcor_readout_id5",6:"alcor_readout_id6",7:"alcor_readout_id7"}
+spiRegList={0:"spi_id0",1:"spi_id1",2:"spi_id2",3:"spi_id3",4:"spi_id4",5:"spi_id5",6:"spi_id6",7:"spi_id7"}
+pulserRegList={0:"testpulse_id0",1:"testpulse_id1",2:"testpulse_id2",3:"testpulse_id3",4:"testpulse_id4",5:"testpulse_id5",6:"testpulse_id6",7:"testpulse_id7"}
 
 # Miscellanea
 actWrd={RDREG:'Expected',SETREG:'Setting'}

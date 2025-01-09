@@ -153,6 +153,54 @@
     <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
     <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
   </node>
+ <node id="alcor_readout_id6_lane0" address="0x00036000">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
+  <node id="alcor_readout_id6_lane1" address="0x00036100">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
+  <node id="alcor_readout_id6_lane2" address="0x00036200">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
+  <node id="alcor_readout_id6_lane3" address="0x00036300">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
+   <node id="alcor_readout_id7_lane0" address="0x00037000">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
+  <node id="alcor_readout_id7_lane1" address="0x00037100">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
+  <node id="alcor_readout_id7_lane2" address="0x00037200">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
+  <node id="alcor_readout_id7_lane3" address="0x00037300">
+    <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>
+    <node id="fifo_reset" address="0x00000002" mode="single" permission="w"/>
+    <node id="fifo_data" address="0x00000003" mode="non-incremental" size="8193" permission="rw"/>
+    <node id="fifo_timer" address="0x00000005" mode="single" permission="r"/>
+  </node>
   <node id="spi_id0" address="0x00040000" mode="single" permission="rw">
 	<node id="tx0_rx0" address="0x00000000" />
 	<node id="tx1_rx1" address="0x00000004" />
@@ -207,6 +255,24 @@
         <node id="divider" address="0x00000014" />
         <node id="ss"      address="0x00000018" />
   </node>
+<node id="spi_id6" address="0x00046000" mode="single" permission="rw">
+        <node id="tx0_rx0" address="0x00000000" />
+        <node id="tx1_rx1" address="0x00000004" />
+        <node id="tx2_rx2" address="0x00000008" />
+        <node id="tx3_rx3" address="0x0000000c" />
+        <node id="ctrl"    address="0x00000010" />
+        <node id="divider" address="0x00000014" />
+        <node id="ss"      address="0x00000018" />
+  </node>
+  <node id="spi_id7" address="0x00047000" mode="single" permission="rw">
+        <node id="tx0_rx0" address="0x00000000" />
+        <node id="tx1_rx1" address="0x00000004" />
+        <node id="tx2_rx2" address="0x00000008" />
+        <node id="tx3_rx3" address="0x0000000c" />
+        <node id="ctrl"    address="0x00000010" />
+        <node id="divider" address="0x00000014" />
+        <node id="ss"      address="0x00000018" />
+  </node>
   <node id="pulser" address="0x00050000" mode="single" permission="rw">
         <node id="reset_id0" address="0x00000000" />
         <node id="testpulse_id0" address="0x00000003" />
@@ -220,6 +286,10 @@
         <node id="testpulse_id4" address="0x0000000D" />
  	<node id="reset_id5" address="0x0000000E" />
         <node id="testpulse_id5" address="0x0000000F" />
+	<node id="reset_id6" address="0x00000010" />
+        <node id="testpulse_id6" address="0x00000011" />
+	<node id="reset_id7" address="0x000000012" />
+        <node id="testpulse_id7" address="0x00000013" />
   </node>
   <node id="alcor_controller_id0" address="0x00060000" mode="single" permission="rw">
   </node>
@@ -232,6 +302,10 @@
   <node id="alcor_controller_id4" address="0x00064000" mode="single" permission="rw">
   </node>
   <node id="alcor_controller_id5" address="0x00065000" mode="single" permission="rw">
+  </node>
+  <node id="alcor_controller_id6" address="0x00066000" mode="single" permission="rw">
+  </node>
+  <node id="alcor_controller_id7" address="0x00067000" mode="single" permission="rw">
   </node>
   <node id="trigger_info" address="0x00070000">
     <node id="fifo_occupancy" address="0x00000001" mode="single" permission="r"/>

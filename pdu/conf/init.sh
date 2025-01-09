@@ -28,7 +28,7 @@ while read -r device ip target firmware monitor enabled; do
 
     ### obtain enabled chips from configuration
     chips=$(awk -v device="$device" '$1 !~ /^#/ && $4 == device' ${AU_READOUT_CONFIG} | awk {'print $5, $6'} | tr '\n' ' ')
-    ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
+    ENA=("0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0" "0x0")
     for chip in $chips; do
 	[[ ! $chip =~ ^[0-5]$ ]] && continue
 	ENA[$chip]="0xf"
@@ -42,6 +42,8 @@ while read -r device ip target firmware monitor enabled; do
 3 	${ENA[3]}	0xb01b	${BCRCONF}	${PCRCONF}
 4 	${ENA[4]}	0xb01b	${BCRCONF}	${PCRCONF}
 5 	${ENA[5]}	0xb01b	${BCRCONF}	${PCRCONF}
+6 	${ENA[6]}	0xb01b	${BCRCONF}	${PCRCONF}
+7 	${ENA[7]}	0xb01b	${BCRCONF}	${PCRCONF}
 # don't delete this line
 EOF
     

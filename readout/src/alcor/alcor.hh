@@ -1,3 +1,4 @@
+
 #ifndef __ALCOR_ALCOR_H__
 #define __ALCOR_ALCOR_H__
 
@@ -402,11 +403,11 @@ namespace alcor {
     uhal::HwInterface *hardware;
     regfile_t regfile;
     trigger_t trigger;
-    alcor_t alcor[6];
+    alcor_t alcor[8];
     void init(uhal::HwInterface &hw) {
       regfile.init(hw);
       trigger.init(hw);
-      for (int chip = 0; chip < 6; ++chip)
+      for (int chip = 0; chip < 8; ++chip)
 	alcor[chip].init(hw, chip);
     };
   };
