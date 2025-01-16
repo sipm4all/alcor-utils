@@ -17,4 +17,4 @@ while read -r name ip target firmware monitor; do
 	/home/eic/bin/influx_write.sh "kc705,device=$name,name=programmed value=0"
 	/home/eic/bin/influx_write.sh "kc705,device=$name,name=firmware message=\"failed\""
     fi
-done < /etc/drich/drich_kc705.conf
+done < ${AU_KC705_CONFIG}

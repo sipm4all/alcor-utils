@@ -12,7 +12,7 @@ monitor_loop() {
 		need_ping_update 0 $name && update_ping 0 $name
 	    fi
       
-	done < /etc/drich/drich_kc705.conf
+	done < ${AU_KC705_CONFIG}
 	sleep 60
     done
 }
