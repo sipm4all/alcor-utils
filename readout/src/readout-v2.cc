@@ -16,7 +16,7 @@
 
 #define VERSION 0x20220824
 #define MAX_FIFOS 25
-#define MAX_ALCORS 6
+#define MAX_ALCORS 8
 
 bool running = true;
 bool monitor = false;
