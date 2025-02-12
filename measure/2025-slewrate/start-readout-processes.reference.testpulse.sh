@@ -1,0 +1,1 @@
+start-readout-processes.chip0.testpulse.sh

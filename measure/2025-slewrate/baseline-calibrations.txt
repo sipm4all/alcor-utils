@@ -1,0 +1,4 @@
+#what      temp  bcrconfig         run
+reference  20    config.300.25.12  20250112-085010
+target	   20    config.300.25.12  
+
